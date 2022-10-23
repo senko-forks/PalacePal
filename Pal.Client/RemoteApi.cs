@@ -17,13 +17,13 @@ namespace Pal.Client
 #if DEBUG
         private const string remoteUrl = "http://localhost:5145";
 #else
-        private const string remoteUrl = "https://pal.μ.tv:47701";
+        private const string remoteUrl = "https://pal.μ.tv";
 #endif
         private GrpcChannel _channel;
         private string _authToken;
         private DateTime _tokenExpiresAt;
 
-        private async Task<bool> Connect(CancellationToken cancellationToken)
+        private async Task<bool> Connect(CancellationToken cancellationToken, bool retry = true)
         {
             if (Service.Configuration.Mode != Configuration.EMode.Online)
                 return false;
@@ -74,6 +74,24 @@ namespace Pal.Client
                 {
                     _authToken = loginReply.AuthToken;
                     _tokenExpiresAt = loginReply.ExpiresAt.ToDateTime().ToLocalTime();
+                }
+                else
+                {
+                    _authToken = null;
+                    if (loginReply.Error == LoginError.InvalidAccountId)
+                    {
+                        accountId = null;
+#if DEBUG
+                        Service.Configuration.DebugAccountId = accountId;
+#else
+                        Service.Configuration.AccountId = accountId;
+#endif
+                        Service.Configuration.Save();
+                        if (retry)
+                            return await Connect(cancellationToken, retry: false);
+                        else
+                            return false;
+                    }
                 }
             }
 

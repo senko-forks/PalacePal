@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using static Account.AccountService;
@@ -38,6 +39,18 @@ namespace Pal.Server.Services
             try
             {
                 var remoteIp = context.GetHttpContext().Connection.RemoteIpAddress;
+                if (remoteIp != null && (remoteIp.ToString().StartsWith("127.") || remoteIp.ToString() == "::1"))
+                {
+                    remoteIp = null;
+                    foreach (var header in context.RequestHeaders)
+                    {
+                        if (header.Key == "x-real-ip")
+                        {
+                            remoteIp = IPAddress.Parse(header.Value);
+                            break;
+                        }
+                    }
+                }
                 if (remoteIp == null)
                     return new CreateAccountReply { Success = false };
 
@@ -47,7 +60,7 @@ namespace Pal.Server.Services
                 Account? existingAccount = await _dbContext.Accounts.FirstOrDefaultAsync(a => a.IpHash == ipHash, cancellationToken: context.CancellationToken);
                 if (existingAccount != null)
                 {
-                    _logger.LogInformation("CreateAccount: Returning existing account {AccountId} for ip hash {IpHash}", existingAccount.Id, ipHash);
+                    _logger.LogInformation("CreateAccount: Returning existing account {AccountId} for ip hash {IpHash} ({Ip})", existingAccount.Id, ipHash, remoteIp.ToString().Substring(0, 5));
                     return new CreateAccountReply { Success = true, AccountId = existingAccount.Id.ToString() };
                 }
 
@@ -83,14 +96,14 @@ namespace Pal.Server.Services
                 if (!Guid.TryParse(request.AccountId, out Guid accountId))
                 {
                     _logger.LogWarning("Submitted account id '{AccountId}' is not a valid id", request.AccountId);
-                    return new LoginReply { Success = false };
+                    return new LoginReply { Success = false, Error = LoginError.Unknown };
                 }
 
                 var existingAccount = await _dbContext.Accounts.FindAsync(new object[] { accountId }, cancellationToken: context.CancellationToken);
                 if (existingAccount == null)
                 {
                     _logger.LogWarning("Could not find account with id '{AccountId}'", accountId);
-                    return new LoginReply { Success = false };
+                    return new LoginReply { Success = false, Error = LoginError.InvalidAccountId };
                 }
 
                 var tokenHandler = new JwtSecurityTokenHandler();
@@ -113,7 +126,7 @@ namespace Pal.Server.Services
             catch (Exception e)
             {
                 _logger.LogError("Could not log into account {Account}: {e}", request.AccountId, e);
-                return new LoginReply { Success = false };
+                return new LoginReply { Success = false, Error = LoginError.Unknown };
             }
         }
 
