@@ -1,0 +1,73 @@
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
+
+namespace Pal.Server
+{
+    public class Account
+    {
+        public Guid Id { get; set; }
+
+        /// <summary>
+        /// Anti-Spam: This is a hash of the IP address used to create the account - if you try to create an account later and have the same IP hash
+        /// (which should only happen if you have the same IP), this will return the old account id.
+        ///
+        /// This will be deleted after a set time after account creation.
+        /// </summary>
+        /// <seealso cref="Pal.Server.Services.RemoveIpHashService"/>
+        [MaxLength(20)]
+        public string? IpHash { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class PalaceLocation
+    {
+        public Guid Id { get; set; }
+        public ushort TerritoryType { get; set; }
+        public EType Type { get; set; }
+        public float X { get; set; }
+        public float Y { get; set; }
+        public float Z { get; set; }
+
+        public enum EType 
+        {
+            Trap = 1,
+            Hoard = 2
+        }
+    }
+
+    public class GlobalSetting
+    { 
+        public GlobalSetting(string key, string value)
+        {
+            Key = key;
+            Value = value;
+        }
+
+        [Key]
+        public string Key { get; set; }
+
+        [MaxLength(128)]
+        public string Value { get; set; }
+    }
+
+    public class PalContext : DbContext
+    {
+        public DbSet<Account> Accounts { get; set; } = null!;
+        public DbSet<PalaceLocation> Locations { get; set; } = null!;
+        public DbSet<GlobalSetting> GlobalSettings { get; set; } = null!;
+
+        public string DbPath { get; }
+
+        public PalContext()
+        {
+#if DEBUG
+            DbPath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "pal.db");
+#else
+            DbPath = "palace-pal.db";
+#endif
+        }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder options) 
+            => options.UseSqlite($"Data Source={DbPath}");
+    }
+}
