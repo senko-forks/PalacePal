@@ -28,6 +28,9 @@ namespace Pal.Server
         public float Y { get; set; }
         public float Z { get; set; }
 
+        public Guid AccountId { get; set; }
+        public DateTime CreatedAt { get; set; }
+
         public enum EType 
         {
             Trap = 1,

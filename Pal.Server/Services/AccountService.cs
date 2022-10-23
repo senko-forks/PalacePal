@@ -96,7 +96,7 @@ namespace Pal.Server.Services
                 var tokenHandler = new JwtSecurityTokenHandler();
                 var tokenDescriptor = new SecurityTokenDescriptor
                 {
-                    Subject = new ClaimsIdentity(new[] { new Claim("sub", accountId.ToString()) }),
+                    Subject = new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, accountId.ToString()) }),
                     Expires = DateTime.Now.AddDays(1),
                     Issuer = _tokenIssuer,
                     Audience = _tokenAudience,
@@ -120,6 +120,7 @@ namespace Pal.Server.Services
         [Authorize]
         public override Task<VerifyReply> Verify(VerifyRequest request, ServerCallContext context)
         {
+            var _ = context.GetAccountId();
             return Task.FromResult(new VerifyReply());
         }
     }

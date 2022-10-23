@@ -47,6 +47,7 @@ namespace Pal.Server.Services
         {
             try
             {
+                var accountId = context.GetAccountId();
                 var territoryType = (ushort)request.TerritoryType;
 
                 // shouldn't happen, since we always download prior to upload...
@@ -56,6 +57,7 @@ namespace Pal.Server.Services
                     return new UploadFloorsReply { Success = false };
                 }
 
+                DateTime createdAt = DateTime.Now;
                 var newLocations = request.Objects.Where(o => !objects.Values.Any(x => CalculateHash(x) == CalculateHash(o)))
                     .Where(o => o.Type != ObjectType.Unknown && o.X != 0 && o.Y != 0 && o.Z != 0)
                     .DistinctBy(o => CalculateHash(o))
@@ -67,6 +69,8 @@ namespace Pal.Server.Services
                         X = o.X,
                         Y = o.Y,
                         Z = o.Z,
+                        AccountId = accountId,
+                        CreatedAt = createdAt,
                     })
                     .ToList();
                 if (newLocations.Count > 0)
