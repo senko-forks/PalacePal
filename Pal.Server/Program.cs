@@ -34,6 +34,8 @@ namespace Pal.Server
             });
             builder.Services.AddAuthorization();
 
+            builder.Host.UseSystemd();
+
             var app = builder.Build();
             app.UseAuthentication();
             app.UseAuthorization();

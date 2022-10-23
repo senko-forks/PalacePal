@@ -32,7 +32,7 @@ namespace Pal.Server.Services
                     objects = await LoadObjects(territoryType, context.CancellationToken);
 
                 var reply = new DownloadFloorsReply { Success = true };
-                reply.Objects.AddRange(objects.Values);
+                reply.Objects.AddRange(objects!.Values);
                 return reply;
             } 
             catch (Exception e)
@@ -58,7 +58,7 @@ namespace Pal.Server.Services
                 }
 
                 DateTime createdAt = DateTime.Now;
-                var newLocations = request.Objects.Where(o => !objects.Values.Any(x => CalculateHash(x) == CalculateHash(o)))
+                var newLocations = request.Objects.Where(o => !objects!.Values.Any(x => CalculateHash(x) == CalculateHash(o)))
                     .Where(o => o.Type != ObjectType.Unknown && o.X != 0 && o.Y != 0 && o.Z != 0)
                     .DistinctBy(o => CalculateHash(o))
                     .Select(o => new PalaceLocation
@@ -80,7 +80,7 @@ namespace Pal.Server.Services
 
                     foreach (var location in newLocations)
                     {
-                        objects[location.Id] = new PalaceObject { Type = (ObjectType)location.Type, X = location.X, Y = location.Y, Z = location.Z };
+                        objects![location.Id] = new PalaceObject { Type = (ObjectType)location.Type, X = location.X, Y = location.Y, Z = location.Z };
                     }
 
                     _logger.LogInformation("Saved {Count} new locations for territory type {TerritoryType}", newLocations.Count, territoryType);

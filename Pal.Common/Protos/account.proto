@@ -35,6 +35,13 @@ message LoginReply {
 	bool success = 1;
 	string authToken = 2;
 	google.protobuf.Timestamp expiresAt = 3;
+	LoginError error = 4;
+}
+
+enum LoginError {
+	LOGIN_ERROR_NONE = 0;
+	LOGIN_ERROR_UNKNOWN = 1;
+	LOGIN_ERROR_INVALID_ACCOUNT_ID = 2;
 }
 
 message VerifyRequest {
