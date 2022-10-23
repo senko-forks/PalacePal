@@ -57,7 +57,6 @@ namespace Pal.Client
             var configWindow = pluginInterface.Create<ConfigWindow>();
             if (configWindow is not null)
             {
-                configWindow.IsOpen = true;
                 Service.WindowSystem.AddWindow(configWindow);
             }
 

@@ -43,13 +43,23 @@ namespace Pal.Client
             }
 
             var accountClient = new AccountService.AccountServiceClient(_channel);
+#if DEBUG
+            string accountId = Service.Configuration.DebugAccountId;
+#else
             string accountId = Service.Configuration.AccountId;
+#endif
             if (string.IsNullOrEmpty(accountId))
             {
                 var createAccountReply = await accountClient.CreateAccountAsync(new CreateAccountRequest(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
                 if (createAccountReply.Success)
                 {
-                    Service.Configuration.AccountId = accountId = createAccountReply.AccountId;
+                    accountId = createAccountReply.AccountId;
+#if DEBUG
+                    Service.Configuration.DebugAccountId = accountId;
+#else
+                    Service.Configuration.AccountId = accountId;
+
+#endif
                     Service.Configuration.Save();
                 }
             }

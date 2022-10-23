@@ -13,6 +13,7 @@ namespace Pal.Client
         #region Saved configuration values
         public bool FirstUse { get; set; } = true;
         public EMode Mode { get; set; } = EMode.Offline;
+        public string DebugAccountId { get; set; }
         public string AccountId { get; set; }
 
         public bool ShowTraps { get; set; } = true;
