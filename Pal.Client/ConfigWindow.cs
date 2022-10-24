@@ -23,7 +23,7 @@ namespace Pal.Client
         private Vector4 _hoardColor;
         private string _connectionText;
 
-        public ConfigWindow() : base("Pal Palace - Configuration###PalPalaceConfig")
+        public ConfigWindow() : base("Palace Pal - Configuration###PalPalaceConfig")
         {
             Size = new Vector2(500, 400);
             SizeCondition = ImGuiCond.FirstUseEver;

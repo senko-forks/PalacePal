@@ -10,7 +10,7 @@ namespace Pal.Client
     {
         private int _choice;
 
-        public AgreementWindow() : base("Pal Palace###PalPalaceAgreement")
+        public AgreementWindow() : base("Palace Pal###PalPalaceAgreement")
         {
             Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse;
             Size = new Vector2(500, 500);
