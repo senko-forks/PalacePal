@@ -128,14 +128,6 @@ namespace Pal.Client
                                 ImGui.Text($"{currentFloorMarkers.Count(x => x != null && x.Type == Palace.ObjectType.Trap)} known traps");
                             if (_showHoard)
                                 ImGui.Text($"{currentFloorMarkers.Count(x => x != null && x.Type == Palace.ObjectType.Hoard)} known hoard coffers");
-
-                            foreach (var m in currentFloorMarkers)
-                            {
-                                var dup = currentFloorMarkers.FirstOrDefault(x => !ReferenceEquals(x, m) && x.GetHashCode() == m.GetHashCode());
-                                if (dup != null)
-                                    ImGui.Text($"{m.Type} {m.Position} // {dup.Type} {dup.Position}");
-
-                            }
                         }
                         else
                             ImGui.Text("Could not query current trap/coffer count.");
