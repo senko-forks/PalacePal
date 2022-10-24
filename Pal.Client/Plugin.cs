@@ -139,6 +139,7 @@ namespace Pal.Client
                     if (IsInPotdOrHoh())
                         FloorMarkers[LastTerritory] = new ConcurrentBag<Marker>(LoadSavedMarkers());
                     recreateLayout = true;
+                    DebugMessage = null;
                 }
 
                 if (!IsInPotdOrHoh())
@@ -283,7 +284,7 @@ namespace Pal.Client
                             continue;
                         }
 
-                        downloadedMarkers.Add(seenMarker);
+                        currentFloorMarkers.Add(downloadedMarker);
                     }
                 }
 
