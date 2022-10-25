@@ -8,7 +8,7 @@ namespace Pal.Client
 {
     internal class Marker
     {
-        public ObjectType Type { get; set; } = ObjectType.Unknown;
+        public EType Type { get; set; } = EType.Unknown;
         public Vector3 Position { get; set; }
         public bool Seen { get; set; } = false;
 
@@ -18,7 +18,7 @@ namespace Pal.Client
         [JsonIgnore]
         public Element SplatoonElement { get; set; }
 
-        public Marker(ObjectType type, Vector3 position)
+        public Marker(EType type, Vector3 position)
         {
             Type = type;
             Position = position;
@@ -31,7 +31,34 @@ namespace Pal.Client
 
         public override bool Equals(object obj)
         {
-            return obj is Marker otherMarker && Type == otherMarker.Type && Position == otherMarker.Position;
+            return obj is Marker otherMarker && Type == otherMarker.Type && (int)Position.X == (int)otherMarker.Position.X && (int)Position.Y == (int)otherMarker.Position.Y && (int)Position.Z == (int)otherMarker.Position.Z;
+        }
+
+        public static bool operator ==(Marker a, object b)
+        {
+            return Equals(a, b);
+        }
+
+        public static bool operator !=(Marker a, object b)
+        {
+            return !Equals(a, b);
+        }
+
+
+        public bool IsPermanent() => Type == EType.Trap || Type == EType.Hoard;
+
+        public enum EType
+        {
+            Unknown = ObjectType.Unknown,
+
+            #region Permanent Markers
+            Trap = ObjectType.Trap,
+            Hoard = ObjectType.Hoard,
+            #endregion
+
+            # region Markers that only show up if they're currently visible
+            SilverCoffer = 100,
+            #endregion
         }
     }
 }

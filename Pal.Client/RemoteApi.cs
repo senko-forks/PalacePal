@@ -115,7 +115,7 @@ namespace Pal.Client
 
             var palaceClient = new PalaceService.PalaceServiceClient(_channel);
             var downloadReply = await palaceClient.DownloadFloorsAsync(new DownloadFloorsRequest { TerritoryType = territoryId }, headers: AuthorizedHeaders(), cancellationToken: cancellationToken);
-            return (downloadReply.Success, downloadReply.Objects.Select(o => new Marker(o.Type, new Vector3(o.X, o.Y, o.Z)) { RemoteSeen = true }).ToList());
+            return (downloadReply.Success, downloadReply.Objects.Select(o => new Marker((Marker.EType)o.Type, new Vector3(o.X, o.Y, o.Z)) { RemoteSeen = true }).ToList());
         }
 
         public async Task<bool> UploadMarker(ushort territoryType, IList<Marker> markers, CancellationToken cancellationToken = default)
@@ -133,7 +133,7 @@ namespace Pal.Client
             };
             uploadRequest.Objects.AddRange(markers.Select(m => new PalaceObject
             {
-                Type = m.Type,
+                Type = (ObjectType)m.Type,
                 X = m.Position.X,
                 Y = m.Position.Y,
                 Z = m.Position.Z

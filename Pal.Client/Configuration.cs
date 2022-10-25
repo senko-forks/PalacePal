@@ -20,6 +20,9 @@ namespace Pal.Client
         public Vector4 TrapColor { get; set; } = new Vector4(1, 0, 0, 0.4f);
         public bool ShowHoard { get; set; } = true;
         public Vector4 HoardColor { get; set; } = new Vector4(0, 1, 1, 0.4f);
+        public bool ShowSilverCoffers { get; set; } = false;
+        public Vector4 SilverCofferColor { get; set; } = new Vector4(1, 1, 1, 0.4f);
+        public bool FillSilverCoffers { get; set; } = true;
         #endregion
 
         public delegate void OnSaved();

@@ -1,8 +1,5 @@
 ﻿using Dalamud.Game;
-using Dalamud.Game.ClientState;
 using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Game.ClientState.Objects;
-using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
@@ -10,9 +7,7 @@ using Dalamud.Plugin;
 using ECommons;
 using ECommons.Schedulers;
 using ECommons.SplatoonAPI;
-using FFXIVClientStructs.FFXIV.Client.Graphics.Scene;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -30,9 +25,16 @@ namespace Pal.Client
         private const long ON_TERRITORY_CHANGE = -2;
 
         private readonly ConcurrentQueue<(ushort territoryId, bool success, IList<Marker> markers)> _remoteDownloads = new();
+        private readonly static Dictionary<Marker.EType, MarkerConfig> _markerConfig = new Dictionary<Marker.EType, MarkerConfig>
+        {
+            { Marker.EType.Trap, new MarkerConfig { Radius = 1.7f } },
+            { Marker.EType.Hoard, new MarkerConfig { Radius = 1.7f, OffsetY = -0.03f } },
+            { Marker.EType.SilverCoffer, new MarkerConfig { Radius = 1f } },
+        };
         private bool _configUpdated = false;
 
         internal ConcurrentDictionary<ushort, ConcurrentBag<Marker>> FloorMarkers { get; } = new();
+        internal ConcurrentBag<Marker> EphemeralMarkers { get; set; } = new();
         internal ushort LastTerritory { get; private set; }
         public SyncState TerritorySyncState { get; set; }
         public string DebugMessage { get; set; }
@@ -127,6 +129,7 @@ namespace Pal.Client
         {
             try
             {
+                bool recreateLayout = false;
                 if (_configUpdated)
                 {
                     if (Service.Configuration.Mode == Configuration.EMode.Offline)
@@ -141,12 +144,13 @@ namespace Pal.Client
                         }
 
                         FloorMarkers.Clear();
+                        EphemeralMarkers.Clear();
                         LastTerritory = 0;
                     }
                     _configUpdated = false;
+                    recreateLayout = true;
                 }
                 
-                bool recreateLayout = false;
                 bool saveMarkers = false;
                 if (LastTerritory != Service.ClientState.TerritoryType)
                 {
@@ -155,6 +159,7 @@ namespace Pal.Client
 
                     if (IsInPotdOrHoh())
                         FloorMarkers[LastTerritory] = new ConcurrentBag<Marker>(LoadSavedMarkers());
+                    EphemeralMarkers.Clear();
                     recreateLayout = true;
                     DebugMessage = null;
                 }
@@ -179,79 +184,130 @@ namespace Pal.Client
                     FloorMarkers[LastTerritory] = currentFloorMarkers = new ConcurrentBag<Marker>();
 
                 IList<Marker> visibleMarkers = GetRelevantGameObjects();
-                foreach (var visibleMarker in visibleMarkers)
-                {
-                    Marker knownMarker = currentFloorMarkers.SingleOrDefault(x => x != null && x.GetHashCode() == visibleMarker.GetHashCode());
-                    if (knownMarker != null)
-                    {
-                        if (!knownMarker.Seen)
-                        {
-                            knownMarker.Seen = true;
-                            saveMarkers = true;
-                        }
-                        continue;
-                    }
-
-                    currentFloorMarkers.Add(visibleMarker);
-                    recreateLayout = true;
-                    saveMarkers = true;
-                }
-
-                if (saveMarkers)
-                {
-                    SaveMarkers();
-
-                    if (TerritorySyncState == SyncState.Complete)
-                    {
-                        var markersToUpload = currentFloorMarkers.Where(x => !x.RemoteSeen).ToList();
-                        Task.Run(async () => await Service.RemoteApi.UploadMarker(LastTerritory, markersToUpload));
-                    }
-                }
-
-                if (recreateLayout)
-                {
-                    Splatoon.RemoveDynamicElements("PalacePal.Markers");
-
-
-                    var config = Service.Configuration;
-
-                    List<Element> elements = new List<Element>();
-                    foreach (var marker in currentFloorMarkers)
-                    {
-                        if (marker.Seen || config.Mode == Configuration.EMode.Online)
-                        {
-                            if (marker.Type == Palace.ObjectType.Trap && config.ShowTraps)
-                            {
-                                var element = CreateSplatoonElement(marker.Type, marker.Position, config.TrapColor);
-                                marker.SplatoonElement = element;
-                                elements.Add(element);
-                            }
-                            else if (marker.Type == Palace.ObjectType.Hoard && config.ShowHoard)
-                            {
-                                var element = CreateSplatoonElement(marker.Type, marker.Position, config.HoardColor);
-                                marker.SplatoonElement = element;
-                                elements.Add(element);
-                            }
-                        }
-                    }
-
-                    // we need to delay this, as the current framework update could be before splatoon's, in which case it would immediately delete the layout
-                    new TickScheduler(delegate
-                    {
-                        try
-                        {
-                            Splatoon.AddDynamicElements("PalacePal.Markers", elements.ToArray(), new long[] { Environment.TickCount64 + 60 * 60 * 1000,  ON_TERRITORY_CHANGE });
-                        }
-                        catch (Exception e)
-                        {
-                            DebugMessage = $"{DateTime.Now}\n{e}";
-                        }
-                    });
-                }
+                HandlePersistentMarkers(currentFloorMarkers, visibleMarkers.Where(x => x.IsPermanent()).ToList(), saveMarkers, recreateLayout);
+                HandleEphemeralMarkers(visibleMarkers.Where(x => !x.IsPermanent()).ToList(), recreateLayout);
             }
             catch (Exception e)
             {
                 DebugMessage = $"{DateTime.Now}\n{e}";
+            }
+        }
+
+        private void HandlePersistentMarkers(ConcurrentBag<Marker> currentFloorMarkers, IList<Marker> visibleMarkers, bool saveMarkers, bool recreateLayout)
+        {
+
+            foreach (var visibleMarker in visibleMarkers)
+            {
+                Marker knownMarker = currentFloorMarkers.SingleOrDefault(x => x == visibleMarker);
+                if (knownMarker != null)
+                {
+                    if (!knownMarker.Seen)
+                    {
+                        knownMarker.Seen = true;
+                        saveMarkers = true;
+                    }
+                    continue;
+                }
+
+                currentFloorMarkers.Add(visibleMarker);
+                recreateLayout = true;
+                saveMarkers = true;
+            }
+
+            if (saveMarkers)
+            {
+                SaveMarkers();
+
+                if (TerritorySyncState == SyncState.Complete)
+                {
+                    var markersToUpload = currentFloorMarkers.Where(x => x.IsPermanent() && !x.RemoteSeen).ToList();
+                    Task.Run(async () => await Service.RemoteApi.UploadMarker(LastTerritory, markersToUpload));
+                }
+            }
+
+            if (recreateLayout)
+            {
+                Splatoon.RemoveDynamicElements("PalacePal.TrapHoard");
+
+                var config = Service.Configuration;
+
+                List<Element> elements = new List<Element>();
+                foreach (var marker in currentFloorMarkers)
+                {
+                    if (marker.Seen || config.Mode == Configuration.EMode.Online)
+                    {
+                        if (marker.Type == Marker.EType.Trap && config.ShowTraps)
+                        {
+                            var element = CreateSplatoonElement(marker.Type, marker.Position, config.TrapColor);
+                            marker.SplatoonElement = element;
+                            elements.Add(element);
+                        }
+                        else if (marker.Type == Marker.EType.Hoard && config.ShowHoard)
+                        {
+                            var element = CreateSplatoonElement(marker.Type, marker.Position, config.HoardColor);
+                            marker.SplatoonElement = element;
+                            elements.Add(element);
+                        }
+                    }
+                }
+
+                if (elements.Count == 0)
+                    return;
+
+                // we need to delay this, as the current framework update could be before splatoon's, in which case it would immediately delete the layout
+                new TickScheduler(delegate
+                {
+                    try
+                    {
+                        Splatoon.AddDynamicElements("PalacePal.TrapHoard", elements.ToArray(), new long[] { Environment.TickCount64 + 60 * 60 * 1000, ON_TERRITORY_CHANGE });
+                    }
+                    catch (Exception e)
+                    {
+                        DebugMessage = $"{DateTime.Now}\n{e}";
+                    }
+                });
+            }
+        }
+
+        private void HandleEphemeralMarkers(IList<Marker> visibleMarkers, bool recreateLayout)
+        {
+            recreateLayout |= EphemeralMarkers.Any(existingMarker => !visibleMarkers.Any(x => x == existingMarker));
+            recreateLayout |= visibleMarkers.Any(visibleMarker => !EphemeralMarkers.Any(x => x == visibleMarker));
+
+            if (recreateLayout)
+            {
+                Splatoon.RemoveDynamicElements("PalacePal.RegularCoffers");
+                EphemeralMarkers.Clear();
+
+                var config = Service.Configuration;
+
+                List<Element> elements = new List<Element>();
+                foreach (var marker in visibleMarkers) 
+                { 
+                    EphemeralMarkers.Add(marker);
+
+                    if (marker.Type == Marker.EType.SilverCoffer && config.ShowSilverCoffers)
+                    {
+                        var element = CreateSplatoonElement(marker.Type, marker.Position, config.SilverCofferColor, config.FillSilverCoffers);
+                        marker.SplatoonElement = element;
+                        elements.Add(element);
+                    }
+                }
+
+                if (elements.Count == 0)
+                    return;
+
+                new TickScheduler(delegate
+                {
+                    try
+                    {
+                        Splatoon.AddDynamicElements("PalacePal.RegularCoffers", elements.ToArray(), new long[] { Environment.TickCount64 + 60 * 60 * 1000, ON_TERRITORY_CHANGE });
+                    }
+                    catch (Exception e)
+                    {
+                        DebugMessage = $"{DateTime.Now}\n{e}";
+                    }
+                });
             }
         }
 
@@ -294,7 +350,7 @@ namespace Pal.Client
                 {
                     foreach (var downloadedMarker in downloadedMarkers)
                     {
-                        Marker seenMarker = currentFloorMarkers.SingleOrDefault(x => x.GetHashCode() == downloadedMarker.GetHashCode());
+                        Marker seenMarker = currentFloorMarkers.SingleOrDefault(x => x == downloadedMarker);
                         if (seenMarker != null)
                         {
                             seenMarker.RemoteSeen = true;
@@ -333,12 +389,16 @@ namespace Pal.Client
                     case 2007185:
                     case 2007186:
                     case 2009504:
-                        result.Add(new Marker(Palace.ObjectType.Trap, obj.Position) { Seen = true });
+                        result.Add(new Marker(Marker.EType.Trap, obj.Position) { Seen = true });
                         break;
                     
                     case 2007542:
                     case 2007543:
-                        result.Add(new Marker(Palace.ObjectType.Hoard, obj.Position) { Seen = true });
+                        result.Add(new Marker(Marker.EType.Hoard, obj.Position) { Seen = true });
+                        break;
+
+                    case 2007357:
+                        result.Add(new Marker(Marker.EType.SilverCoffer, obj.Position) { Seen = true });
                         break;
                 }
             }
@@ -348,7 +408,7 @@ namespace Pal.Client
 
         internal bool IsInPotdOrHoh() => Service.ClientState.IsLoggedIn && Service.Condition[ConditionFlag.InDeepDungeon];
 
-        internal static Element CreateSplatoonElement(Palace.ObjectType type, Vector3 pos, Vector4 color)
+        internal static Element CreateSplatoonElement(Marker.EType type, Vector3 pos, Vector4 color, bool fill = false)
         {
             return new Element(ElementType.CircleAtFixedCoordinates)
             {
@@ -357,9 +417,9 @@ namespace Pal.Client
                 refZ = pos.Y,
                 offX = 0,
                 offY = 0,
-                offZ = type == Palace.ObjectType.Trap ? 0 : -0.03f,
-                Filled = false,
-                radius = 1.7f,
+                offZ = _markerConfig[type].OffsetY,
+                Filled = fill,
+                radius = _markerConfig[type].Radius,
                 FillStep = 1,
                 color = ImGui.ColorConvertFloat4ToU32(color),
                 thicc = 2,
@@ -372,6 +432,12 @@ namespace Pal.Client
             Started,
             Complete,
             Failed,
+        }
+
+        private class MarkerConfig
+        {
+            public float OffsetY { get; set; } = 0;
+            public float Radius { get; set; } = 0.25f;
         }
     }
 }
