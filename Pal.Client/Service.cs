@@ -2,6 +2,7 @@
 using Dalamud.Game.ClientState;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects;
+using Dalamud.Game.Command;
 using Dalamud.Game.Gui;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
@@ -17,6 +18,7 @@ namespace Pal.Client
         [PluginService] public static ObjectTable ObjectTable { get; private set; } = null!;
         [PluginService] public static Framework Framework { get; set; } = null!;
         [PluginService] public static Condition Condition { get; set; } = null!;
+        [PluginService] public static CommandManager CommandManager { get; set; } = null!;
 
         public static Plugin Plugin { get; set; } = null!;
         public static WindowSystem WindowSystem { get; set; } = new(typeof(Service).AssemblyQualifiedName);

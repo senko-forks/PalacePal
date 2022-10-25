@@ -4,6 +4,7 @@ using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using ECommons;
@@ -64,6 +65,10 @@ namespace Pal.Client
             pluginInterface.UiBuilder.OpenConfigUi += OnOpenConfigUi;
             Service.Framework.Update += OnFrameworkUpdate;
             Service.Configuration.Saved += OnConfigSaved;
+            Service.CommandManager.AddHandler("/pal", new CommandInfo(OnCommand)
+            {
+                HelpMessage = "Open the configuration/debug window"
+            });
         }
 
         public void OnOpenConfigUi()
@@ -78,11 +83,23 @@ namespace Pal.Client
                 configWindow.IsOpen = true;
         }
 
+        private void OnCommand(string command, string arguments)
+        {
+            if (Service.Configuration.FirstUse)
+            {
+                Service.Chat.PrintError("[Palace Pal] Please finish the first-time setup first.");
+                return;
+            }
+
+            Service.WindowSystem.GetWindow<ConfigWindow>()?.Toggle();
+        }
+
         #region IDisposable Support
         protected virtual void Dispose(bool disposing)
         {
             if (!disposing) return;
 
+            Service.CommandManager.RemoveHandler("/pal");
             Service.PluginInterface.UiBuilder.Draw -= Service.WindowSystem.Draw;
             Service.PluginInterface.UiBuilder.OpenConfigUi -= OnOpenConfigUi;
             Service.Framework.Update -= OnFrameworkUpdate;
