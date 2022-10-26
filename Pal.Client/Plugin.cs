@@ -4,9 +4,7 @@ using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Command;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Interface.Colors;
 using Dalamud.Interface.Windowing;
-using Dalamud.Logging;
 using Dalamud.Plugin;
 using ECommons;
 using ECommons.Schedulers;
@@ -41,7 +39,6 @@ namespace Pal.Client
             { Marker.EType.SilverCoffer, new MarkerConfig { Radius = 1f } },
         };
         private bool _configUpdated = false;
-        private bool _pomandersUpdated = false;
         private LocalizedChatMessages _localizedChatMessages = new();
 
         internal ConcurrentDictionary<ushort, ConcurrentBag<Marker>> FloorMarkers { get; } = new();
@@ -190,8 +187,6 @@ namespace Pal.Client
             }
             else
                 return;
-
-            _pomandersUpdated = true;
         }
 
         private void OnFrameworkUpdate(Framework framework)
@@ -286,33 +281,29 @@ namespace Pal.Client
                 saveMarkers = true;
             }
 
-            if (_pomandersUpdated)
+            if (!recreateLayout && currentFloorMarkers.Count > 0 && (config.OnlyVisibleTrapsAfterPomander || config.OnlyVisibleHoardAfterPomander))
             {
-                if (currentFloorMarkers.Count > 0 && (config.OnlyVisibleTrapsAfterPomander || config.OnlyVisibleHoardAfterPomander))
+
+                try
                 {
-
-                    try
+                    foreach (var marker in currentFloorMarkers)
                     {
-                        foreach (var marker in currentFloorMarkers)
+                        uint desiredColor = DetermineColor(marker, visibleMarkers);
+                        if (marker.SplatoonElement == null || !marker.SplatoonElement.IsValid())
                         {
-                            uint desiredColor = DetermineColor(marker, visibleMarkers);
-                            if (marker.SplatoonElement == null || !marker.SplatoonElement.IsValid())
-                            {
-                                recreateLayout = true;
-                                break;
-                            }
-
-                            if (marker.SplatoonElement.color != desiredColor)
-                                marker.SplatoonElement.color = desiredColor;
+                            recreateLayout = true;
+                            break;
                         }
-                    }
-                    catch (Exception e)
-                    {
-                        DebugMessage = $"{DateTime.Now}\n{e}";
-                        recreateLayout = true;
+
+                        if (marker.SplatoonElement.color != desiredColor)
+                            marker.SplatoonElement.color = desiredColor;
                     }
                 }
-                _pomandersUpdated = false;
+                catch (Exception e)
+                {
+                    DebugMessage = $"{DateTime.Now}\n{e}";
+                    recreateLayout = true;
+                }
             }
 
             if (saveMarkers)
