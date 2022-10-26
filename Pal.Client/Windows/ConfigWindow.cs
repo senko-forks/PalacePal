@@ -15,16 +15,20 @@ namespace Pal.Client.Windows
         private int _mode;
         private bool _showTraps;
         private Vector4 _trapColor;
+        private bool _onlyVisibleTrapsAfterPomander;
         private bool _showHoard;
         private Vector4 _hoardColor;
+        private bool _onlyVisibleHoardAfterPomander;
         private bool _showSilverCoffers;
         private Vector4 _silverCofferColor;
         private bool _fillSilverCoffers;
 
         private string _connectionText;
 
-        public ConfigWindow() : base("Palace Pal - Configuration###PalPalaceConfig")
+        public ConfigWindow() : base("Palace Pal###PalPalaceConfig")
         {
+            var version = typeof(Plugin).Assembly.GetName().Version.ToString(2);
+            WindowName = $"Palace Pal v{version}###PalPalaceConfig";
             Size = new Vector2(500, 400);
             SizeCondition = ImGuiCond.FirstUseEver;
             Position = new Vector2(300, 300);
@@ -37,8 +41,10 @@ namespace Pal.Client.Windows
             _mode = (int)config.Mode;
             _showTraps = config.ShowTraps;
             _trapColor = config.TrapColor;
+            _onlyVisibleTrapsAfterPomander = config.OnlyVisibleTrapsAfterPomander;
             _showHoard = config.ShowHoard;
             _hoardColor = config.HoardColor;
+            _onlyVisibleHoardAfterPomander = config.OnlyVisibleHoardAfterPomander;
             _showSilverCoffers = config.ShowSilverCoffers;
             _silverCofferColor = config.SilverCofferColor;
             _fillSilverCoffers = config.FillSilverCoffers;
@@ -58,6 +64,9 @@ namespace Pal.Client.Windows
                     ImGui.BeginDisabled(!_showTraps);
                     ImGui.Spacing();
                     ImGui.ColorEdit4("Trap color", ref _trapColor, ImGuiColorEditFlags.NoInputs);
+                    ImGui.Checkbox("Hide traps not on current floor", ref _onlyVisibleTrapsAfterPomander);
+                    ImGui.SameLine();
+                    ImGuiComponents.HelpMarker("When using a Pomander of sight, only the actual trap locations are visible, all other traps are hidden.");
                     ImGui.EndDisabled();
                     ImGui.Unindent();
 
@@ -68,6 +77,9 @@ namespace Pal.Client.Windows
                     ImGui.BeginDisabled(!_showHoard);
                     ImGui.Spacing();
                     ImGui.ColorEdit4("Hoard Coffer color", ref _hoardColor, ImGuiColorEditFlags.NoInputs);
+                    ImGui.Checkbox("Hide hoard coffers not on current floor", ref _onlyVisibleHoardAfterPomander);
+                    ImGui.SameLine();
+                    ImGuiComponents.HelpMarker("When using a Pomander of intuition, only the actual hoard coffer location is visible, all other (potential) hoard coffers are hidden.");
                     ImGui.EndDisabled();
                     ImGui.Unindent();
 
@@ -154,6 +166,9 @@ namespace Pal.Client.Windows
                                 int silverCoffers = plugin.EphemeralMarkers.Count(x => x != null && x.Type == Marker.EType.SilverCoffer);
                                 ImGui.Text($"{silverCoffers} silver coffer{(silverCoffers == 1 ? "" : "s")} visible on current floor");
                             }
+
+                            ImGui.Text($"Pomander of Sight: {plugin.PomanderOfSight}");
+                            ImGui.Text($"Pomander of Intuition: {plugin.PomanderOfIntuition}");
                         }
                         else
                             ImGui.Text("Could not query current trap/coffer count.");
@@ -199,8 +214,10 @@ namespace Pal.Client.Windows
                 config.Mode = (Configuration.EMode)_mode;
                 config.ShowTraps = _showTraps;
                 config.TrapColor = _trapColor;
+                config.OnlyVisibleTrapsAfterPomander = _onlyVisibleTrapsAfterPomander;
                 config.ShowHoard = _showHoard;
                 config.HoardColor = _hoardColor;
+                config.OnlyVisibleHoardAfterPomander = _onlyVisibleHoardAfterPomander;
                 config.ShowSilverCoffers = _showSilverCoffers;
                 config.SilverCofferColor = _silverCofferColor;
                 config.FillSilverCoffers = _fillSilverCoffers;

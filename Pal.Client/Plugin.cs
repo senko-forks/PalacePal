@@ -2,13 +2,18 @@
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Command;
+using Dalamud.Game.Text;
+using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.Windowing;
+using Dalamud.Logging;
 using Dalamud.Plugin;
 using ECommons;
 using ECommons.Schedulers;
 using ECommons.SplatoonAPI;
 using Grpc.Core;
 using ImGuiNET;
+using Lumina.Excel.GeneratedSheets;
 using Pal.Client.Windows;
 using System;
 using System.Collections.Concurrent;
@@ -18,6 +23,7 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Pal.Client
@@ -25,6 +31,7 @@ namespace Pal.Client
     public class Plugin : IDalamudPlugin
     {
         private const long ON_TERRITORY_CHANGE = -2;
+        private const uint COLOR_INVISIBLE = 0;
 
         private readonly ConcurrentQueue<(ushort territoryId, bool success, IList<Marker> markers)> _remoteDownloads = new();
         private readonly static Dictionary<Marker.EType, MarkerConfig> _markerConfig = new Dictionary<Marker.EType, MarkerConfig>
@@ -34,11 +41,15 @@ namespace Pal.Client
             { Marker.EType.SilverCoffer, new MarkerConfig { Radius = 1f } },
         };
         private bool _configUpdated = false;
+        private bool _pomandersUpdated = false;
+        private LocalizedChatMessages _localizedChatMessages = new();
 
         internal ConcurrentDictionary<ushort, ConcurrentBag<Marker>> FloorMarkers { get; } = new();
         internal ConcurrentBag<Marker> EphemeralMarkers { get; set; } = new();
         internal ushort LastTerritory { get; private set; }
         public SyncState TerritorySyncState { get; set; }
+        public PomanderState PomanderOfSight { get; set; } = PomanderState.Inactive;
+        public PomanderState PomanderOfIntuition { get; set; } = PomanderState.Inactive;
         public string DebugMessage { get; set; }
 
         public string Name => "Palace Pal";
@@ -75,10 +86,13 @@ namespace Pal.Client
             pluginInterface.UiBuilder.OpenConfigUi += OnOpenConfigUi;
             Service.Framework.Update += OnFrameworkUpdate;
             Service.Configuration.Saved += OnConfigSaved;
+            Service.Chat.ChatMessage += OnChatMessage;
             Service.CommandManager.AddHandler("/pal", new CommandInfo(OnCommand)
             {
                 HelpMessage = "Open the configuration/debug window"
             });
+
+            ReloadLanguageStrings();
         }
 
         public void OnOpenConfigUi()
@@ -123,6 +137,7 @@ namespace Pal.Client
             Service.PluginInterface.UiBuilder.OpenConfigUi -= OnOpenConfigUi;
             Service.Framework.Update -= OnFrameworkUpdate;
             Service.Configuration.Saved -= OnConfigSaved;
+            Service.Chat.ChatMessage -= OnChatMessage;
 
             Service.WindowSystem.RemoveAllWindows();
 
@@ -140,6 +155,43 @@ namespace Pal.Client
         private void OnConfigSaved()
         {
             _configUpdated = true;
+        }
+
+        private void OnChatMessage(XivChatType type, uint senderId, ref SeString sender, ref SeString seMessage, ref bool isHandled)
+        {
+            if (type != (XivChatType)2105)
+                return;
+
+            string message = seMessage.ToString();
+            if (_localizedChatMessages.FloorChanged.IsMatch(message))
+            {
+                PomanderOfSight = PomanderState.Inactive;
+
+                if (PomanderOfIntuition == PomanderState.FoundOnCurrentFloor)
+                    PomanderOfIntuition = PomanderState.Inactive;
+            }
+            else if (message.EndsWith(_localizedChatMessages.MapRevealed))
+            {
+                PomanderOfSight = PomanderState.Active;
+            }
+            else if (message.EndsWith(_localizedChatMessages.AllTrapsRemoved))
+            {
+                PomanderOfSight = PomanderState.PomanderOfSafetyUsed;
+            }
+            else if (message.EndsWith(_localizedChatMessages.HoardNotOnCurrentFloor) || message.EndsWith(_localizedChatMessages.HoardOnCurrentFloor))
+            {
+                // There is no functional difference between these - if you don't open the marked coffer,
+                // going to higher floors will keep the pomander active.
+                PomanderOfIntuition = PomanderState.Active;
+            }
+            else if (message.EndsWith(_localizedChatMessages.HoardCofferOpened))
+            {
+                PomanderOfIntuition = PomanderState.FoundOnCurrentFloor;
+            }
+            else
+                return;
+
+            _pomandersUpdated = true;
         }
 
         private void OnFrameworkUpdate(Framework framework)
@@ -177,6 +229,8 @@ namespace Pal.Client
                     if (IsInPotdOrHoh())
                         FloorMarkers[LastTerritory] = new ConcurrentBag<Marker>(LoadSavedMarkers());
                     EphemeralMarkers.Clear();
+                    PomanderOfSight = PomanderState.Inactive;
+                    PomanderOfIntuition = PomanderState.Inactive;
                     recreateLayout = true;
                     DebugMessage = null;
                 }
@@ -212,6 +266,7 @@ namespace Pal.Client
 
         private void HandlePersistentMarkers(ConcurrentBag<Marker> currentFloorMarkers, IList<Marker> visibleMarkers, bool saveMarkers, bool recreateLayout)
         {
+            var config = Service.Configuration;
 
             foreach (var visibleMarker in visibleMarkers)
             {
@@ -231,6 +286,35 @@ namespace Pal.Client
                 saveMarkers = true;
             }
 
+            if (_pomandersUpdated)
+            {
+                if (currentFloorMarkers.Count > 0 && (config.OnlyVisibleTrapsAfterPomander || config.OnlyVisibleHoardAfterPomander))
+                {
+
+                    try
+                    {
+                        foreach (var marker in currentFloorMarkers)
+                        {
+                            uint desiredColor = DetermineColor(marker, visibleMarkers);
+                            if (marker.SplatoonElement == null || !marker.SplatoonElement.IsValid())
+                            {
+                                recreateLayout = true;
+                                break;
+                            }
+
+                            if (marker.SplatoonElement.color != desiredColor)
+                                marker.SplatoonElement.color = desiredColor;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        DebugMessage = $"{DateTime.Now}\n{e}";
+                        recreateLayout = true;
+                    }
+                }
+                _pomandersUpdated = false;
+            }
+
             if (saveMarkers)
             {
                 SaveMarkers();
@@ -246,8 +330,6 @@ namespace Pal.Client
             {
                 Splatoon.RemoveDynamicElements("PalacePal.TrapHoard");
 
-                var config = Service.Configuration;
-
                 List<Element> elements = new List<Element>();
                 foreach (var marker in currentFloorMarkers)
                 {
@@ -255,13 +337,13 @@ namespace Pal.Client
                     {
                         if (marker.Type == Marker.EType.Trap && config.ShowTraps)
                         {
-                            var element = CreateSplatoonElement(marker.Type, marker.Position, config.TrapColor);
+                            var element = CreateSplatoonElement(marker.Type, marker.Position, DetermineColor(marker, visibleMarkers));
                             marker.SplatoonElement = element;
                             elements.Add(element);
                         }
                         else if (marker.Type == Marker.EType.Hoard && config.ShowHoard)
                         {
-                            var element = CreateSplatoonElement(marker.Type, marker.Position, config.HoardColor);
+                            var element = CreateSplatoonElement(marker.Type, marker.Position, DetermineColor(marker, visibleMarkers));
                             marker.SplatoonElement = element;
                             elements.Add(element);
                         }
@@ -283,6 +365,24 @@ namespace Pal.Client
                         DebugMessage = $"{DateTime.Now}\n{e}";
                     }
                 });
+            }
+        }
+
+        private uint DetermineColor(Marker marker, IList<Marker> visibleMarkers)
+        {
+            if (marker.Type == Marker.EType.Trap)
+            {
+                if (PomanderOfSight == PomanderState.Inactive || !Service.Configuration.OnlyVisibleTrapsAfterPomander || visibleMarkers.Any(x => x == marker))
+                    return ImGui.ColorConvertFloat4ToU32(Service.Configuration.TrapColor);
+                else
+                    return COLOR_INVISIBLE;
+            }
+            else
+            {
+                if (PomanderOfIntuition == PomanderState.Inactive || !Service.Configuration.OnlyVisibleHoardAfterPomander || visibleMarkers.Any(x => x == marker))
+                    return ImGui.ColorConvertFloat4ToU32(Service.Configuration.HoardColor);
+                else
+                    return COLOR_INVISIBLE;
             }
         }
 
@@ -457,7 +557,10 @@ namespace Pal.Client
 
         internal bool IsInPotdOrHoh() => Service.ClientState.IsLoggedIn && Service.Condition[ConditionFlag.InDeepDungeon];
 
-        internal static Element CreateSplatoonElement(Marker.EType type, Vector3 pos, Vector4 color, bool fill = false)
+        internal static Element CreateSplatoonElement(Marker.EType type, Vector3 pos, Vector4 color, bool fill = false) 
+            => CreateSplatoonElement(type, pos, ImGui.ColorConvertFloat4ToU32(color), fill);
+
+        internal static Element CreateSplatoonElement(Marker.EType type, Vector3 pos, uint color, bool fill = false)
         {
             return new Element(ElementType.CircleAtFixedCoordinates)
             {
@@ -470,9 +573,27 @@ namespace Pal.Client
                 Filled = fill,
                 radius = _markerConfig[type].Radius,
                 FillStep = 1,
-                color = ImGui.ColorConvertFloat4ToU32(color),
+                color = color,
                 thicc = 2,
             };
+        }
+
+        private void ReloadLanguageStrings()
+        {
+            _localizedChatMessages = new LocalizedChatMessages
+            {
+                MapRevealed = GetLocalizedString(7256),
+                AllTrapsRemoved = GetLocalizedString(7255),
+                HoardOnCurrentFloor = GetLocalizedString(7272),
+                HoardNotOnCurrentFloor = GetLocalizedString(7273),
+                HoardCofferOpened = GetLocalizedString(7274),
+                FloorChanged = new Regex("^" + GetLocalizedString(7270).Replace("\u0002 \u0003\ufffd\u0002\u0003", @"(\d+)") + "$"),
+            };
+        }
+
+        private string GetLocalizedString(uint id)
+        {
+            return Service.DataManager.GetExcelSheet<LogMessage>().GetRow(id).Text?.ToString() ?? "Unknown";
         }
 
         public enum SyncState
@@ -483,10 +604,28 @@ namespace Pal.Client
             Failed,
         }
 
+        public enum PomanderState
+        {
+            Inactive,
+            Active,
+            FoundOnCurrentFloor,
+            PomanderOfSafetyUsed,
+        }
+
         private class MarkerConfig
         {
             public float OffsetY { get; set; } = 0;
             public float Radius { get; set; } = 0.25f;
+        }
+
+        private class LocalizedChatMessages
+        {
+            public string MapRevealed { get; set; } = "???"; //"The map for this floor has been revealed!";
+            public string AllTrapsRemoved { get; set; } = "???"; // "All the traps on this floor have disappeared!";
+            public string HoardOnCurrentFloor { get; set; } = "???"; // "You sense the Accursed Hoard calling you...";
+            public string HoardNotOnCurrentFloor { get; set; } = "???"; // "You do not sense the call of the Accursed Hoard on this floor...";
+            public string HoardCofferOpened { get; set; } = "???"; // "You discover a piece of the Accursed Hoard!";
+            public Regex FloorChanged { get; set; } = new Regex(@"This isn't a game message, but will be replaced"); // new Regex(@"^Floor (\d+)$");
         }
     }
 }

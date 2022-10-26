@@ -1,4 +1,5 @@
-﻿using Dalamud.Game;
+﻿using Dalamud.Data;
+using Dalamud.Game;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects;
@@ -19,6 +20,7 @@ namespace Pal.Client
         [PluginService] public static Framework Framework { get; set; } = null!;
         [PluginService] public static Condition Condition { get; set; } = null!;
         [PluginService] public static CommandManager CommandManager { get; set; } = null!;
+        [PluginService] public static DataManager DataManager { get; set; } = null!;
 
         public static Plugin Plugin { get; set; } = null!;
         public static WindowSystem WindowSystem { get; set; } = new(typeof(Service).AssemblyQualifiedName);

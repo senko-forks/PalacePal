@@ -1,7 +1,4 @@
 ﻿using Dalamud.Configuration;
-using Dalamud.Plugin;
-using FFXIVClientStructs.FFXIV.Client.Game.Event;
-using FFXIVClientStructs.FFXIV.Client.Graphics;
 using System.Numerics;
 
 namespace Pal.Client
@@ -18,8 +15,12 @@ namespace Pal.Client
 
         public bool ShowTraps { get; set; } = true;
         public Vector4 TrapColor { get; set; } = new Vector4(1, 0, 0, 0.4f);
+        public bool OnlyVisibleTrapsAfterPomander { get; set; } = true;
+
         public bool ShowHoard { get; set; } = true;
         public Vector4 HoardColor { get; set; } = new Vector4(0, 1, 1, 0.4f);
+        public bool OnlyVisibleHoardAfterPomander { get; set; } = true;
+
         public bool ShowSilverCoffers { get; set; } = false;
         public Vector4 SilverCofferColor { get; set; } = new Vector4(1, 1, 1, 0.4f);
         public bool FillSilverCoffers { get; set; } = true;
