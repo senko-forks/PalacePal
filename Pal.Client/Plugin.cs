@@ -7,7 +7,9 @@ using Dalamud.Plugin;
 using ECommons;
 using ECommons.Schedulers;
 using ECommons.SplatoonAPI;
+using Grpc.Core;
 using ImGuiNET;
+using Pal.Client.Windows;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -63,6 +65,12 @@ namespace Pal.Client
                 Service.WindowSystem.AddWindow(configWindow);
             }
 
+            var statisticsWindow = pluginInterface.Create<StatisticsWindow>();
+            if (statisticsWindow is not null)
+            {
+                Service.WindowSystem.AddWindow(statisticsWindow);
+            }
+
             pluginInterface.UiBuilder.Draw += Service.WindowSystem.Draw;
             pluginInterface.UiBuilder.OpenConfigUi += OnOpenConfigUi;
             Service.Framework.Update += OnFrameworkUpdate;
@@ -93,7 +101,16 @@ namespace Pal.Client
                 return;
             }
 
-            Service.WindowSystem.GetWindow<ConfigWindow>()?.Toggle();
+            switch (arguments)
+            {
+                case "stats":
+                    Task.Run(async () => await FetchFloorStatistics());
+                    break;
+
+                default:
+                    Service.WindowSystem.GetWindow<ConfigWindow>()?.Toggle();
+                    break;
+            }
         }
 
         #region IDisposable Support
@@ -150,7 +167,7 @@ namespace Pal.Client
                     _configUpdated = false;
                     recreateLayout = true;
                 }
-                
+
                 bool saveMarkers = false;
                 if (LastTerritory != Service.ClientState.TerritoryType)
                 {
@@ -282,8 +299,8 @@ namespace Pal.Client
                 var config = Service.Configuration;
 
                 List<Element> elements = new List<Element>();
-                foreach (var marker in visibleMarkers) 
-                { 
+                foreach (var marker in visibleMarkers)
+                {
                     EphemeralMarkers.Add(marker);
 
                     if (marker.Type == Marker.EType.SilverCoffer && config.ShowSilverCoffers)
@@ -338,6 +355,38 @@ namespace Pal.Client
             catch (Exception e)
             {
                 DebugMessage = $"{DateTime.Now}\n{e}";
+            }
+        }
+
+        private async Task FetchFloorStatistics()
+        {
+            if (Service.Configuration.Mode != Configuration.EMode.Online)
+            {
+                Service.Chat.Print($"[Palace Pal] You can view statistics for the floor you're currently on by opening the 'Debug' tab in the configuration window.");
+                return;
+            }
+
+            try
+            {
+                var (success, floorStatistics) = await Service.RemoteApi.FetchStatistics();
+                if (success)
+                {
+                    var statisticsWindow = Service.WindowSystem.GetWindow<StatisticsWindow>();
+                    statisticsWindow.SetFloorData(floorStatistics);
+                    statisticsWindow.IsOpen = true;
+                }
+                else
+                {
+                    Service.Chat.PrintError("[Palace Pal] Unable to fetch statistics.");
+                }
+            }
+            catch (RpcException e) when (e.StatusCode == StatusCode.PermissionDenied)
+            {
+                Service.Chat.Print($"[Palace Pal] You can view statistics for the floor you're currently on by opening the 'Debug' tab in the configuration window.");
+            }
+            catch (Exception e)
+            {
+                Service.Chat.PrintError($"[Palace Pal] {e}");
             }
         }
 

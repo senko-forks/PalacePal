@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.ComponentModel.DataAnnotations;
 
 namespace Pal.Server
@@ -17,6 +18,7 @@ namespace Pal.Server
         [MaxLength(20)]
         public string? IpHash { get; set; }
         public DateTime CreatedAt { get; set; }
+        public List<string> Roles { get; set; } = new List<string>();
     }
 
     public class PalaceLocation
@@ -31,7 +33,7 @@ namespace Pal.Server
         public Guid AccountId { get; set; }
         public DateTime CreatedAt { get; set; }
 
-        public enum EType 
+        public enum EType
         {
             Trap = 1,
             Hoard = 2
@@ -39,7 +41,7 @@ namespace Pal.Server
     }
 
     public class GlobalSetting
-    { 
+    {
         public GlobalSetting(string key, string value)
         {
             Key = key;
@@ -70,7 +72,20 @@ namespace Pal.Server
 #endif
         }
 
-        protected override void OnConfiguring(DbContextOptionsBuilder options) 
+        protected override void OnConfiguring(DbContextOptionsBuilder options)
             => options.UseSqlite($"Data Source={DbPath}");
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Account>()
+                .Property(a => a.Roles)
+                .HasConversion(
+                    v => string.Join(',', v),
+                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList(),
+                    new ValueComparer<List<string>>(
+                        (c1, c2) => c1.SequenceEqual(c2),
+                        c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                        c => c.ToList()));
+        }
     }
 }

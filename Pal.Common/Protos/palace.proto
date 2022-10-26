@@ -5,6 +5,7 @@ package palace;
 service PalaceService {
 	rpc DownloadFloors(DownloadFloorsRequest) returns (DownloadFloorsReply);
 	rpc UploadFloors(UploadFloorsRequest) returns (UploadFloorsReply);
+	rpc FetchStatistics(StatisticsRequest) returns (StatisticsReply);
 }
 
 message DownloadFloorsRequest {
@@ -23,6 +24,20 @@ message UploadFloorsRequest {
 
 message UploadFloorsReply {
 	bool success = 1;
+}
+
+message StatisticsRequest {
+}
+
+message StatisticsReply {
+	bool success = 1;
+	repeated FloorStatistics floorStatistics = 2;
+}
+
+message FloorStatistics {
+	uint32 territoryType = 1;
+	uint32 trapCount = 2;
+	uint32 hoardCount = 3;
 }
 
 message PalaceObject {

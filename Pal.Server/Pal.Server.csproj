@@ -18,6 +18,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Pal.Common\Pal.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Protobuf Include="..\Pal.Common\Protos\account.proto" Link="Protos\account.proto" GrpcServices="Server" Access="Internal" />
     <Protobuf Include="..\Pal.Common\Protos\palace.proto" Link="Protos\palace.proto" GrpcServices="Server" Access="Internal" />
   </ItemGroup>

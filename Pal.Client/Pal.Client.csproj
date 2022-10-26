@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<TargetFramework>net6.0-windows</TargetFramework>
 		<LangVersion>9.0</LangVersion>
-		<Version>1.4.0.0</Version>
+		<Version>1.5.0.0</Version>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -29,6 +29,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\Pal.Common\Pal.Common.csproj" />
 	  <ProjectReference Include="..\vendor\ECommons\ECommons\ECommons.csproj" />
 	</ItemGroup>
 

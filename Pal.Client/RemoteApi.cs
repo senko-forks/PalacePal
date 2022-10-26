@@ -20,8 +20,7 @@ namespace Pal.Client
         private const string remoteUrl = "https://pal.μ.tv";
 #endif
         private GrpcChannel _channel;
-        private string _authToken;
-        private DateTime _tokenExpiresAt;
+        private LoginReply _lastLoginReply;
 
         private async Task<bool> Connect(CancellationToken cancellationToken, bool retry = true)
         {
@@ -67,18 +66,12 @@ namespace Pal.Client
             if (string.IsNullOrEmpty(accountId))
                 return false;
 
-            if (string.IsNullOrEmpty(_authToken) || _tokenExpiresAt < DateTime.Now)
+            if (_lastLoginReply == null || string.IsNullOrEmpty(_lastLoginReply.AuthToken) || _lastLoginReply.ExpiresAt.ToDateTime().ToLocalTime() < DateTime.Now)
             {
-                var loginReply = await accountClient.LoginAsync(new LoginRequest { AccountId = accountId }, deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
-                if (loginReply.Success)
+                _lastLoginReply = await accountClient.LoginAsync(new LoginRequest { AccountId = accountId }, deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
+                if (!_lastLoginReply.Success)
                 {
-                    _authToken = loginReply.AuthToken;
-                    _tokenExpiresAt = loginReply.ExpiresAt.ToDateTime().ToLocalTime();
-                }
-                else
-                {
-                    _authToken = null;
-                    if (loginReply.Error == LoginError.InvalidAccountId)
+                    if (_lastLoginReply.Error == LoginError.InvalidAccountId)
                     {
                         accountId = null;
 #if DEBUG
@@ -95,7 +88,7 @@ namespace Pal.Client
                 }
             }
 
-            return !string.IsNullOrEmpty(_authToken);
+            return !string.IsNullOrEmpty(_lastLoginReply?.AuthToken);
         }
 
         public async Task<string> VerifyConnection(CancellationToken cancellationToken = default)
@@ -142,9 +135,19 @@ namespace Pal.Client
             return uploadReply.Success;
         }
 
+        public async Task<(bool, List<FloorStatistics>)> FetchStatistics(CancellationToken cancellationToken = default)
+        {
+            if (!await Connect(cancellationToken))
+                return new(false, new List<FloorStatistics>());
+
+            var palaceClient = new PalaceService.PalaceServiceClient(_channel);
+            var statisticsReply = await palaceClient.FetchStatisticsAsync(new StatisticsRequest(), headers: AuthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(30), cancellationToken: cancellationToken);
+            return (statisticsReply.Success, statisticsReply.FloorStatistics.ToList());
+        }
+
         private Metadata AuthorizedHeaders() => new Metadata
         {
-            { "Authorization", $"Bearer {_authToken}" },
+            { "Authorization", $"Bearer {_lastLoginReply?.AuthToken}" },
         };
 
         public void Dispose()

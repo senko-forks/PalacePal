@@ -8,7 +8,7 @@ using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 
-namespace Pal.Client
+namespace Pal.Client.Windows
 {
     internal class ConfigWindow : Window
     {
@@ -139,7 +139,7 @@ namespace Pal.Client
                         ImGui.Indent();
                         if (plugin.FloorMarkers.TryGetValue(plugin.LastTerritory, out var currentFloorMarkers))
                         {
-                            if (_showTraps) 
+                            if (_showTraps)
                             {
                                 int traps = currentFloorMarkers.Count(x => x != null && x.Type == Marker.EType.Trap);
                                 ImGui.Text($"{traps} known trap{(traps == 1 ? "" : "s")}");

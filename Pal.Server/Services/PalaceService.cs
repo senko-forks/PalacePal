@@ -1,6 +1,7 @@
 ﻿using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Pal.Common;
 using Palace;
 using System.Collections.Concurrent;
 using System.Numerics;
@@ -94,6 +95,33 @@ namespace Pal.Server.Services
             {
                 _logger.LogError("Could not save {Count} new objects for territory type {TerritoryType}: {e}", request.Objects.Count, request.TerritoryType, e);
                 return new UploadFloorsReply { Success = false };
+            }
+        }
+
+        [Authorize(Roles = "statistics:view")]
+        public override async Task<StatisticsReply> FetchStatistics(StatisticsRequest request, ServerCallContext context)
+        {
+            try
+            {
+                var reply = new StatisticsReply { Success = true };
+                foreach (ETerritoryType territoryType in typeof(ETerritoryType).GetEnumValues())
+                {
+                    if (!_cache.TryGetValue((ushort)territoryType, out var objects))
+                        objects = await LoadObjects((ushort)territoryType, context.CancellationToken);
+
+                    reply.FloorStatistics.Add(new FloorStatistics
+                    {
+                        TerritoryType = (ushort)territoryType,
+                        TrapCount = (uint)objects!.Values.Count(x => x.Type == ObjectType.Trap),
+                        HoardCount = (uint)objects!.Values.Count(x => x.Type == ObjectType.Hoard),
+                    });
+                }
+                return reply;
+            } 
+            catch (Exception e)
+            {
+                _logger.LogError("Could not fetch statistics: {e}", e);
+                return new StatisticsReply { Success = false };
             }
         }
 

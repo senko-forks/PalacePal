@@ -106,10 +106,19 @@ namespace Pal.Server.Services
                     return new LoginReply { Success = false, Error = LoginError.InvalidAccountId };
                 }
 
+                var claims = new List<Claim>()
+                {
+                    new Claim(ClaimTypes.NameIdentifier, accountId.ToString()),
+                    new Claim(ClaimTypes.Role, "default"),
+                };
+
+                foreach (var role in existingAccount.Roles ?? new List<string>())
+                    claims.Add(new Claim(ClaimTypes.Role, role));
+
                 var tokenHandler = new JwtSecurityTokenHandler();
                 var tokenDescriptor = new SecurityTokenDescriptor
                 {
-                    Subject = new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, accountId.ToString()) }),
+                    Subject = new ClaimsIdentity(claims.ToArray()),
                     Expires = DateTime.Now.AddDays(1),
                     Issuer = _tokenIssuer,
                     Audience = _tokenAudience,
@@ -122,7 +131,7 @@ namespace Pal.Server.Services
                     AuthToken = tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor)),
                     ExpiresAt = Timestamp.FromDateTime(DateTime.UtcNow.AddDays(1).AddMinutes(-5)),
                 };
-            } 
+            }
             catch (Exception e)
             {
                 _logger.LogError("Could not log into account {Account}: {e}", request.AccountId, e);
