@@ -32,16 +32,20 @@ namespace Pal.Client.Windows
         {
             if (ImGui.CollapsingHeader("Discovered Traps & Coffers per Instance", ImGuiTreeNodeFlags.DefaultOpen))
             {
-                if (ImGui.BeginTable("TrapHoardStatistics", 3, ImGuiTableFlags.Borders))
+                if (ImGui.BeginTable("TrapHoardStatistics", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable))
                 {
-                    ImGui.TableSetupColumn("Instance", ImGuiTableColumnFlags.WidthFixed);
-                    ImGui.TableSetupColumn("Traps", ImGuiTableColumnFlags.WidthFixed, 100);
-                    ImGui.TableSetupColumn("Hoard", ImGuiTableColumnFlags.WidthFixed, 100);
+                    ImGui.TableSetupColumn("Id");
+                    ImGui.TableSetupColumn("Instance");
+                    ImGui.TableSetupColumn("Traps");
+                    ImGui.TableSetupColumn("Hoard");
                     ImGui.TableHeadersRow();
 
                     foreach (var (territoryType, stats) in _territoryStatistics)
                     {
                         ImGui.TableNextRow();
+                        if (ImGui.TableNextColumn())
+                            ImGui.Text($"{(uint)territoryType}");
+
                         if (ImGui.TableNextColumn())
                             ImGui.Text(stats.TerritoryName);
 
