@@ -30,6 +30,8 @@ namespace Pal.Client
     {
         private const long ON_TERRITORY_CHANGE = -2;
         private const uint COLOR_INVISIBLE = 0;
+        private const string SPLATOON_TRAP_HOARD = "PalacePal.TrapHoard";
+        private const string SPLATOON_REGULAR_COFFERS = "PalacePal.RegularCoffers";
 
         private readonly ConcurrentQueue<(ushort territoryId, bool success, IList<Marker> markers)> _remoteDownloads = new();
         private readonly static Dictionary<Marker.EType, MarkerConfig> _markerConfig = new Dictionary<Marker.EType, MarkerConfig>
@@ -139,6 +141,16 @@ namespace Pal.Client
             Service.WindowSystem.RemoveAllWindows();
 
             Service.RemoteApi.Dispose();
+
+            try
+            {
+                Splatoon.RemoveDynamicElements(SPLATOON_TRAP_HOARD);
+                Splatoon.RemoveDynamicElements(SPLATOON_REGULAR_COFFERS);
+            } 
+            catch
+            {
+                // destroyed on territory change either way
+            }
             ECommons.ECommons.Dispose();
         }
 
@@ -319,7 +331,7 @@ namespace Pal.Client
 
             if (recreateLayout)
             {
-                Splatoon.RemoveDynamicElements("PalacePal.TrapHoard");
+                Splatoon.RemoveDynamicElements(SPLATOON_TRAP_HOARD);
 
                 List<Element> elements = new List<Element>();
                 foreach (var marker in currentFloorMarkers)
@@ -349,7 +361,7 @@ namespace Pal.Client
                 {
                     try
                     {
-                        Splatoon.AddDynamicElements("PalacePal.TrapHoard", elements.ToArray(), new long[] { Environment.TickCount64 + 60 * 60 * 1000, ON_TERRITORY_CHANGE });
+                        Splatoon.AddDynamicElements(SPLATOON_TRAP_HOARD, elements.ToArray(), new long[] { Environment.TickCount64 + 60 * 60 * 1000, ON_TERRITORY_CHANGE });
                     }
                     catch (Exception e)
                     {
@@ -384,7 +396,7 @@ namespace Pal.Client
 
             if (recreateLayout)
             {
-                Splatoon.RemoveDynamicElements("PalacePal.RegularCoffers");
+                Splatoon.RemoveDynamicElements(SPLATOON_REGULAR_COFFERS);
                 EphemeralMarkers.Clear();
 
                 var config = Service.Configuration;
@@ -409,7 +421,7 @@ namespace Pal.Client
                 {
                     try
                     {
-                        Splatoon.AddDynamicElements("PalacePal.RegularCoffers", elements.ToArray(), new long[] { Environment.TickCount64 + 60 * 60 * 1000, ON_TERRITORY_CHANGE });
+                        Splatoon.AddDynamicElements(SPLATOON_REGULAR_COFFERS, elements.ToArray(), new long[] { Environment.TickCount64 + 60 * 60 * 1000, ON_TERRITORY_CHANGE });
                     }
                     catch (Exception e)
                     {
