@@ -84,10 +84,10 @@ namespace Pal.Server.Services
                         objects![location.Id] = new PalaceObject { Type = (ObjectType)location.Type, X = location.X, Y = location.Y, Z = location.Z };
                     }
 
-                    _logger.LogInformation("Saved {Count} new locations for territory type {TerritoryType}", newLocations.Count, territoryType);
+                    _logger.LogInformation("Saved {Count} new locations for {TerritoryName} ({TerritoryType})", newLocations.Count, (ETerritoryType)territoryType, territoryType);
                 }
                 else
-                    _logger.LogInformation("Saved no objects - all already known");
+                    _logger.LogInformation("Saved no objects for {TerritoryName} ({TerritoryType}) - all already known", (ETerritoryType)territoryType, territoryType);
 
                 return new UploadFloorsReply { Success = true };
             }
