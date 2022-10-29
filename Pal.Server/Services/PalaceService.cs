@@ -51,12 +51,15 @@ namespace Pal.Server.Services
                 var accountId = context.GetAccountId();
                 var territoryType = (ushort)request.TerritoryType;
 
-                // shouldn't happen, since we always download prior to upload...
-                if (!_cache.TryGetValue(territoryType, out var objects))
+                if (!typeof(ETerritoryType).IsEnumDefined(territoryType))
                 {
                     _logger.LogInformation("Skipping upload for unknown territory type {TerritoryType}", territoryType);
                     return new UploadFloorsReply { Success = false };
                 }
+
+                // shouldn't happen, since we always download prior to upload...
+                if (!_cache.TryGetValue(territoryType, out var objects))
+                    objects = await LoadObjects(territoryType, context.CancellationToken);
 
                 DateTime createdAt = DateTime.Now;
                 var newLocations = request.Objects.Where(o => !objects!.Values.Any(x => CalculateHash(x) == CalculateHash(o)))
