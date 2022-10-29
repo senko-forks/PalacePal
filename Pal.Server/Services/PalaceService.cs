@@ -29,6 +29,12 @@ namespace Pal.Server.Services
             try
             {
                 ushort territoryType = (ushort)request.TerritoryType;
+                if (!typeof(ETerritoryType).IsEnumDefined(territoryType))
+                {
+                    _logger.LogInformation("Skipping download for unknown territory type {TerritoryType}", territoryType);
+                    return new DownloadFloorsReply { Success = false };
+                }
+
                 if (!_cache.TryGetValue(territoryType, out var objects))
                     objects = await LoadObjects(territoryType, context.CancellationToken);
 
@@ -57,7 +63,7 @@ namespace Pal.Server.Services
                     return new UploadFloorsReply { Success = false };
                 }
 
-                // shouldn't happen, since we always download prior to upload...
+                // only happens when the server is being restarted while people are currently doing potd/hoh runs and have downloaded the floor layout prior to the restart
                 if (!_cache.TryGetValue(territoryType, out var objects))
                     objects = await LoadObjects(territoryType, context.CancellationToken);
 
