@@ -149,16 +149,16 @@ namespace Pal.Client.Windows
                         ImGui.Text($"{plugin.DebugMessage}");
 
                         ImGui.Indent();
-                        if (plugin.FloorMarkers.TryGetValue(plugin.LastTerritory, out var currentFloorMarkers))
+                        if (plugin.FloorMarkers.TryGetValue(plugin.LastTerritory, out var currentFloor))
                         {
                             if (_showTraps)
                             {
-                                int traps = currentFloorMarkers.Count(x => x != null && x.Type == Marker.EType.Trap);
+                                int traps = currentFloor.Markers.Count(x => x != null && x.Type == Marker.EType.Trap);
                                 ImGui.Text($"{traps} known trap{(traps == 1 ? "" : "s")}");
                             }
                             if (_showHoard)
                             {
-                                int hoardCoffers = currentFloorMarkers.Count(x => x != null && x.Type == Marker.EType.Hoard);
+                                int hoardCoffers = currentFloor.Markers.Count(x => x != null && x.Type == Marker.EType.Hoard);
                                 ImGui.Text($"{hoardCoffers} known hoard coffer{(hoardCoffers == 1 ? "" : "s")}");
                             }
                             if (_showSilverCoffers)

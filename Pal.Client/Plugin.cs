@@ -16,11 +16,9 @@ using Pal.Client.Windows;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -43,7 +41,7 @@ namespace Pal.Client
         private bool _configUpdated = false;
         private LocalizedChatMessages _localizedChatMessages = new();
 
-        internal ConcurrentDictionary<ushort, ConcurrentBag<Marker>> FloorMarkers { get; } = new();
+        internal ConcurrentDictionary<ushort, LocalState> FloorMarkers { get; } = new();
         internal ConcurrentBag<Marker> EphemeralMarkers { get; set; } = new();
         internal ushort LastTerritory { get; private set; }
         public SyncState TerritorySyncState { get; set; }
@@ -114,15 +112,29 @@ namespace Pal.Client
                 return;
             }
 
-            switch (arguments)
+            try
             {
-                case "stats":
-                    Task.Run(async () => await FetchFloorStatistics());
-                    break;
+                switch (arguments)
+                {
+                    case "stats":
+                        Task.Run(async () => await FetchFloorStatistics());
+                        break;
 
-                default:
-                    Service.WindowSystem.GetWindow<ConfigWindow>()?.Toggle();
-                    break;
+#if DEBUG
+                    case "update-saves":
+                        LocalState.UpdateAll();
+                        Service.Chat.Print("Updated all locally cached marker files to latest version.");
+                        break;
+#endif
+
+                    default:
+                        Service.WindowSystem.GetWindow<ConfigWindow>()?.Toggle();
+                        break;
+                }
+            }
+            catch (Exception e)
+            {
+                Service.Chat.PrintError($"[Palace Pal] {e}");
             }
         }
 
@@ -210,15 +222,7 @@ namespace Pal.Client
                 {
                     if (Service.Configuration.Mode == Configuration.EMode.Offline)
                     {
-                        foreach (var path in Directory.GetFiles(Service.PluginInterface.GetPluginConfigDirectory()))
-                        {
-                            if (path.EndsWith(".json"))
-                            {
-                                var markers = JsonSerializer.Deserialize<List<Marker>>(File.ReadAllText(path), new JsonSerializerOptions { IncludeFields = true }).Where(x => x.Seen).ToList();
-                                File.WriteAllText(path, JsonSerializer.Serialize(markers, new JsonSerializerOptions { IncludeFields = true }));
-                            }
-                        }
-
+                        LocalState.UpdateAll();
                         FloorMarkers.Clear();
                         EphemeralMarkers.Clear();
                         LastTerritory = 0;
@@ -234,7 +238,7 @@ namespace Pal.Client
                     TerritorySyncState = SyncState.NotAttempted;
 
                     if (IsInPotdOrHoh())
-                        FloorMarkers[LastTerritory] = new ConcurrentBag<Marker>(LoadSavedMarkers());
+                        FloorMarkers[LastTerritory] = LocalState.Load(LastTerritory) ?? new LocalState(LastTerritory);
                     EphemeralMarkers.Clear();
                     PomanderOfSight = PomanderState.Inactive;
                     PomanderOfIntuition = PomanderState.Inactive;
@@ -258,11 +262,11 @@ namespace Pal.Client
                     saveMarkers = true;
                 }
 
-                if (!FloorMarkers.TryGetValue(LastTerritory, out var currentFloorMarkers))
-                    FloorMarkers[LastTerritory] = currentFloorMarkers = new ConcurrentBag<Marker>();
+                if (!FloorMarkers.TryGetValue(LastTerritory, out var currentFloor))
+                    FloorMarkers[LastTerritory] = currentFloor = new LocalState(LastTerritory);
 
                 IList<Marker> visibleMarkers = GetRelevantGameObjects();
-                HandlePersistentMarkers(currentFloorMarkers, visibleMarkers.Where(x => x.IsPermanent()).ToList(), saveMarkers, recreateLayout);
+                HandlePersistentMarkers(currentFloor, visibleMarkers.Where(x => x.IsPermanent()).ToList(), saveMarkers, recreateLayout);
                 HandleEphemeralMarkers(visibleMarkers.Where(x => !x.IsPermanent()).ToList(), recreateLayout);
             }
             catch (Exception e)
@@ -271,9 +275,10 @@ namespace Pal.Client
             }
         }
 
-        private void HandlePersistentMarkers(ConcurrentBag<Marker> currentFloorMarkers, IList<Marker> visibleMarkers, bool saveMarkers, bool recreateLayout)
+        private void HandlePersistentMarkers(LocalState currentFloor, IList<Marker> visibleMarkers, bool saveMarkers, bool recreateLayout)
         {
             var config = Service.Configuration;
+            var currentFloorMarkers = currentFloor.Markers;
 
             foreach (var visibleMarker in visibleMarkers)
             {
@@ -320,7 +325,7 @@ namespace Pal.Client
 
             if (saveMarkers)
             {
-                SaveMarkers();
+                currentFloor.Save();
 
                 if (TerritorySyncState == SyncState.Complete)
                 {
@@ -431,23 +436,6 @@ namespace Pal.Client
             }
         }
 
-        public string GetSaveForCurrentTerritory() => Path.Join(Service.PluginInterface.GetPluginConfigDirectory(), $"{LastTerritory}.json");
-
-        private List<Marker> LoadSavedMarkers()
-        {
-            string path = GetSaveForCurrentTerritory();
-            if (File.Exists(path))
-                return JsonSerializer.Deserialize<List<Marker>>(File.ReadAllText(path), new JsonSerializerOptions { IncludeFields = true }).Where(x => x.Seen || Service.Configuration.Mode == Configuration.EMode.Online).ToList();
-            else
-                return new List<Marker>();
-        }
-
-        private void SaveMarkers()
-        {
-            string path = GetSaveForCurrentTerritory();
-            File.WriteAllText(path, JsonSerializer.Serialize(FloorMarkers[LastTerritory], new JsonSerializerOptions { IncludeFields = true }));
-        }
-
         private async Task DownloadMarkersForTerritory(ushort territoryId)
         {
             try
@@ -498,18 +486,18 @@ namespace Pal.Client
             while (_remoteDownloads.TryDequeue(out var download))
             {
                 var (territoryId, success, downloadedMarkers) = download;
-                if (Service.Configuration.Mode == Configuration.EMode.Online && success && FloorMarkers.TryGetValue(territoryId, out var currentFloorMarkers) && downloadedMarkers.Count > 0)
+                if (Service.Configuration.Mode == Configuration.EMode.Online && success && FloorMarkers.TryGetValue(territoryId, out var currentFloor) && downloadedMarkers.Count > 0)
                 {
                     foreach (var downloadedMarker in downloadedMarkers)
                     {
-                        Marker seenMarker = currentFloorMarkers.SingleOrDefault(x => x == downloadedMarker);
+                        Marker seenMarker = currentFloor.Markers.SingleOrDefault(x => x == downloadedMarker);
                         if (seenMarker != null)
                         {
                             seenMarker.RemoteSeen = true;
                             continue;
                         }
 
-                        currentFloorMarkers.Add(downloadedMarker);
+                        currentFloor.Markers.Add(downloadedMarker);
                     }
                 }
 

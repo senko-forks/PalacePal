@@ -83,7 +83,7 @@ namespace Pal.Server
                     v => string.Join(',', v),
                     v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList(),
                     new ValueComparer<List<string>>(
-                        (c1, c2) => c1.SequenceEqual(c2),
+                        (c1, c2) => (c1 ?? new()).SequenceEqual(c2 ?? new()),
                         c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
                         c => c.ToList()));
         }
