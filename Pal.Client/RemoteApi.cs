@@ -1,5 +1,6 @@
 ﻿using Account;
 using Grpc.Core;
+using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
 using Palace;
 using System;
@@ -19,6 +20,8 @@ namespace Pal.Client
 #else
         private const string remoteUrl = "https://pal.μ.tv";
 #endif
+        private readonly string UserAgent = $"{typeof(RemoteApi).Assembly.GetName().Name?.Replace(" ", "")}/{typeof(RemoteApi).Assembly.GetName().Version?.ToString(2)}";
+
         private GrpcChannel? _channel;
         private LoginReply? _lastLoginReply;
 
@@ -49,7 +52,7 @@ namespace Pal.Client
 #endif
             if (string.IsNullOrEmpty(accountId))
             {
-                var createAccountReply = await accountClient.CreateAccountAsync(new CreateAccountRequest(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
+                var createAccountReply = await accountClient.CreateAccountAsync(new CreateAccountRequest(), headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
                 if (createAccountReply.Success)
                 {
                     accountId = createAccountReply.AccountId;
@@ -68,7 +71,7 @@ namespace Pal.Client
 
             if (_lastLoginReply == null || string.IsNullOrEmpty(_lastLoginReply.AuthToken) || _lastLoginReply.ExpiresAt.ToDateTime().ToLocalTime() < DateTime.Now)
             {
-                _lastLoginReply = await accountClient.LoginAsync(new LoginRequest { AccountId = accountId }, deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
+                _lastLoginReply = await accountClient.LoginAsync(new LoginRequest { AccountId = accountId }, headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
                 if (!_lastLoginReply.Success)
                 {
                     if (_lastLoginReply.Error == LoginError.InvalidAccountId)
@@ -145,9 +148,15 @@ namespace Pal.Client
             return (statisticsReply.Success, statisticsReply.FloorStatistics.ToList());
         }
 
+        private Metadata UnauthorizedHeaders() => new Metadata
+        {
+            { "User-Agent", UserAgent },
+        };
+
         private Metadata AuthorizedHeaders() => new Metadata
         {
             { "Authorization", $"Bearer {_lastLoginReply?.AuthToken}" },
+            { "User-Agent", UserAgent },
         };
 
         public void Dispose()
