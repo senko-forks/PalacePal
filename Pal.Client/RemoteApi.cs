@@ -1,13 +1,14 @@
 ﻿using Account;
 using Grpc.Core;
-using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
 using Palace;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Security;
 using System.Numerics;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -39,6 +40,7 @@ namespace Pal.Client
                     HttpHandler = new SocketsHttpHandler
                     {
                         ConnectTimeout = TimeSpan.FromSeconds(5),
+                        SslOptions = GetSslClientAuthenticationOptions(),
                     }
                 });
                 await _channel.ConnectAsync(cancellationToken);
@@ -158,6 +160,36 @@ namespace Pal.Client
             { "Authorization", $"Bearer {_lastLoginReply?.AuthToken}" },
             { "User-Agent", UserAgent },
         };
+
+        private SslClientAuthenticationOptions? GetSslClientAuthenticationOptions()
+        {
+#if !DEBUG
+            var secrets = typeof(RemoteApi).Assembly.GetType("Pal.Client.Secrets");
+            if (secrets == null)
+                return null;
+
+            var pass = secrets.GetProperty("CertPassword")?.GetValue(null) as string;
+            if (pass == null)
+                return null;
+
+            var manifestResourceStream = typeof(RemoteApi).Assembly.GetManifestResourceStream("Pal.Client.Certificate.pfx");
+            if (manifestResourceStream == null)
+                return null;
+
+            var bytes = new byte[manifestResourceStream.Length];
+            manifestResourceStream.Read(bytes, 0, bytes.Length);
+
+            return new SslClientAuthenticationOptions
+            {
+                ClientCertificates = new X509CertificateCollection()
+                {
+                    new X509Certificate2(bytes, pass, X509KeyStorageFlags.DefaultKeySet),
+                },
+            };
+#else
+            return null;
+#endif
+        }
 
         public void Dispose()
         {
