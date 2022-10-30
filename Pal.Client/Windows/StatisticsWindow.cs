@@ -24,7 +24,7 @@ namespace Pal.Client.Windows
 
             foreach (ETerritoryType territory in typeof(ETerritoryType).GetEnumValues())
             {
-                _territoryStatistics[territory] = new TerritoryStatistics { TerritoryName = territory.ToString() };
+                _territoryStatistics[territory] = new TerritoryStatistics(territory.ToString());
             }
         }
 
@@ -70,7 +70,7 @@ namespace Pal.Client.Windows
             
             foreach (var floor in floorStatistics)
             {
-                if (_territoryStatistics.TryGetValue((ETerritoryType)floor.TerritoryType, out TerritoryStatistics territoryStatistics))
+                if (_territoryStatistics.TryGetValue((ETerritoryType)floor.TerritoryType, out TerritoryStatistics? territoryStatistics))
                 {
                     territoryStatistics.TrapCount = floor.TrapCount;
                     territoryStatistics.HoardCofferCount = floor.HoardCount;
@@ -83,6 +83,11 @@ namespace Pal.Client.Windows
             public string TerritoryName { get; set; }
             public uint? TrapCount { get; set; }
             public uint? HoardCofferCount { get; set; }
+
+            public TerritoryStatistics(string territoryName)
+            {
+                TerritoryName = territoryName;
+            }
         }
     }
 }

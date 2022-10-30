@@ -14,7 +14,7 @@ namespace Pal.Client
     public class Service
     {
         [PluginService] public static DalamudPluginInterface PluginInterface { get; private set; } = null!;
-        [PluginService] public static ClientState ClientState { get; set; } = null;
+        [PluginService] public static ClientState ClientState { get; set; } = null!;
         [PluginService] public static ChatGui Chat { get; private set; } = null!;
         [PluginService] public static ObjectTable ObjectTable { get; private set; } = null!;
         [PluginService] public static Framework Framework { get; set; } = null!;

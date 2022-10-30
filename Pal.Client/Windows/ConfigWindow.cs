@@ -23,11 +23,11 @@ namespace Pal.Client.Windows
         private Vector4 _silverCofferColor;
         private bool _fillSilverCoffers;
 
-        private string _connectionText;
+        private string? _connectionText;
 
         public ConfigWindow() : base("Palace Pal###PalPalaceConfig")
         {
-            var version = typeof(Plugin).Assembly.GetName().Version.ToString(2);
+            var version = typeof(Plugin).Assembly.GetName().Version!.ToString(2);
             WindowName = $"Palace Pal v{version}###PalPalaceConfig";
             Size = new Vector2(500, 400);
             SizeCondition = ImGuiCond.FirstUseEver;
@@ -153,17 +153,17 @@ namespace Pal.Client.Windows
                         {
                             if (_showTraps)
                             {
-                                int traps = currentFloor.Markers.Count(x => x != null && x.Type == Marker.EType.Trap);
+                                int traps = currentFloor.Markers.Count(x => x.Type == Marker.EType.Trap);
                                 ImGui.Text($"{traps} known trap{(traps == 1 ? "" : "s")}");
                             }
                             if (_showHoard)
                             {
-                                int hoardCoffers = currentFloor.Markers.Count(x => x != null && x.Type == Marker.EType.Hoard);
+                                int hoardCoffers = currentFloor.Markers.Count(x => x.Type == Marker.EType.Hoard);
                                 ImGui.Text($"{hoardCoffers} known hoard coffer{(hoardCoffers == 1 ? "" : "s")}");
                             }
                             if (_showSilverCoffers)
                             {
-                                int silverCoffers = plugin.EphemeralMarkers.Count(x => x != null && x.Type == Marker.EType.SilverCoffer);
+                                int silverCoffers = plugin.EphemeralMarkers.Count(x => x.Type == Marker.EType.SilverCoffer);
                                 ImGui.Text($"{silverCoffers} silver coffer{(silverCoffers == 1 ? "" : "s")} visible on current floor");
                             }
 
@@ -184,16 +184,19 @@ namespace Pal.Client.Windows
                     {
                         try
                         {
-                            var pos = Service.ClientState.LocalPlayer.Position;
-                            var elements = new List<Element>
+                            Vector3? pos = Service.ClientState.LocalPlayer?.Position;
+                            if (pos != null)
                             {
-                                Plugin.CreateSplatoonElement(Marker.EType.Trap, pos, _trapColor),
-                                Plugin.CreateSplatoonElement(Marker.EType.Hoard, pos, _hoardColor),
-                            };
+                                var elements = new List<Element>
+                                {
+                                    Plugin.CreateSplatoonElement(Marker.EType.Trap, pos.Value, _trapColor),
+                                    Plugin.CreateSplatoonElement(Marker.EType.Hoard, pos.Value, _hoardColor),
+                                };
 
-                            if (!Splatoon.AddDynamicElements("PalacePal.Test", elements.ToArray(), new long[] { Environment.TickCount64 + 10000 }))
-                            {
-                                Service.Chat.PrintError("Could not draw markers :(");
+                                if (!Splatoon.AddDynamicElements("PalacePal.Test", elements.ToArray(), new long[] { Environment.TickCount64 + 10000 }))
+                                {
+                                    Service.Chat.PrintError("Could not draw markers :(");
+                                }
                             }
                         }
                         catch (Exception)

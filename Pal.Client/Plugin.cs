@@ -47,7 +47,7 @@ namespace Pal.Client
         public SyncState TerritorySyncState { get; set; }
         public PomanderState PomanderOfSight { get; set; } = PomanderState.Inactive;
         public PomanderState PomanderOfIntuition { get; set; } = PomanderState.Inactive;
-        public string DebugMessage { get; set; }
+        public string? DebugMessage { get; set; }
 
         public string Name => "Palace Pal";
 
@@ -58,7 +58,7 @@ namespace Pal.Client
 
             pluginInterface.Create<Service>();
             Service.Plugin = this;
-            Service.Configuration = (Configuration)pluginInterface.GetPluginConfig() ?? pluginInterface.Create<Configuration>();
+            Service.Configuration = (Configuration?)pluginInterface.GetPluginConfig() ?? pluginInterface.Create<Configuration>()!;
 
             var agreementWindow = pluginInterface.Create<AgreementWindow>();
             if (agreementWindow is not null)
@@ -94,7 +94,7 @@ namespace Pal.Client
 
         public void OnOpenConfigUi()
         {
-            Window configWindow;
+            Window? configWindow;
             if (Service.Configuration.FirstUse)
                 configWindow = Service.WindowSystem.GetWindow<AgreementWindow>();
             else
@@ -282,7 +282,7 @@ namespace Pal.Client
 
             foreach (var visibleMarker in visibleMarkers)
             {
-                Marker knownMarker = currentFloorMarkers.SingleOrDefault(x => x == visibleMarker);
+                Marker? knownMarker = currentFloorMarkers.SingleOrDefault(x => x == visibleMarker);
                 if (knownMarker != null)
                 {
                     if (!knownMarker.Seen)
@@ -462,7 +462,7 @@ namespace Pal.Client
                 var (success, floorStatistics) = await Service.RemoteApi.FetchStatistics();
                 if (success)
                 {
-                    var statisticsWindow = Service.WindowSystem.GetWindow<StatisticsWindow>();
+                    var statisticsWindow = Service.WindowSystem.GetWindow<StatisticsWindow>()!;
                     statisticsWindow.SetFloorData(floorStatistics);
                     statisticsWindow.IsOpen = true;
                 }
@@ -490,7 +490,7 @@ namespace Pal.Client
                 {
                     foreach (var downloadedMarker in downloadedMarkers)
                     {
-                        Marker seenMarker = currentFloor.Markers.SingleOrDefault(x => x == downloadedMarker);
+                        Marker? seenMarker = currentFloor.Markers.SingleOrDefault(x => x == downloadedMarker);
                         if (seenMarker != null)
                         {
                             seenMarker.RemoteSeen = true;
@@ -517,7 +517,7 @@ namespace Pal.Client
             List<Marker> result = new();
             for (int i = 246; i < Service.ObjectTable.Length; i++)
             {
-                GameObject obj = Service.ObjectTable[i];
+                GameObject? obj = Service.ObjectTable[i];
                 if (obj == null)
                     continue;
 
@@ -584,7 +584,7 @@ namespace Pal.Client
 
         private string GetLocalizedString(uint id)
         {
-            return Service.DataManager.GetExcelSheet<LogMessage>().GetRow(id).Text?.ToString() ?? "Unknown";
+            return Service.DataManager.GetExcelSheet<LogMessage>()?.GetRow(id)?.Text?.ToString() ?? "Unknown";
         }
 
         public enum SyncState

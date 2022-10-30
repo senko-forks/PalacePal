@@ -10,8 +10,8 @@ namespace Pal.Client
         #region Saved configuration values
         public bool FirstUse { get; set; } = true;
         public EMode Mode { get; set; } = EMode.Offline;
-        public string DebugAccountId { get; set; }
-        public string AccountId { get; set; }
+        public string? DebugAccountId { get; set; }
+        public string? AccountId { get; set; }
 
         public bool ShowTraps { get; set; } = true;
         public Vector4 TrapColor { get; set; } = new Vector4(1, 0, 0, 0.4f);
@@ -27,7 +27,7 @@ namespace Pal.Client
         #endregion
 
         public delegate void OnSaved();
-        public event OnSaved Saved;
+        public event OnSaved? Saved;
 
         public void Save()
         {

@@ -19,8 +19,8 @@ namespace Pal.Client
 #else
         private const string remoteUrl = "https://pal.μ.tv";
 #endif
-        private GrpcChannel _channel;
-        private LoginReply _lastLoginReply;
+        private GrpcChannel? _channel;
+        private LoginReply? _lastLoginReply;
 
         private async Task<bool> Connect(CancellationToken cancellationToken, bool retry = true)
         {
@@ -43,9 +43,9 @@ namespace Pal.Client
 
             var accountClient = new AccountService.AccountServiceClient(_channel);
 #if DEBUG
-            string accountId = Service.Configuration.DebugAccountId;
+            string? accountId = Service.Configuration.DebugAccountId;
 #else
-            string accountId = Service.Configuration.AccountId;
+            string? accountId = Service.Configuration.AccountId;
 #endif
             if (string.IsNullOrEmpty(accountId))
             {

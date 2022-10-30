@@ -29,7 +29,7 @@ namespace Pal.Client
                 Markers = new ConcurrentBag<Marker>(Markers.Where(x => x.Seen));
         }
 
-        public static LocalState Load(uint territoryType)
+        public static LocalState? Load(uint territoryType)
         {
             string path = GetSaveLocation(territoryType);
             if (!File.Exists(path))
@@ -46,12 +46,15 @@ namespace Pal.Client
                 // v1 only had a list of markers, not a JSON object as root
                 localState = new LocalState(territoryType)
                 {
-                    Markers = new ConcurrentBag<Marker>(JsonSerializer.Deserialize<HashSet<Marker>>(content, _jsonSerializerOptions)),
+                    Markers = new ConcurrentBag<Marker>(JsonSerializer.Deserialize<HashSet<Marker>>(content, _jsonSerializerOptions) ?? new()),
                 };
             }
             else
             {
                 var save = JsonSerializer.Deserialize<SaveFile>(content, _jsonSerializerOptions);
+                if (save == null)
+                    return null;
+
                 localState = new LocalState(territoryType)
                 {
                     Markers = new ConcurrentBag<Marker>(save.Markers),
@@ -85,7 +88,7 @@ namespace Pal.Client
         {
             foreach (ETerritoryType territory in typeof(ETerritoryType).GetEnumValues())
             {
-                LocalState localState = Load((ushort)territory);
+                LocalState? localState = Load((ushort)territory);
                 if (localState != null)
                     localState.Save();
             }
