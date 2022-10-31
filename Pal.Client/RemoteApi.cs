@@ -138,7 +138,6 @@ namespace Pal.Client
 
         public async Task<bool> MarkAsSeen(ushort territoryType, IList<Marker> markers, CancellationToken cancellationToken = default)
         {
-            Service.Chat.Print($"Marking {markers.Count} as seen");
             if (markers.Count == 0)
                 return true;
 
