@@ -82,6 +82,7 @@ namespace Pal.Server.Services
                         CreatedAt = createdAt,
                     })
                     .ToList();
+                var reply = new UploadFloorsReply { Success = true };
                 if (newLocations.Count > 0)
                 {
                     await _dbContext.AddRangeAsync(newLocations, context.CancellationToken);
@@ -89,7 +90,9 @@ namespace Pal.Server.Services
 
                     foreach (var location in newLocations)
                     {
-                        objects![location.Id] = new PalaceObject { Type = (ObjectType)location.Type, X = location.X, Y = location.Y, Z = location.Z };
+                        var palaceObj = new PalaceObject { Type = (ObjectType)location.Type, X = location.X, Y = location.Y, Z = location.Z, NetworkId = location.Id.ToString() };
+                        objects![location.Id] = palaceObj;
+                        reply.Objects.Add(palaceObj);
                     }
 
                     _logger.LogInformation("Saved {Count} new locations for {TerritoryName} ({TerritoryType})", newLocations.Count, (ETerritoryType)territoryType, territoryType);
@@ -97,12 +100,55 @@ namespace Pal.Server.Services
                 else
                     _logger.LogInformation("Saved no objects for {TerritoryName} ({TerritoryType}) - all already known", (ETerritoryType)territoryType, territoryType);
 
-                return new UploadFloorsReply { Success = true };
+                return reply;
             }
             catch (Exception e)
             {
                 _logger.LogError("Could not save {Count} new objects for territory type {TerritoryType}: {e}", request.Objects.Count, request.TerritoryType, e);
                 return new UploadFloorsReply { Success = false };
+            }
+        }
+
+        [Authorize]
+        public override async Task<MarkObjectsSeenReply> MarkObjectsSeen(MarkObjectsSeenRequest request, ServerCallContext context)
+        {
+            try
+            {
+                ushort territoryType = (ushort)request.TerritoryType;
+                if (!typeof(ETerritoryType).IsEnumDefined(territoryType))
+                {
+                    _logger.LogInformation("Skipping mark objects seen for unknown territory type {TerritoryType}", territoryType);
+                    return new MarkObjectsSeenReply { Success = false };
+                }
+
+                if (!_cache.TryGetValue(territoryType, out var objects))
+                    objects = await LoadObjects(territoryType, context.CancellationToken);
+
+                var account = await _dbContext.Accounts.FindAsync(new object[] { context.GetAccountId() }, cancellationToken: context.CancellationToken);
+                if (account == null)
+                {
+                    _logger.LogInformation("Skipping mark objects seen, account not found");
+                    return new MarkObjectsSeenReply { Success = false };
+                }
+
+                var seenLocations = account.SeenLocations;
+                var newLocations = request.NetworkIds.Select(x => Guid.Parse(x))
+                    .Where(x => objects!.ContainsKey(x))
+                    .Where(x => !seenLocations.Any(seen => seen.PalaceLocationId == x))
+                    .Select(x => new SeenLocation(account, x))
+                    .ToList();
+                if (newLocations.Count > 0)
+                {
+                    _logger.LogInformation("Mark {} locations as seen for account {} on territory {TerritoryType}", newLocations.Count, account.Id, territoryType);
+                    account.SeenLocations.AddRange(newLocations);
+                    await _dbContext.SaveChangesAsync(context.CancellationToken);
+                }
+                return new MarkObjectsSeenReply { Success = true };
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("Could not mark objects seen for territory {TerritoryType}: {e}", request.TerritoryType, e);
+                return new MarkObjectsSeenReply { Success = false };
             }
         }
 
@@ -136,7 +182,7 @@ namespace Pal.Server.Services
         private async Task<ConcurrentDictionary<Guid, PalaceObject>> LoadObjects(ushort territoryType, CancellationToken cancellationToken)
         {
             var objects = await _dbContext.Locations.Where(o => o.TerritoryType == territoryType)
-                .ToDictionaryAsync(o => o.Id, o => new PalaceObject { Type = (ObjectType)o.Type, X = o.X, Y = o.Y, Z = o.Z }, cancellationToken);
+                .ToDictionaryAsync(o => o.Id, o => new PalaceObject { Type = (ObjectType)o.Type, X = o.X, Y = o.Y, Z = o.Z, NetworkId = o.Id.ToString() }, cancellationToken);
 
             var result = _cache.Add(territoryType, new ConcurrentDictionary<Guid, PalaceObject>(objects));
             return result;

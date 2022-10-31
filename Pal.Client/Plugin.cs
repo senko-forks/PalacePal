@@ -13,6 +13,7 @@ using Grpc.Core;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
 using Pal.Client.Windows;
+using Palace;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -31,7 +32,7 @@ namespace Pal.Client
         private const string SPLATOON_TRAP_HOARD = "PalacePal.TrapHoard";
         private const string SPLATOON_REGULAR_COFFERS = "PalacePal.RegularCoffers";
 
-        private readonly ConcurrentQueue<(ushort territoryId, bool success, IList<Marker> markers)> _remoteDownloads = new();
+        private readonly ConcurrentQueue<Sync> _pendingSyncResponses = new();
         private readonly static Dictionary<Marker.EType, MarkerConfig> _markerConfig = new Dictionary<Marker.EType, MarkerConfig>
         {
             { Marker.EType.Trap, new MarkerConfig { Radius = 1.7f } },
@@ -256,9 +257,9 @@ namespace Pal.Client
                     Task.Run(async () => await DownloadMarkersForTerritory(LastTerritory));
                 }
 
-                if (_remoteDownloads.Count > 0)
+                if (_pendingSyncResponses.Count > 0)
                 {
-                    HandleRemoteDownloads();
+                    HandleSyncResponses();
                     recreateLayout = true;
                     saveMarkers = true;
                 }
@@ -281,6 +282,8 @@ namespace Pal.Client
             var config = Service.Configuration;
             var currentFloorMarkers = currentFloor.Markers;
 
+            bool updateSeenMarkers = false;
+            var accountId = Service.RemoteApi.AccountId;
             foreach (var visibleMarker in visibleMarkers)
             {
                 Marker? knownMarker = currentFloorMarkers.SingleOrDefault(x => x == visibleMarker);
@@ -291,6 +294,12 @@ namespace Pal.Client
                         knownMarker.Seen = true;
                         saveMarkers = true;
                     }
+
+                    // This requires you to have seen a trap/hoard marker once per floor to synchronize this for older local states,
+                    // markers discovered afterwards are automatically marked seen.
+                    if (accountId != null && knownMarker.NetworkId != null && !knownMarker.RemoteSeenRequested && !knownMarker.RemoteSeenOn.Contains(accountId.Value))
+                        updateSeenMarkers = true;
+                    
                     continue;
                 }
 
@@ -324,14 +333,24 @@ namespace Pal.Client
                 }
             }
 
+            if (updateSeenMarkers && accountId != null)
+            {
+                var markersToUpdate = currentFloorMarkers.Where(x => x.Seen && x.NetworkId != null && !x.RemoteSeenRequested && !x.RemoteSeenOn.Contains(accountId.Value)).ToList();
+                foreach (var marker in markersToUpdate)
+                    marker.RemoteSeenRequested = true;
+                Task.Run(async () => await SyncSeenMarkersForTerritory(LastTerritory, markersToUpdate));
+            }
+
             if (saveMarkers)
             {
                 currentFloor.Save();
 
                 if (TerritorySyncState == SyncState.Complete)
                 {
-                    var markersToUpload = currentFloorMarkers.Where(x => x.IsPermanent() && !x.RemoteSeen).ToList();
-                    Task.Run(async () => await Service.RemoteApi.UploadMarker(LastTerritory, markersToUpload));
+                    var markersToUpload = currentFloorMarkers.Where(x => x.IsPermanent() && x.NetworkId == null && !x.UploadRequested).ToList();
+                    foreach (var marker in markersToUpload)
+                        marker.UploadRequested = true;
+                    Task.Run(async () => await UploadMarkersForTerritory(LastTerritory, markersToUpload));
                 }
             }
 
@@ -442,13 +461,58 @@ namespace Pal.Client
             try
             {
                 var (success, downloadedMarkers) = await Service.RemoteApi.DownloadRemoteMarkers(territoryId);
-                _remoteDownloads.Enqueue((territoryId, success, downloadedMarkers));
+                _pendingSyncResponses.Enqueue(new Sync
+                {
+                    Type = SyncType.Download,
+                    TerritoryType = territoryId,
+                    Success = success,
+                    Markers = downloadedMarkers
+                });
             }
             catch (Exception e)
             {
                 DebugMessage = $"{DateTime.Now}\n{e}";
             }
         }
+
+        private async Task UploadMarkersForTerritory(ushort territoryId, List<Marker> markersToUpload)
+        {
+            try
+            {
+                var (success, uploadedMarkers) = await Service.RemoteApi.UploadMarker(territoryId, markersToUpload);
+                _pendingSyncResponses.Enqueue(new Sync
+                {
+                    Type = SyncType.Upload,
+                    TerritoryType = territoryId,
+                    Success = success,
+                    Markers = uploadedMarkers
+                });
+            }
+            catch (Exception e)
+            {
+                DebugMessage = $"{DateTime.Now}\n{e}";
+            }
+        }
+
+        private async Task SyncSeenMarkersForTerritory(ushort territoryId, List<Marker> markersToUpdate)
+        {
+            try
+            {
+                var success = await Service.RemoteApi.MarkAsSeen(territoryId, markersToUpdate);
+                _pendingSyncResponses.Enqueue(new Sync
+                {
+                    Type = SyncType.MarkSeen,
+                    TerritoryType = territoryId,
+                    Success = success,
+                    Markers = markersToUpdate,
+                });
+            }
+            catch (Exception e)
+            {
+                DebugMessage = $"{DateTime.Now}\n{e}";
+            }
+        }
+
 
         private async Task FetchFloorStatistics()
         {
@@ -482,34 +546,67 @@ namespace Pal.Client
             }
         }
 
-        private void HandleRemoteDownloads()
+        private void HandleSyncResponses()
         {
-            while (_remoteDownloads.TryDequeue(out var download))
+            while (_pendingSyncResponses.TryDequeue(out Sync? sync) && sync != null)
             {
-                var (territoryId, success, downloadedMarkers) = download;
-                if (Service.Configuration.Mode == Configuration.EMode.Online && success && FloorMarkers.TryGetValue(territoryId, out var currentFloor) && downloadedMarkers.Count > 0)
+                try
                 {
-                    foreach (var downloadedMarker in downloadedMarkers)
+                    var territoryId = sync.TerritoryType;
+                    var remoteMarkers = sync.Markers;
+                    if (Service.Configuration.Mode == Configuration.EMode.Online && sync.Success && FloorMarkers.TryGetValue(territoryId, out var currentFloor) && remoteMarkers.Count > 0)
                     {
-                        Marker? seenMarker = currentFloor.Markers.SingleOrDefault(x => x == downloadedMarker);
-                        if (seenMarker != null)
+                        switch (sync.Type)
                         {
-                            seenMarker.RemoteSeen = true;
-                            continue;
-                        }
+                            case SyncType.Download:
+                            case SyncType.Upload:
+                                foreach (var remoteMarker in remoteMarkers)
+                                {
+                                    // Both uploads and downloads return the network id to be set, but only the downloaded marker is new as in to-be-saved.
+                                    Marker? localMarker = currentFloor.Markers.SingleOrDefault(x => x == remoteMarker);
+                                    if (localMarker != null)
+                                    {
+                                        localMarker.NetworkId = remoteMarker.NetworkId;
+                                        continue;
+                                    }
 
-                        currentFloor.Markers.Add(downloadedMarker);
+                                    if (sync.Type == SyncType.Download)
+                                        currentFloor.Markers.Add(remoteMarker);
+                                }
+                                break;
+
+                            case SyncType.MarkSeen:
+                                var accountId = Service.RemoteApi.AccountId;
+                                if (accountId == null)
+                                    break;
+                                foreach (var remoteMarker in remoteMarkers)
+                                {
+                                    Marker? localMarker = currentFloor.Markers.SingleOrDefault(x => x == remoteMarker);
+                                    if (localMarker != null)
+                                        localMarker.RemoteSeenOn.Add(accountId.Value);
+                                }
+                                break;
+                        }
+                    }
+
+                    // don't modify state for outdated floors
+                    if (LastTerritory != territoryId)
+                        continue;
+
+                    if (sync.Type == SyncType.Download)
+                    {
+                        if (sync.Success)
+                            TerritorySyncState = SyncState.Complete;
+                        else
+                            TerritorySyncState = SyncState.Failed;
                     }
                 }
-
-                // don't modify state for outdated floors
-                if (LastTerritory != territoryId) 
-                    continue;
-
-                if (success)
-                    TerritorySyncState = SyncState.Complete;
-                else
-                    TerritorySyncState = SyncState.Failed;
+                catch (Exception e)
+                {
+                    DebugMessage = $"{DateTime.Now}\n{e}";
+                    if (sync.Type == SyncType.Download)
+                        TerritorySyncState = SyncState.Failed;
+                }
             }
         }
 
@@ -588,12 +685,28 @@ namespace Pal.Client
             return Service.DataManager.GetExcelSheet<LogMessage>()?.GetRow(id)?.Text?.ToString() ?? "Unknown";
         }
 
+        internal class Sync
+        {
+            public SyncType Type { get; set; }
+            public ushort TerritoryType { get; set; }
+            public bool Success { get; set; }
+            public List<Marker> Markers { get; set; } = new();
+        }
+
         public enum SyncState
         {
             NotAttempted,
+            NotNeeded,
             Started,
             Complete,
             Failed,
+        }
+
+        public enum SyncType
+        {
+            Upload,
+            Download,
+            MarkSeen,
         }
 
         public enum PomanderState

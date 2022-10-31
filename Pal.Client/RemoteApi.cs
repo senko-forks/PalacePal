@@ -26,6 +26,18 @@ namespace Pal.Client
         private GrpcChannel? _channel;
         private LoginReply? _lastLoginReply;
 
+        public Guid? AccountId
+        {
+            get => Service.Configuration.AccountIds[remoteUrl];
+            set
+            {
+                if (value != null)
+                    Service.Configuration.AccountIds[remoteUrl] = value.Value;
+                else
+                    Service.Configuration.AccountIds.Remove(remoteUrl);
+            }
+        }
+
         private async Task<bool> Connect(CancellationToken cancellationToken, bool retry = true)
         {
             if (Service.Configuration.Mode != Configuration.EMode.Online)
@@ -47,30 +59,27 @@ namespace Pal.Client
             }
 
             var accountClient = new AccountService.AccountServiceClient(_channel);
-            Guid? accountId = Service.Configuration.AccountIds[remoteUrl];
-            if (accountId == null)
+            if (AccountId == null)
             {
                 var createAccountReply = await accountClient.CreateAccountAsync(new CreateAccountRequest(), headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
                 if (createAccountReply.Success)
                 {
-                    accountId = Guid.Parse(createAccountReply.AccountId);
-                    Service.Configuration.AccountIds[remoteUrl] = accountId.Value;
+                    AccountId = Guid.Parse(createAccountReply.AccountId);
                     Service.Configuration.Save();
                 }
             }
 
-            if (accountId == null)
+            if (AccountId == null)
                 return false;
 
             if (_lastLoginReply == null || string.IsNullOrEmpty(_lastLoginReply.AuthToken) || _lastLoginReply.ExpiresAt.ToDateTime().ToLocalTime() < DateTime.Now)
             {
-                _lastLoginReply = await accountClient.LoginAsync(new LoginRequest { AccountId = accountId.ToString() }, headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
+                _lastLoginReply = await accountClient.LoginAsync(new LoginRequest { AccountId = AccountId?.ToString() }, headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
                 if (!_lastLoginReply.Success)
                 {
                     if (_lastLoginReply.Error == LoginError.InvalidAccountId)
                     {
-                        accountId = null;
-                        Service.Configuration.AccountIds.Remove(remoteUrl);
+                        AccountId = null;
                         Service.Configuration.Save();
                         if (retry)
                             return await Connect(cancellationToken, retry: false);
@@ -100,16 +109,16 @@ namespace Pal.Client
 
             var palaceClient = new PalaceService.PalaceServiceClient(_channel);
             var downloadReply = await palaceClient.DownloadFloorsAsync(new DownloadFloorsRequest { TerritoryType = territoryId }, headers: AuthorizedHeaders(), cancellationToken: cancellationToken);
-            return (downloadReply.Success, downloadReply.Objects.Select(o => new Marker((Marker.EType)o.Type, new Vector3(o.X, o.Y, o.Z)) { RemoteSeen = true }).ToList());
+            return (downloadReply.Success, downloadReply.Objects.Select(o => CreateMarkerFromNetworkObject(o)).ToList());
         }
 
-        public async Task<bool> UploadMarker(ushort territoryType, IList<Marker> markers, CancellationToken cancellationToken = default)
+        public async Task<(bool, List<Marker>)> UploadMarker(ushort territoryType, IList<Marker> markers, CancellationToken cancellationToken = default)
         {
             if (markers.Count == 0)
-                return true;
+                return (true, new());
 
             if (!await Connect(cancellationToken))
-                return false;
+                return (false, new());
 
             var palaceClient = new PalaceService.PalaceServiceClient(_channel);
             var uploadRequest = new UploadFloorsRequest
@@ -124,9 +133,30 @@ namespace Pal.Client
                 Z = m.Position.Z
             }));
             var uploadReply = await palaceClient.UploadFloorsAsync(uploadRequest, headers: AuthorizedHeaders(), cancellationToken: cancellationToken);
-            return uploadReply.Success;
+            return (uploadReply.Success, uploadReply.Objects.Select(o => CreateMarkerFromNetworkObject(o)).ToList());
         }
 
+        public async Task<bool> MarkAsSeen(ushort territoryType, IList<Marker> markers, CancellationToken cancellationToken = default)
+        {
+            Service.Chat.Print($"Marking {markers.Count} as seen");
+            if (markers.Count == 0)
+                return true;
+
+            if (!await Connect(cancellationToken))
+                return false;
+
+            var palaceClient = new PalaceService.PalaceServiceClient(_channel);
+            var seenRequest = new MarkObjectsSeenRequest { TerritoryType = territoryType };
+            foreach (var marker in markers)
+                seenRequest.NetworkIds.Add(marker.NetworkId.ToString());
+
+            var seenReply = await palaceClient.MarkObjectsSeenAsync(seenRequest, headers: AuthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
+            return seenReply.Success;
+        }
+
+        private Marker CreateMarkerFromNetworkObject(PalaceObject obj) =>
+            new Marker((Marker.EType)obj.Type, new Vector3(obj.X, obj.Y, obj.Z), Guid.Parse(obj.NetworkId));
+        
         public async Task<(bool, List<FloorStatistics>)> FetchStatistics(CancellationToken cancellationToken = default)
         {
             if (!await Connect(cancellationToken))

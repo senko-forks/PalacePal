@@ -19,6 +19,8 @@ namespace Pal.Server
         public string? IpHash { get; set; }
         public DateTime CreatedAt { get; set; }
         public List<string> Roles { get; set; } = new List<string>();
+
+        public List<SeenLocation> SeenLocations { get; set; } = new List<SeenLocation>();
     }
 
     public class PalaceLocation
@@ -37,6 +39,25 @@ namespace Pal.Server
         {
             Trap = 1,
             Hoard = 2
+        }
+    }
+
+    public class SeenLocation
+    {
+        public Guid Id { get; set; }
+        public Guid AccountId { get; set; }
+        public Account Account { get; set; } = null!;
+        public Guid PalaceLocationId { get; set; }
+        public PalaceLocation PalaceLocation { get; set; } = null!;
+        public DateTime FirstSeenAt { get; set; }
+
+        protected SeenLocation() { }
+
+        public SeenLocation(Account account, Guid palaceLocationId)
+        {
+            Account = account;
+            PalaceLocationId = palaceLocationId;
+            FirstSeenAt = DateTime.Now;
         }
     }
 

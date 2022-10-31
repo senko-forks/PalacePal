@@ -1,6 +1,7 @@
 ﻿using ECommons.SplatoonAPI;
 using Palace;
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using System.Text.Json.Serialization;
 
@@ -10,18 +11,44 @@ namespace Pal.Client
     {
         public EType Type { get; set; } = EType.Unknown;
         public Vector3 Position { get; set; }
+
+        /// <summary>
+        /// Whether we have encountered the trap/coffer at this location in-game.
+        /// </summary>
         public bool Seen { get; set; } = false;
 
+        /// <summary>
+        /// Network id for the server you're currently connected to.
+        /// </summary>
         [JsonIgnore]
-        public bool RemoteSeen { get; set; } = false;
+        public Guid? NetworkId { get; set; }
+
+        /// <summary>
+        /// For markers that the server you're connected to doesn't know: Whether this was requested to be uploaded, to avoid duplicate requests.
+        /// </summary>
+        [JsonIgnore]
+        public bool UploadRequested { get; set; }
+
+        /// <summary>
+        /// Which account ids this marker was seen. This is a list merely to support different remote endpoints
+        /// (where each server would assign you a different id).
+        /// </summary>
+        public List<Guid> RemoteSeenOn { get; set; } = new List<Guid>();
+
+        /// <summary>
+        /// Whether this marker was requested to be seen, to avoid duplicate requests.
+        /// </summary>
+        [JsonIgnore]
+        public bool RemoteSeenRequested { get; set; } = false;
 
         [JsonIgnore]
         public Element? SplatoonElement { get; set; }
 
-        public Marker(EType type, Vector3 position)
+        public Marker(EType type, Vector3 position, Guid? networkId = null)
         {
             Type = type;
             Position = position;
+            NetworkId = networkId;
         }
 
         public override int GetHashCode()

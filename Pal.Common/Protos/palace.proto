@@ -5,6 +5,7 @@ package palace;
 service PalaceService {
 	rpc DownloadFloors(DownloadFloorsRequest) returns (DownloadFloorsReply);
 	rpc UploadFloors(UploadFloorsRequest) returns (UploadFloorsReply);
+	rpc MarkObjectsSeen(MarkObjectsSeenRequest) returns (MarkObjectsSeenReply);
 	rpc FetchStatistics(StatisticsRequest) returns (StatisticsReply);
 }
 
@@ -24,6 +25,7 @@ message UploadFloorsRequest {
 
 message UploadFloorsReply {
 	bool success = 1;
+	repeated PalaceObject objects = 2;
 }
 
 message StatisticsRequest {
@@ -45,6 +47,18 @@ message PalaceObject {
 	float x = 2;
 	float y = 3;
 	float z = 4;
+
+	// Ignored for uploaded markers.
+	string networkId = 5;
+}
+
+message MarkObjectsSeenRequest {
+	uint32 territoryType = 1;
+	repeated string networkIds = 2;
+}
+
+message MarkObjectsSeenReply {
+	bool success = 1;
 }
 
 enum ObjectType {

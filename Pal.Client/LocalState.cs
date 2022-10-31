@@ -13,7 +13,7 @@ namespace Pal.Client
     internal class LocalState
     {
         private static readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions { IncludeFields = true };
-        private static readonly int _currentVersion = 2;
+        private static readonly int _currentVersion = 3;
      
         public uint TerritoryType { get; set; }
         public ConcurrentBag<Marker> Markers { get; set; } = new();
