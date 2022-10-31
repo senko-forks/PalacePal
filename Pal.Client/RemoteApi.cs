@@ -47,43 +47,30 @@ namespace Pal.Client
             }
 
             var accountClient = new AccountService.AccountServiceClient(_channel);
-#if DEBUG
-            string? accountId = Service.Configuration.DebugAccountId;
-#else
-            string? accountId = Service.Configuration.AccountId;
-#endif
-            if (string.IsNullOrEmpty(accountId))
+            Guid? accountId = Service.Configuration.AccountIds[remoteUrl];
+            if (accountId == null)
             {
                 var createAccountReply = await accountClient.CreateAccountAsync(new CreateAccountRequest(), headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
                 if (createAccountReply.Success)
                 {
-                    accountId = createAccountReply.AccountId;
-#if DEBUG
-                    Service.Configuration.DebugAccountId = accountId;
-#else
-                    Service.Configuration.AccountId = accountId;
-
-#endif
+                    accountId = Guid.Parse(createAccountReply.AccountId);
+                    Service.Configuration.AccountIds[remoteUrl] = accountId.Value;
                     Service.Configuration.Save();
                 }
             }
 
-            if (string.IsNullOrEmpty(accountId))
+            if (accountId == null)
                 return false;
 
             if (_lastLoginReply == null || string.IsNullOrEmpty(_lastLoginReply.AuthToken) || _lastLoginReply.ExpiresAt.ToDateTime().ToLocalTime() < DateTime.Now)
             {
-                _lastLoginReply = await accountClient.LoginAsync(new LoginRequest { AccountId = accountId }, headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
+                _lastLoginReply = await accountClient.LoginAsync(new LoginRequest { AccountId = accountId.ToString() }, headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
                 if (!_lastLoginReply.Success)
                 {
                     if (_lastLoginReply.Error == LoginError.InvalidAccountId)
                     {
                         accountId = null;
-#if DEBUG
-                        Service.Configuration.DebugAccountId = accountId;
-#else
-                        Service.Configuration.AccountId = accountId;
-#endif
+                        Service.Configuration.AccountIds.Remove(remoteUrl);
                         Service.Configuration.Save();
                         if (retry)
                             return await Connect(cancellationToken, retry: false);

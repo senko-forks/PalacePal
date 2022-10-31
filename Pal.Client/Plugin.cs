@@ -59,6 +59,7 @@ namespace Pal.Client
             pluginInterface.Create<Service>();
             Service.Plugin = this;
             Service.Configuration = (Configuration?)pluginInterface.GetPluginConfig() ?? pluginInterface.Create<Configuration>()!;
+            Service.Configuration.Migrate();
 
             var agreementWindow = pluginInterface.Create<AgreementWindow>();
             if (agreementWindow is not null)
