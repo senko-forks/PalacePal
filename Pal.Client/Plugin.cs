@@ -348,9 +348,12 @@ namespace Pal.Client
                 if (TerritorySyncState == SyncState.Complete)
                 {
                     var markersToUpload = currentFloorMarkers.Where(x => x.IsPermanent() && x.NetworkId == null && !x.UploadRequested).ToList();
-                    foreach (var marker in markersToUpload)
-                        marker.UploadRequested = true;
-                    Task.Run(async () => await UploadMarkersForTerritory(LastTerritory, markersToUpload));
+                    if (markersToUpload.Count > 0)
+                    {
+                        foreach (var marker in markersToUpload)
+                            marker.UploadRequested = true;
+                        Task.Run(async () => await UploadMarkersForTerritory(LastTerritory, markersToUpload));
+                    }
                 }
             }
 
