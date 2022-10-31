@@ -13,7 +13,6 @@ using Grpc.Core;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
 using Pal.Client.Windows;
-using Palace;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -55,7 +54,7 @@ namespace Pal.Client
         public Plugin(DalamudPluginInterface pluginInterface)
         {
 
-            ECommons.ECommons.Init(pluginInterface, this, Module.SplatoonAPI);
+            ECommonsMain.Init(pluginInterface, this, Module.SplatoonAPI);
 
             pluginInterface.Create<Service>();
             Service.Plugin = this;
@@ -165,7 +164,7 @@ namespace Pal.Client
             {
                 // destroyed on territory change either way
             }
-            ECommons.ECommons.Dispose();
+            ECommonsMain.Dispose();
         }
 
         public void Dispose()
