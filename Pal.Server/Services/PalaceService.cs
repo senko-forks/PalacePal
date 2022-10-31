@@ -4,19 +4,18 @@ using Microsoft.EntityFrameworkCore;
 using Pal.Common;
 using Palace;
 using System.Collections.Concurrent;
-using System.Numerics;
 using static Palace.PalaceService;
 
 namespace Pal.Server.Services
 {
     internal class PalaceService : PalaceServiceBase
     {
-        private readonly ILogger<AccountService> _logger;
+        private readonly ILogger<PalaceService> _logger;
         private readonly PalContext _dbContext;
         private readonly PalaceLocationCache _cache;
 
 
-        public PalaceService(ILogger<AccountService> logger, PalContext dbContext, PalaceLocationCache cache)
+        public PalaceService(ILogger<PalaceService> logger, PalContext dbContext, PalaceLocationCache cache)
         {
             _logger = logger;
             _dbContext = dbContext;
