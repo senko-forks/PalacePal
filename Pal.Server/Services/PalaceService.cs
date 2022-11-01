@@ -127,7 +127,7 @@ namespace Pal.Server.Services
                 var account = await _dbContext.Accounts.FindAsync(new object[] { context.GetAccountId() }, cancellationToken: context.CancellationToken);
                 if (account == null)
                 {
-                    _logger.LogInformation("Skipping mark objects seen, account not found");
+                    _logger.LogInformation("Skipping mark objects seen, account {} not found", context.GetAccountId());
                     return new MarkObjectsSeenReply { Success = false };
                 }
 
@@ -139,7 +139,7 @@ namespace Pal.Server.Services
                     .ToList();
                 if (newLocations.Count > 0)
                 {
-                    _logger.LogInformation("Mark {} locations as seen for account {} on territory {TerritoryType}", newLocations.Count, account.Id, territoryType);
+                    _logger.LogInformation("Mark {} locations as seen for account {} on territory {TerritoryName} ({TerritoryType})", newLocations.Count, account.Id, (ETerritoryType)territoryType, territoryType);
                     account.SeenLocations.AddRange(newLocations);
                     await _dbContext.SaveChangesAsync(context.CancellationToken);
                 }
