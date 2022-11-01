@@ -53,7 +53,6 @@ namespace Pal.Client
 
         public Plugin(DalamudPluginInterface pluginInterface)
         {
-
             ECommonsMain.Init(pluginInterface, this, Module.SplatoonAPI);
 
             pluginInterface.Create<Service>();
@@ -181,6 +180,9 @@ namespace Pal.Client
 
         private void OnChatMessage(XivChatType type, uint senderId, ref SeString sender, ref SeString seMessage, ref bool isHandled)
         {
+            if (Service.Configuration.FirstUse)
+                return;
+
             if (type != (XivChatType)2105)
                 return;
 
@@ -216,6 +218,9 @@ namespace Pal.Client
 
         private void OnFrameworkUpdate(Framework framework)
         {
+            if (Service.Configuration.FirstUse)
+                return;
+
             try
             {
                 bool recreateLayout = false;
@@ -514,7 +519,6 @@ namespace Pal.Client
                 DebugMessage = $"{DateTime.Now}\n{e}";
             }
         }
-
 
         private async Task FetchFloorStatistics()
         {
