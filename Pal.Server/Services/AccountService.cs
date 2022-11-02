@@ -39,6 +39,7 @@ namespace Pal.Server.Services
             try
             {
                 var remoteIp = context.GetHttpContext().Connection.RemoteIpAddress;
+#if !DEBUG
                 if (remoteIp != null && (remoteIp.ToString().StartsWith("127.") || remoteIp.ToString() == "::1"))
                 {
                     remoteIp = null;
@@ -51,6 +52,7 @@ namespace Pal.Server.Services
                         }
                     }
                 }
+#endif
                 if (remoteIp == null)
                     return new CreateAccountReply { Success = false };
 
