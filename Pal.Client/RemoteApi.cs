@@ -25,10 +25,11 @@ namespace Pal.Client
 
         private GrpcChannel? _channel;
         private LoginReply? _lastLoginReply;
+        private bool _warnedAboutUpgrade = false;
 
         public Guid? AccountId
         {
-            get => Service.Configuration.AccountIds[remoteUrl];
+            get => Service.Configuration.AccountIds.TryGetValue(remoteUrl, out Guid accountId) ? accountId : null;
             set
             {
                 if (value != null)
@@ -38,10 +39,10 @@ namespace Pal.Client
             }
         }
 
-        private async Task<bool> Connect(CancellationToken cancellationToken, bool retry = true)
+        private async Task<(bool Success, string Error)> TryConnect(CancellationToken cancellationToken, bool retry = true)
         {
             if (Service.Configuration.Mode != Configuration.EMode.Online)
-                return false;
+                return (false, "You are not online.");
 
             if (_channel == null || !(_channel.State == ConnectivityState.Ready || _channel.State == ConnectivityState.Idle))
             {
@@ -67,10 +68,19 @@ namespace Pal.Client
                     AccountId = Guid.Parse(createAccountReply.AccountId);
                     Service.Configuration.Save();
                 }
+                else
+                {
+                    if (createAccountReply.Error == CreateAccountError.UpgradeRequired && !_warnedAboutUpgrade)
+                    {
+                        Service.Chat.PrintError("[Palace Pal] Your version of Palace Pal is outdated, please update the plugin using the Plugin Installer.");
+                        _warnedAboutUpgrade = true;
+                    }
+                    return (false, $"Could not create account ({createAccountReply.Error}).");
+                }
             }
 
             if (AccountId == null)
-                return false;
+                return (false, "No account-id after account was attempted to be created.");
 
             if (_lastLoginReply == null || string.IsNullOrEmpty(_lastLoginReply.AuthToken) || _lastLoginReply.ExpiresAt.ToDateTime().ToLocalTime() < DateTime.Now)
             {
@@ -82,24 +92,46 @@ namespace Pal.Client
                         AccountId = null;
                         Service.Configuration.Save();
                         if (retry)
-                            return await Connect(cancellationToken, retry: false);
+                            return await TryConnect(cancellationToken, retry: false);
                         else
-                            return false;
+                            return (false, "Invalid account id.");
                     }
+                    if (_lastLoginReply.Error == LoginError.UpgradeRequired && !_warnedAboutUpgrade)
+                    {
+                        Service.Chat.PrintError("[Palace Pal] Your version of Palace Pal is outdated, please update the plugin using the Plugin Installer.");
+                        _warnedAboutUpgrade = true;
+                    }
+                    return (false, $"Could not log in ({_lastLoginReply.Error}).");
                 }
             }
 
-            return !string.IsNullOrEmpty(_lastLoginReply?.AuthToken);
+            if (_lastLoginReply == null)
+                return (false, "No login information available.");
+
+            bool success = !string.IsNullOrEmpty(_lastLoginReply?.AuthToken);
+            if (!success)
+                return (success, "Login reply did not include auth token.");
+
+            return (success, string.Empty);
+        }
+
+        private async Task<bool> Connect(CancellationToken cancellationToken)
+        {
+            var result = await TryConnect(cancellationToken);
+            return result.Success;
         }
 
         public async Task<string> VerifyConnection(CancellationToken cancellationToken = default)
         {
-            if (!await Connect(cancellationToken))
-                return "Could not connect to server";
+            _warnedAboutUpgrade = false;
+
+            var connectionResult = await TryConnect(cancellationToken);
+            if (!connectionResult.Success)
+                return $"Could not connect to server: {connectionResult.Error}";
 
             var accountClient = new AccountService.AccountServiceClient(_channel);
             await accountClient.VerifyAsync(new VerifyRequest(), headers: AuthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
-            return "Connection successful";
+            return "Connection successful.";
         }
 
         public async Task<(bool, List<Marker>)> DownloadRemoteMarkers(ushort territoryId, CancellationToken cancellationToken = default)

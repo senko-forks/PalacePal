@@ -54,7 +54,7 @@ namespace Pal.Server.Services
                 }
 #endif
                 if (remoteIp == null)
-                    return new CreateAccountReply { Success = false };
+                    return new CreateAccountReply { Success = false, Error = CreateAccountError.InvalidHash };
 
                 _salt ??= Convert.FromBase64String((await _dbContext.GlobalSettings.FindAsync(new object[] { "salt" }, cancellationToken: context.CancellationToken))!.Value);
                 var ipHash = Convert.ToBase64String(new Rfc2898DeriveBytes(remoteIp.GetAddressBytes(), _salt, iterations: 10000).GetBytes(24));
@@ -86,7 +86,7 @@ namespace Pal.Server.Services
             catch (Exception e)
             {
                 _logger.LogError("Could not create account: {e}", e);
-                return new CreateAccountReply { Success = false };
+                return new CreateAccountReply { Success = false, Error = CreateAccountError.Unknown };
             }
         }
 

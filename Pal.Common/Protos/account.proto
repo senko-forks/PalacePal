@@ -25,6 +25,14 @@ message CreateAccountRequest {
 message CreateAccountReply {
 	bool success = 1;
 	string accountId = 2;
+	CreateAccountError error = 3;
+}
+
+enum CreateAccountError {
+	CREATE_ACCOUNT_ERROR_NONE = 0;
+	CREATE_ACCOUNT_ERROR_UNKNOWN = 1;
+	CREATE_ACCOUNT_ERROR_UPGRADE_REQUIRED = 2;
+	CREATE_ACCOUNT_ERROR_INVALID_HASH = 3;
 }
 
 message LoginRequest {
@@ -42,6 +50,7 @@ enum LoginError {
 	LOGIN_ERROR_NONE = 0;
 	LOGIN_ERROR_UNKNOWN = 1;
 	LOGIN_ERROR_INVALID_ACCOUNT_ID = 2;
+	LOGIN_ERROR_UPGRADE_REQUIRED = 3;
 }
 
 message VerifyRequest {
