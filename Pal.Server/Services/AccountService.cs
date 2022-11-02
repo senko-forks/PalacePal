@@ -62,7 +62,7 @@ namespace Pal.Server.Services
                 Account? existingAccount = await _dbContext.Accounts.FirstOrDefaultAsync(a => a.IpHash == ipHash, cancellationToken: context.CancellationToken);
                 if (existingAccount != null)
                 {
-                    _logger.LogInformation("CreateAccount: Returning existing account {AccountId} for ip hash {IpHash} ({Ip})", existingAccount.Id, ipHash, remoteIp.ToString().Substring(0, 5));
+                    _logger.LogInformation("CreateAccount: Returning existing account {AccountId} for ip hash {IpHash} ({Ip})", existingAccount.Id, ipHash, remoteIp.ToString().Substring(0, Math.Min(5, remoteIp.ToString().Length)));
                     return new CreateAccountReply { Success = true, AccountId = existingAccount.Id.ToString() };
                 }
 
