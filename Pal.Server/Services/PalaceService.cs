@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Pal.Common;
 using Palace;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using static Palace.PalaceService;
 
 namespace Pal.Server.Services
@@ -13,7 +14,7 @@ namespace Pal.Server.Services
         private readonly ILogger<PalaceService> _logger;
         private readonly PalContext _dbContext;
         private readonly PalaceLocationCache _cache;
-
+        private readonly IEqualityComparer<PalaceObject> _objEqualityComparer = new TypeAndLocationEqualityComparer();
 
         public PalaceService(ILogger<PalaceService> logger, PalContext dbContext, PalaceLocationCache cache)
         {
@@ -33,12 +34,11 @@ namespace Pal.Server.Services
                     _logger.LogInformation("Skipping download for unknown territory type {TerritoryType}", territoryType);
                     return new DownloadFloorsReply { Success = false };
                 }
-
-                if (!_cache.TryGetValue(territoryType, out var objects))
-                    objects = await LoadObjects(territoryType, context.CancellationToken);
+                
+                var objects = await GetOrLoadObjects(territoryType, context.CancellationToken);
 
                 var reply = new DownloadFloorsReply { Success = true };
-                reply.Objects.AddRange(objects!.Values);
+                reply.Objects.AddRange(objects.Values);
                 return reply;
             } 
             catch (Exception e)
@@ -63,13 +63,12 @@ namespace Pal.Server.Services
                 }
 
                 // only happens when the server is being restarted while people are currently doing potd/hoh runs and have downloaded the floor layout prior to the restart
-                if (!_cache.TryGetValue(territoryType, out var objects))
-                    objects = await LoadObjects(territoryType, context.CancellationToken);
+                var objects = await GetOrLoadObjects(territoryType, context.CancellationToken);
 
                 DateTime createdAt = DateTime.Now;
-                var newLocations = request.Objects.Where(o => !objects!.Values.Any(x => CalculateHash(x) == CalculateHash(o)))
-                    .Where(o => o.Type != ObjectType.Unknown && o.X != 0 && o.Y != 0 && o.Z != 0)
-                    .DistinctBy(o => CalculateHash(o))
+                var newLocations = request.Objects.Where(o => !objects.Values.Contains(o, _objEqualityComparer))
+                    .Where(o => o.Type != ObjectType.Unknown && !(o.X == 0 && o.Y == 0 && o.Z == 0))
+                    .Distinct(_objEqualityComparer)
                     .Select(o => new PalaceLocation
                     {
                         Id = Guid.NewGuid(),
@@ -91,14 +90,14 @@ namespace Pal.Server.Services
                     foreach (var location in newLocations)
                     {
                         var palaceObj = new PalaceObject { Type = (ObjectType)location.Type, X = location.X, Y = location.Y, Z = location.Z, NetworkId = location.Id.ToString() };
-                        objects![location.Id] = palaceObj;
+                        objects[location.Id] = palaceObj;
                         reply.Objects.Add(palaceObj);
                     }
 
                     _logger.LogInformation("Saved {Count} new locations for {TerritoryName} ({TerritoryType})", newLocations.Count, (ETerritoryType)territoryType, territoryType);
                 }
                 else
-                    _logger.LogInformation("Saved no objects for {TerritoryName} ({TerritoryType}) - all already known", (ETerritoryType)territoryType, territoryType);
+                    _logger.LogInformation("Saved no objects for {TerritoryName} ({TerritoryType}) - all {Count} already known", (ETerritoryType)territoryType, territoryType, request.Objects.Count);
 
                 return reply;
             }
@@ -121,9 +120,6 @@ namespace Pal.Server.Services
                     return new MarkObjectsSeenReply { Success = false };
                 }
 
-                if (!_cache.TryGetValue(territoryType, out var objects))
-                    objects = await LoadObjects(territoryType, context.CancellationToken);
-
                 var account = await _dbContext.Accounts.FindAsync(new object[] { context.GetAccountId() }, cancellationToken: context.CancellationToken);
                 if (account == null)
                 {
@@ -131,9 +127,11 @@ namespace Pal.Server.Services
                     return new MarkObjectsSeenReply { Success = false };
                 }
 
+                var objects = await GetOrLoadObjects(territoryType, context.CancellationToken);
+
                 var seenLocations = account.SeenLocations;
                 var newLocations = request.NetworkIds.Select(x => Guid.Parse(x))
-                    .Where(x => objects!.ContainsKey(x))
+                    .Where(x => objects.ContainsKey(x))
                     .Where(x => !seenLocations.Any(seen => seen.PalaceLocationId == x))
                     .Select(x => new SeenLocation(account, x))
                     .ToList();
@@ -160,14 +158,12 @@ namespace Pal.Server.Services
                 var reply = new StatisticsReply { Success = true };
                 foreach (ETerritoryType territoryType in typeof(ETerritoryType).GetEnumValues())
                 {
-                    if (!_cache.TryGetValue((ushort)territoryType, out var objects))
-                        objects = await LoadObjects((ushort)territoryType, context.CancellationToken);
-
+                    var objects = await GetOrLoadObjects((ushort)territoryType, context.CancellationToken);
                     reply.FloorStatistics.Add(new FloorStatistics
                     {
                         TerritoryType = (ushort)territoryType,
-                        TrapCount = (uint)objects!.Values.Count(x => x.Type == ObjectType.Trap),
-                        HoardCount = (uint)objects!.Values.Count(x => x.Type == ObjectType.Hoard),
+                        TrapCount = (uint)objects.Values.Count(x => x.Type == ObjectType.Trap),
+                        HoardCount = (uint)objects.Values.Count(x => x.Type == ObjectType.Hoard),
                     });
                 }
                 return reply;
@@ -179,6 +175,14 @@ namespace Pal.Server.Services
             }
         }
 
+        private async Task<ConcurrentDictionary<Guid, PalaceObject>> GetOrLoadObjects(ushort territoryType, CancellationToken cancellationToken)
+        {
+            if (!_cache.TryGetValue(territoryType, out var objects))
+                objects = await LoadObjects(territoryType, cancellationToken);
+
+            return objects ?? throw new Exception($"Unable to load objects for territory type {territoryType}");
+        }
+
         private async Task<ConcurrentDictionary<Guid, PalaceObject>> LoadObjects(ushort territoryType, CancellationToken cancellationToken)
         {
             var objects = await _dbContext.Locations.Where(o => o.TerritoryType == territoryType)
@@ -188,6 +192,27 @@ namespace Pal.Server.Services
             return result;
         }
 
-        private int CalculateHash(PalaceObject obj) => HashCode.Combine(obj.Type, (int)obj.X, (int)obj.Y, (int)obj.Z);
+        private class TypeAndLocationEqualityComparer : IEqualityComparer<PalaceObject>
+        {
+            public bool Equals(PalaceObject? first, PalaceObject? second)
+            {
+                if (first == null && second == null)
+                    return true;
+                else if (first == null || second == null)
+                    return false;
+                else
+                {
+                    return first.Type == second.Type &&
+                        (int)first.X == (int)second.X &&
+                        (int)first.Y == (int)second.Y &&
+                        (int)first.Z == (int)second.Z;
+                }
+            }
+
+            public int GetHashCode([DisallowNull] PalaceObject obj)
+            {
+                return HashCode.Combine(obj.Type, (int)obj.X, (int)obj.Y, (int)obj.Z);
+            }
+        }
     }
 }
