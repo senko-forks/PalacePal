@@ -1,11 +1,14 @@
 ﻿using Dalamud.Interface.Components;
 using Dalamud.Interface.Windowing;
+using ECommons.Reflection;
 using ECommons.SplatoonAPI;
 using ImGuiNET;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Pal.Client.Windows
@@ -181,29 +184,7 @@ namespace Pal.Client.Windows
                     ImGui.Separator();
 
                     if (ImGui.Button("Draw trap & coffer circles around self"))
-                    {
-                        try
-                        {
-                            Vector3? pos = Service.ClientState.LocalPlayer?.Position;
-                            if (pos != null)
-                            {
-                                var elements = new List<Element>
-                                {
-                                    Plugin.CreateSplatoonElement(Marker.EType.Trap, pos.Value, _trapColor),
-                                    Plugin.CreateSplatoonElement(Marker.EType.Hoard, pos.Value, _hoardColor),
-                                };
-
-                                if (!Splatoon.AddDynamicElements("PalacePal.Test", elements.ToArray(), new long[] { Environment.TickCount64 + 10000 }))
-                                {
-                                    Service.Chat.PrintError("Could not draw markers :(");
-                                }
-                            }
-                        }
-                        catch (Exception)
-                        {
-                            Service.Chat.PrintError("Could not draw markers, is Splatoon installed and enabled?");
-                        }
-                    }
+                        DrawDebugItems();
 
                     ImGui.EndTabItem();
                 }
@@ -228,6 +209,50 @@ namespace Pal.Client.Windows
 
                 if (saveAndClose)
                     IsOpen = false;
+            }
+        }
+
+        private void DrawDebugItems()
+        {
+            try
+            {
+                Vector3? pos = Service.ClientState.LocalPlayer?.Position;
+                if (pos != null)
+                {
+                    var elements = new List<Element>
+                                {
+                                    Plugin.CreateSplatoonElement(Marker.EType.Trap, pos.Value, _trapColor),
+                                    Plugin.CreateSplatoonElement(Marker.EType.Hoard, pos.Value, _hoardColor),
+                                };
+
+                    if (!Splatoon.AddDynamicElements("PalacePal.Test", elements.ToArray(), new long[] { Environment.TickCount64 + 10000 }))
+                    {
+                        Service.Chat.PrintError("Could not draw markers :(");
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                try
+                {
+                    var pluginManager = DalamudReflector.GetPluginManager();
+                    IList installedPlugins = pluginManager.GetType().GetProperty("InstalledPlugins")?.GetValue(pluginManager) as IList ?? new List<object>();
+
+                    foreach (var t in installedPlugins)
+                    {
+                        AssemblyName? assemblyName = (AssemblyName?)t.GetType().GetProperty("AssemblyName")?.GetValue(t);
+                        string? pluginName = (string?)t.GetType().GetProperty("Name")?.GetValue(t);
+                        if (assemblyName?.Name == "Splatoon" && pluginName != "Splatoon")
+                        {
+                            Service.Chat.PrintError($"[Palace Pal] Splatoon is installed under the plugin name '{pluginName}', which is incompatible with the Splatoon API.");
+                            Service.Chat.Print("[Palace Pal] You need to install Splatoon from the official repository at https://github.com/NightmareXIV/MyDalamudPlugins.");
+                            return;
+                        }
+                    }
+                }
+                catch (Exception) { }
+
+                Service.Chat.PrintError("Could not draw markers, is Splatoon installed and enabled?");
             }
         }
     }
