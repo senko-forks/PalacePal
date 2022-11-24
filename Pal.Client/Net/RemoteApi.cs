@@ -2,6 +2,7 @@
 using Dalamud.Logging;
 using Grpc.Core;
 using Grpc.Net.Client;
+using Microsoft.Extensions.Logging;
 using Palace;
 using System;
 using System.Collections.Generic;
@@ -13,7 +14,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Pal.Client
+namespace Pal.Client.Net
 {
     internal class RemoteApi : IDisposable
     {
@@ -23,6 +24,8 @@ namespace Pal.Client
         private const string remoteUrl = "https://pal.μ.tv";
 #endif
         private readonly string UserAgent = $"{typeof(RemoteApi).Assembly.GetName().Name?.Replace(" ", "")}/{typeof(RemoteApi).Assembly.GetName().Version?.ToString(2)}";
+
+        private readonly ILoggerFactory _grpcToPluginLogLoggerFactory = LoggerFactory.Create(builder => builder.AddProvider(new GrpcLoggerProvider()).AddFilter("Grpc", LogLevel.Trace));
 
         private GrpcChannel? _channel;
         private LoginReply? _lastLoginReply;
@@ -43,7 +46,7 @@ namespace Pal.Client
         private string PartialAccountId =>
             AccountId?.ToString()?.PadRight(14).Substring(0, 13) ?? "[no account id]";
 
-        private async Task<(bool Success, string Error)> TryConnect(CancellationToken cancellationToken, bool retry = true)
+        private async Task<(bool Success, string Error)> TryConnect(CancellationToken cancellationToken, ILoggerFactory? loggerFactory = null, bool retry = true)
         {
             if (Service.Configuration.Mode != Configuration.EMode.Online)
             {
@@ -62,7 +65,8 @@ namespace Pal.Client
                     {
                         ConnectTimeout = TimeSpan.FromSeconds(5),
                         SslOptions = GetSslClientAuthenticationOptions(),
-                    }
+                    },
+                    LoggerFactory = loggerFactory,
                 });
 
                 PluginLog.Information($"TryConnect: Connecting to upstream service at {remoteUrl}");
@@ -105,11 +109,11 @@ namespace Pal.Client
                 _lastLoginReply = await accountClient.LoginAsync(new LoginRequest { AccountId = AccountId?.ToString() }, headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
                 if (_lastLoginReply.Success)
                 {
-                    PluginLog.Information($"TryConnect: Login successful with account id: {PartialAccountId}, auth token: {_lastLoginReply.AuthToken}");
+                    PluginLog.Information($"TryConnect: Login successful with account id: {PartialAccountId}");
                 }
                 else
                 {
-                    PluginLog.Error($"TryConnect: Login failed with error { _lastLoginReply.Error}");
+                    PluginLog.Error($"TryConnect: Login failed with error {_lastLoginReply.Error}");
                     if (_lastLoginReply.Error == LoginError.InvalidAccountId)
                     {
                         AccountId = null;
@@ -154,7 +158,7 @@ namespace Pal.Client
         {
             _warnedAboutUpgrade = false;
 
-            var connectionResult = await TryConnect(cancellationToken);
+            var connectionResult = await TryConnect(cancellationToken, loggerFactory: _grpcToPluginLogLoggerFactory);
             if (!connectionResult.Success)
                 return $"Could not connect to server: {connectionResult.Error}";
 
@@ -217,7 +221,7 @@ namespace Pal.Client
 
         private Marker CreateMarkerFromNetworkObject(PalaceObject obj) =>
             new Marker((Marker.EType)obj.Type, new Vector3(obj.X, obj.Y, obj.Z), Guid.Parse(obj.NetworkId));
-        
+
         public async Task<(bool, List<FloorStatistics>)> FetchStatistics(CancellationToken cancellationToken = default)
         {
             if (!await Connect(cancellationToken))

@@ -8,6 +8,7 @@ using Dalamud.Game.Gui;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
+using Pal.Client.Net;
 
 namespace Pal.Client
 {
