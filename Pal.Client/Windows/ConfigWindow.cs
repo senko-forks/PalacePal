@@ -1,5 +1,6 @@
 ﻿using Dalamud.Interface.Components;
 using Dalamud.Interface.Windowing;
+using Dalamud.Logging;
 using ECommons.Reflection;
 using ECommons.SplatoonAPI;
 using ImGuiNET;
@@ -9,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Pal.Client.Windows
@@ -124,12 +126,17 @@ namespace Pal.Client.Windows
                         Task.Run(async () =>
                         {
                             _connectionText = "Testing...";
+
+                            CancellationTokenSource cts = new CancellationTokenSource();
+                            cts.CancelAfter(TimeSpan.FromSeconds(60));
+                            
                             try
                             {
-                                _connectionText = await Service.RemoteApi.VerifyConnection();
+                                _connectionText = await Service.RemoteApi.VerifyConnection(cts.Token);
                             }
                             catch (Exception e)
                             {
+                                PluginLog.Error(e, "Could not establish remote connection");
                                 _connectionText = e.ToString();
                             }
                         });

@@ -1,4 +1,5 @@
 ﻿using Account;
+using Dalamud.Logging;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Palace;
@@ -39,15 +40,22 @@ namespace Pal.Client
             }
         }
 
+        private string PartialAccountId =>
+            AccountId?.ToString()?.PadRight(14).Substring(0, 13) ?? "[no account id]";
+
         private async Task<(bool Success, string Error)> TryConnect(CancellationToken cancellationToken, bool retry = true)
         {
             if (Service.Configuration.Mode != Configuration.EMode.Online)
+            {
+                PluginLog.Debug("TryConnect: Not Online, not attempting to establish a connection");
                 return (false, "You are not online.");
+            }
 
             if (_channel == null || !(_channel.State == ConnectivityState.Ready || _channel.State == ConnectivityState.Idle))
             {
                 Dispose();
 
+                PluginLog.Information("TryConnect: Creating new gRPC channel");
                 _channel = GrpcChannel.ForAddress(remoteUrl, new GrpcChannelOptions
                 {
                     HttpHandler = new SocketsHttpHandler
@@ -56,20 +64,26 @@ namespace Pal.Client
                         SslOptions = GetSslClientAuthenticationOptions(),
                     }
                 });
+
+                PluginLog.Information($"TryConnect: Connecting to upstream service at {remoteUrl}");
                 await _channel.ConnectAsync(cancellationToken);
             }
 
             var accountClient = new AccountService.AccountServiceClient(_channel);
             if (AccountId == null)
             {
+                PluginLog.Information($"TryConnect: No account information saved for {remoteUrl}, creating new account");
                 var createAccountReply = await accountClient.CreateAccountAsync(new CreateAccountRequest(), headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
                 if (createAccountReply.Success)
                 {
                     AccountId = Guid.Parse(createAccountReply.AccountId);
+                    PluginLog.Information($"TryConnect: Account created with id {PartialAccountId}");
+
                     Service.Configuration.Save();
                 }
                 else
                 {
+                    PluginLog.Error($"TryConnect: Account creation failed with error {createAccountReply.Error}");
                     if (createAccountReply.Error == CreateAccountError.UpgradeRequired && !_warnedAboutUpgrade)
                     {
                         Service.Chat.PrintError("[Palace Pal] Your version of Palace Pal is outdated, please update the plugin using the Plugin Installer.");
@@ -80,19 +94,31 @@ namespace Pal.Client
             }
 
             if (AccountId == null)
+            {
+                PluginLog.Warning("TryConnect: No account id to login with");
                 return (false, "No account-id after account was attempted to be created.");
+            }
 
             if (_lastLoginReply == null || string.IsNullOrEmpty(_lastLoginReply.AuthToken) || _lastLoginReply.ExpiresAt.ToDateTime().ToLocalTime() < DateTime.Now)
             {
+                PluginLog.Information($"TryConnect: Logging in with account id {PartialAccountId}");
                 _lastLoginReply = await accountClient.LoginAsync(new LoginRequest { AccountId = AccountId?.ToString() }, headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
-                if (!_lastLoginReply.Success)
+                if (_lastLoginReply.Success)
                 {
+                    PluginLog.Information($"TryConnect: Login successful with account id: {PartialAccountId}, auth token: {_lastLoginReply.AuthToken}");
+                }
+                else
+                {
+                    PluginLog.Error($"TryConnect: Login failed with error { _lastLoginReply.Error}");
                     if (_lastLoginReply.Error == LoginError.InvalidAccountId)
                     {
                         AccountId = null;
                         Service.Configuration.Save();
                         if (retry)
+                        {
+                            PluginLog.Information("TryConnect: Attempting connection retry without account id");
                             return await TryConnect(cancellationToken, retry: false);
+                        }
                         else
                             return (false, "Invalid account id.");
                     }
@@ -106,7 +132,10 @@ namespace Pal.Client
             }
 
             if (_lastLoginReply == null)
+            {
+                PluginLog.Error("TryConnect: No account available");
                 return (false, "No login information available.");
+            }
 
             bool success = !string.IsNullOrEmpty(_lastLoginReply?.AuthToken);
             if (!success)
@@ -129,6 +158,7 @@ namespace Pal.Client
             if (!connectionResult.Success)
                 return $"Could not connect to server: {connectionResult.Error}";
 
+            PluginLog.Information("VerifyConnection: Connection established, trying to verify auth token");
             var accountClient = new AccountService.AccountServiceClient(_channel);
             await accountClient.VerifyAsync(new VerifyRequest(), headers: AuthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
             return "Connection successful.";
@@ -227,20 +257,24 @@ namespace Pal.Client
             var bytes = new byte[manifestResourceStream.Length];
             manifestResourceStream.Read(bytes, 0, bytes.Length);
 
+            var certificate = new X509Certificate2(bytes, pass, X509KeyStorageFlags.DefaultKeySet);
+            PluginLog.Debug($"Using client certificate {certificate.GetCertHashString()}");
             return new SslClientAuthenticationOptions
             {
                 ClientCertificates = new X509CertificateCollection()
                 {
-                    new X509Certificate2(bytes, pass, X509KeyStorageFlags.DefaultKeySet),
+                    certificate,
                 },
             };
 #else
+            PluginLog.Debug("Not using client certificate");
             return null;
 #endif
         }
 
         public void Dispose()
         {
+            PluginLog.Debug("Disposing gRPC channel");
             _channel?.Dispose();
             _channel = null;
         }
