@@ -5,6 +5,7 @@ using Dalamud.Game.Command;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.Windowing;
+using Dalamud.Logging;
 using Dalamud.Plugin;
 using ECommons;
 using ECommons.Schedulers;
@@ -49,6 +50,7 @@ namespace Pal.Client
         public PomanderState PomanderOfSight { get; set; } = PomanderState.Inactive;
         public PomanderState PomanderOfIntuition { get; set; } = PomanderState.Inactive;
         public string? DebugMessage { get; set; }
+        public bool IsUnsupported { get; set; }
 
         public string Name => "Palace Pal";
 
@@ -60,6 +62,9 @@ namespace Pal.Client
             Service.Plugin = this;
             Service.Configuration = (Configuration?)pluginInterface.GetPluginConfig() ?? pluginInterface.Create<Configuration>()!;
             Service.Configuration.Migrate();
+
+            IsUnsupported = !pluginInterface.IsDev && !pluginInterface.SourceRepository.StartsWith("https://raw.githubusercontent.com/carvelli/");
+            PluginLog.Information($"Install source: {pluginInterface.SourceRepository}");
 
             var agreementWindow = pluginInterface.Create<AgreementWindow>();
             if (agreementWindow is not null)
