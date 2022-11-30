@@ -115,6 +115,7 @@ namespace Pal.Client
 
             try
             {
+                arguments = arguments.Trim();
                 switch (arguments)
                 {
                     case "stats":
@@ -128,8 +129,12 @@ namespace Pal.Client
                         break;
 #endif
 
-                    default:
+                    case "":
                         Service.WindowSystem.GetWindow<ConfigWindow>()?.Toggle();
+                        break;
+
+                    default:
+                        Service.Chat.PrintError($"[Palace Pal] Unknown sub-command '{arguments}' for '{command}'.");
                         break;
                 }
             }
