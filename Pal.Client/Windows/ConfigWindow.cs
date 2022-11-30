@@ -36,7 +36,7 @@ namespace Pal.Client.Windows
         public ConfigWindow() : base("Palace Pal###PalPalaceConfig")
         {
             var version = typeof(Plugin).Assembly.GetName().Version!.ToString(2);
-            WindowName = $"Palace Pal v{version}{(Service.Plugin.IsUnsupported ? " - Unsupported" : "")}###PalPalaceConfig";
+            WindowName = $"Palace Pal v{version}###PalPalaceConfig";
             Size = new Vector2(500, 400);
             SizeCondition = ImGuiCond.FirstUseEver;
             Position = new Vector2(300, 300);

@@ -2,6 +2,7 @@
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Command;
+using Dalamud.Game.Gui;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.Windowing;
@@ -50,21 +51,30 @@ namespace Pal.Client
         public PomanderState PomanderOfSight { get; set; } = PomanderState.Inactive;
         public PomanderState PomanderOfIntuition { get; set; } = PomanderState.Inactive;
         public string? DebugMessage { get; set; }
-        public bool IsUnsupported { get; set; }
 
         public string Name => "Palace Pal";
 
-        public Plugin(DalamudPluginInterface pluginInterface)
+        public Plugin(DalamudPluginInterface pluginInterface, ChatGui chat)
         {
+            PluginLog.Information($"Install source: {pluginInterface.SourceRepository}");
+
+#if RELEASE
+            // You're welcome to remove this code in your fork, as long as:
+            // - none of the links accessible within FFXIV open the original repo (e.g. in the plugin installer), and
+            // - you host your own server instance
+            if (!pluginInterface.IsDev && !pluginInterface.SourceRepository.StartsWith("https://raw.githubusercontent.com/carvelli/"))
+            {
+                chat.PrintError("[Palace Pal] Please install this plugin from the official repository at https://github.com/carvelli/Dalamud-Plugins to continue using it.");
+                throw new InvalidOperationException();
+            }
+#endif
+
             ECommonsMain.Init(pluginInterface, this, Module.SplatoonAPI);
 
             pluginInterface.Create<Service>();
             Service.Plugin = this;
             Service.Configuration = (Configuration?)pluginInterface.GetPluginConfig() ?? pluginInterface.Create<Configuration>()!;
             Service.Configuration.Migrate();
-
-            IsUnsupported = !pluginInterface.IsDev && !pluginInterface.SourceRepository.StartsWith("https://raw.githubusercontent.com/carvelli/");
-            PluginLog.Information($"Install source: {pluginInterface.SourceRepository}");
 
             var agreementWindow = pluginInterface.Create<AgreementWindow>();
             if (agreementWindow is not null)
