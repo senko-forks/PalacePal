@@ -13,6 +13,7 @@ using Grpc.Core;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
 using Pal.Client.Windows;
+using Pal.Common;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -243,7 +244,7 @@ namespace Pal.Client
                     LastTerritory = Service.ClientState.TerritoryType;
                     TerritorySyncState = SyncState.NotAttempted;
 
-                    if (IsInPotdOrHoh())
+                    if (IsInDeepDungeon())
                         FloorMarkers[LastTerritory] = LocalState.Load(LastTerritory) ?? new LocalState(LastTerritory);
                     EphemeralMarkers.Clear();
                     PomanderOfSight = PomanderState.Inactive;
@@ -252,7 +253,7 @@ namespace Pal.Client
                     DebugMessage = null;
                 }
 
-                if (!IsInPotdOrHoh())
+                if (!IsInDeepDungeon())
                     return;
 
                 if (Service.Configuration.Mode == Configuration.EMode.Online && TerritorySyncState == SyncState.NotAttempted)
@@ -650,7 +651,10 @@ namespace Pal.Client
             return result;
         }
 
-        internal bool IsInPotdOrHoh() => Service.ClientState.IsLoggedIn && Service.Condition[ConditionFlag.InDeepDungeon];
+        internal bool IsInDeepDungeon() =>
+            Service.ClientState.IsLoggedIn 
+            && Service.Condition[ConditionFlag.InDeepDungeon]
+            && typeof(ETerritoryType).IsEnumDefined(Service.ClientState.TerritoryType);
 
         internal static Element CreateSplatoonElement(Marker.EType type, Vector3 pos, Vector4 color, bool fill = false) 
             => CreateSplatoonElement(type, pos, ImGui.ColorConvertFloat4ToU32(color), fill);

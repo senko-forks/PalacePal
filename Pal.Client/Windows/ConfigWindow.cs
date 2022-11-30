@@ -152,7 +152,7 @@ namespace Pal.Client.Windows
                 if (ImGui.BeginTabItem("Debug"))
                 {
                     var plugin = Service.Plugin;
-                    if (plugin.IsInPotdOrHoh())
+                    if (plugin.IsInDeepDungeon())
                     {
                         ImGui.Text($"You are in a deep dungeon, territory type {plugin.LastTerritory}.");
                         ImGui.Text($"Sync State = {plugin.TerritorySyncState}");
