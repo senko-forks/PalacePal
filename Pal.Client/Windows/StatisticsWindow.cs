@@ -30,9 +30,16 @@ namespace Pal.Client.Windows
 
         public override void Draw()
         {
-            if (ImGui.CollapsingHeader("Discovered Traps & Coffers per Instance", ImGuiTreeNodeFlags.DefaultOpen))
+            DrawDungeonStats("Palace of the Dead", ETerritoryType.Palace_1_10, ETerritoryType.Palace_191_200);
+            DrawDungeonStats("Heaven on High", ETerritoryType.HeavenOnHigh_1_10, ETerritoryType.HeavenOnHigh_91_100);
+        }
+
+        private void DrawDungeonStats(string name, ETerritoryType minTerritory, ETerritoryType maxTerritory)
+        {
+
+            if (ImGui.CollapsingHeader(name, ImGuiTreeNodeFlags.DefaultOpen))
             {
-                if (ImGui.BeginTable("TrapHoardStatistics", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable))
+                if (ImGui.BeginTable($"TrapHoardStatistics{name}", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable))
                 {
                     ImGui.TableSetupColumn("Id");
                     ImGui.TableSetupColumn("Instance");
@@ -40,7 +47,7 @@ namespace Pal.Client.Windows
                     ImGui.TableSetupColumn("Hoard");
                     ImGui.TableHeadersRow();
 
-                    foreach (var (territoryType, stats) in _territoryStatistics)
+                    foreach (var (territoryType, stats) in _territoryStatistics.Where(x => x.Key >= minTerritory && x.Key <= maxTerritory))
                     {
                         ImGui.TableNextRow();
                         if (ImGui.TableNextColumn())
