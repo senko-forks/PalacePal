@@ -140,6 +140,7 @@ namespace Pal.Client
 #endif
 
                     case "":
+                    case "config":
                         Service.WindowSystem.GetWindow<ConfigWindow>()?.Toggle();
                         break;
 
