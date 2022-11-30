@@ -28,9 +28,9 @@ namespace Pal.Server.Services
             _dbContext = dbContext;
 
 
-            _tokenIssuer = configuration["JWT:Issuer"];
-            _tokenAudience = configuration["JWT:Audience"];
-            _signingKey = new SymmetricSecurityKey(Convert.FromBase64String(configuration["JWT:Key"]));
+            _tokenIssuer = configuration.GetOrThrow("JWT:Issuer");
+            _tokenAudience = configuration.GetOrThrow("JWT:Audience");
+            _signingKey = new SymmetricSecurityKey(Convert.FromBase64String(configuration.GetOrThrow("JWT:Key")));
         }
 
         [AllowAnonymous]
@@ -57,7 +57,7 @@ namespace Pal.Server.Services
                     return new CreateAccountReply { Success = false, Error = CreateAccountError.InvalidHash };
 
                 _salt ??= Convert.FromBase64String((await _dbContext.GlobalSettings.FindAsync(new object[] { "salt" }, cancellationToken: context.CancellationToken))!.Value);
-                var ipHash = Convert.ToBase64String(new Rfc2898DeriveBytes(remoteIp.GetAddressBytes(), _salt, iterations: 10000).GetBytes(24));
+                var ipHash = Convert.ToBase64String(new Rfc2898DeriveBytes(remoteIp.GetAddressBytes(), _salt, iterations: 10000, HashAlgorithmName.SHA1).GetBytes(24));
 
                 Account? existingAccount = await _dbContext.Accounts.FirstOrDefaultAsync(a => a.IpHash == ipHash, cancellationToken: context.CancellationToken);
                 if (existingAccount != null)

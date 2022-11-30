@@ -27,9 +27,9 @@ namespace Pal.Server
                     ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    ValidIssuer = builder.Configuration["JWT:Issuer"],
-                    ValidAudience = builder.Configuration["JWT:Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(Convert.FromBase64String(builder.Configuration["JWT:Key"])),
+                    ValidIssuer = builder.Configuration.GetOrThrow("JWT:Issuer"),
+                    ValidAudience = builder.Configuration.GetOrThrow("JWT:Audience"),
+                    IssuerSigningKey = new SymmetricSecurityKey(Convert.FromBase64String(builder.Configuration.GetOrThrow("JWT:Key"))),
                 };
             });
             builder.Services.AddAuthorization();
