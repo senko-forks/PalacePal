@@ -34,13 +34,13 @@ namespace Pal.Server.Services
                     _logger.LogInformation("Skipping download for unknown territory type {TerritoryType}", territoryType);
                     return new DownloadFloorsReply { Success = false };
                 }
-                
+
                 var objects = await GetOrLoadObjects(territoryType, context.CancellationToken);
 
                 var reply = new DownloadFloorsReply { Success = true };
                 reply.Objects.AddRange(objects.Values);
                 return reply;
-            } 
+            }
             catch (Exception e)
             {
                 _logger.LogError("Could not download floors for territory {TerritoryType}: {e}", request.TerritoryType, e);
@@ -167,7 +167,7 @@ namespace Pal.Server.Services
                     });
                 }
                 return reply;
-            } 
+            }
             catch (Exception e)
             {
                 _logger.LogError("Could not fetch statistics: {e}", e);

@@ -74,7 +74,7 @@ namespace Pal.Client.Windows
                 territoryStatistics.TrapCount = null;
                 territoryStatistics.HoardCofferCount = null;
             }
-            
+
             foreach (var floor in floorStatistics)
             {
                 if (_territoryStatistics.TryGetValue((ETerritoryType)floor.TerritoryType, out TerritoryStatistics? territoryStatistics))

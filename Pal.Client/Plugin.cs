@@ -190,7 +190,7 @@ namespace Pal.Client
             {
                 Splatoon.RemoveDynamicElements(SPLATOON_TRAP_HOARD);
                 Splatoon.RemoveDynamicElements(SPLATOON_REGULAR_COFFERS);
-            } 
+            }
             catch
             {
                 // destroyed on territory change either way
@@ -335,7 +335,7 @@ namespace Pal.Client
                     // markers discovered afterwards are automatically marked seen.
                     if (accountId != null && knownMarker.NetworkId != null && !knownMarker.RemoteSeenRequested && !knownMarker.RemoteSeenOn.Contains(accountId.Value))
                         updateSeenMarkers = true;
-                    
+
                     continue;
                 }
 
@@ -667,7 +667,7 @@ namespace Pal.Client
                     case 2009504:
                         result.Add(new Marker(Marker.EType.Trap, obj.Position) { Seen = true });
                         break;
-                    
+
                     case 2007542:
                     case 2007543:
                         result.Add(new Marker(Marker.EType.Hoard, obj.Position) { Seen = true });
@@ -683,11 +683,11 @@ namespace Pal.Client
         }
 
         internal bool IsInDeepDungeon() =>
-            Service.ClientState.IsLoggedIn 
+            Service.ClientState.IsLoggedIn
             && Service.Condition[ConditionFlag.InDeepDungeon]
             && typeof(ETerritoryType).IsEnumDefined(Service.ClientState.TerritoryType);
 
-        internal static Element CreateSplatoonElement(Marker.EType type, Vector3 pos, Vector4 color, bool fill = false) 
+        internal static Element CreateSplatoonElement(Marker.EType type, Vector3 pos, Vector4 color, bool fill = false)
             => CreateSplatoonElement(type, pos, ImGui.ColorConvertFloat4ToU32(color), fill);
 
         internal static Element CreateSplatoonElement(Marker.EType type, Vector3 pos, uint color, bool fill = false)

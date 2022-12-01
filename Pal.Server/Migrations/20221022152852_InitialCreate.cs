@@ -37,7 +37,7 @@ namespace Pal.Server.Migrations
 
             var salt = new byte[32];
             new Random().NextBytes(salt);
-            migrationBuilder.InsertData("GlobalSettings", new[] { "Key", "Value" }, new[] {"salt", Convert.ToBase64String(salt)});
+            migrationBuilder.InsertData("GlobalSettings", new[] { "Key", "Value" }, new[] { "salt", Convert.ToBase64String(salt) });
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)

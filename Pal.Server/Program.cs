@@ -47,9 +47,9 @@ namespace Pal.Server
                 var dbContext = scope.ServiceProvider.GetRequiredService<PalContext>();
                 dbContext.Database.Migrate();
             }
-            
+
             await app.RunAsync();
         }
-            
+
     }
 }

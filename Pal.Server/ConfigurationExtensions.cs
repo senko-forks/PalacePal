@@ -2,7 +2,7 @@
 {
     internal static class ConfigurationExtensions
     {
-        public static string GetOrThrow(this IConfiguration configuration, string key) 
+        public static string GetOrThrow(this IConfiguration configuration, string key)
             => configuration[key] ?? throw new Exception($"no config key {key} defined");
     }
 }

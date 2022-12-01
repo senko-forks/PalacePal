@@ -14,8 +14,8 @@ namespace Pal.Client.Net
             _name = name;
         }
 
-        public IDisposable BeginScope<TState>(TState state) 
-            where TState: notnull
+        public IDisposable BeginScope<TState>(TState state)
+            where TState : notnull
             => NullScope.Instance;
 
         public bool IsEnabled(LogLevel logLevel) => logLevel != LogLevel.None;
