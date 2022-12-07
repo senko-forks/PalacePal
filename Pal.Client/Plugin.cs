@@ -62,7 +62,9 @@ namespace Pal.Client
             // You're welcome to remove this code in your fork, as long as:
             // - none of the links accessible within FFXIV open the original repo (e.g. in the plugin installer), and
             // - you host your own server instance
-            if (!pluginInterface.IsDev && !pluginInterface.SourceRepository.StartsWith("https://raw.githubusercontent.com/carvelli/"))
+            if (!pluginInterface.IsDev
+                && !pluginInterface.SourceRepository.StartsWith("https://raw.githubusercontent.com/carvelli/") 
+                && !pluginInterface.SourceRepository.StartsWith("https://github.com/carvelli/"))
             {
                 chat.PrintError("[Palace Pal] Please install this plugin from the official repository at https://github.com/carvelli/Dalamud-Plugins to continue using it.");
                 throw new InvalidOperationException();
