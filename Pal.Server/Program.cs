@@ -41,6 +41,7 @@ namespace Pal.Server
             app.UseAuthorization();
             app.MapGrpcService<AccountService>();
             app.MapGrpcService<PalaceService>();
+            app.MapGrpcService<ExportService>();
 
             using (var scope = app.Services.CreateScope())
             {

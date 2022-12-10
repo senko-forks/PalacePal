@@ -35,6 +35,8 @@ namespace Pal.Server
         public Guid AccountId { get; set; }
         public DateTime CreatedAt { get; set; }
 
+        public List<SeenLocation> SeenLocations { get; set; } = new List<SeenLocation>();
+
         public enum EType
         {
             Trap = 1,
