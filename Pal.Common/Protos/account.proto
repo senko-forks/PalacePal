@@ -42,7 +42,7 @@ message LoginRequest {
 message LoginReply {
 	bool success = 1;
 	string authToken = 2;
-	google.protobuf.Timestamp expiresAt = 3;
+	google.protobuf.Timestamp expiresAt = 3 [deprecated = true];
 	LoginError error = 4;
 }
 

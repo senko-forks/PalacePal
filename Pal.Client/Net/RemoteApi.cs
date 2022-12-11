@@ -11,6 +11,9 @@ using System.Net.Http;
 using System.Net.Security;
 using System.Numerics;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -28,23 +31,25 @@ namespace Pal.Client.Net
         private readonly ILoggerFactory _grpcToPluginLogLoggerFactory = LoggerFactory.Create(builder => builder.AddProvider(new GrpcLoggerProvider()).AddFilter("Grpc", LogLevel.Trace));
 
         private GrpcChannel? _channel;
-        private LoginReply? _lastLoginReply;
+        private LoginInfo _loginInfo = new LoginInfo(null);
         private bool _warnedAboutUpgrade = false;
 
-        public Guid? AccountId
+        public Configuration.AccountInfo? Account
         {
-            get => Service.Configuration.AccountIds.TryGetValue(remoteUrl, out Guid accountId) ? accountId : null;
+            get => Service.Configuration.Accounts.TryGetValue(remoteUrl, out Configuration.AccountInfo? accountInfo) ? accountInfo : null;
             set
             {
                 if (value != null)
-                    Service.Configuration.AccountIds[remoteUrl] = value.Value;
+                    Service.Configuration.Accounts[remoteUrl] = value;
                 else
-                    Service.Configuration.AccountIds.Remove(remoteUrl);
+                    Service.Configuration.Accounts.Remove(remoteUrl);
             }
         }
 
+        public Guid? AccountId => Account?.Id;
+
         private string PartialAccountId =>
-            AccountId?.ToString()?.PadRight(14).Substring(0, 13) ?? "[no account id]";
+            Account?.Id?.ToString()?.PadRight(14).Substring(0, 13) ?? "[no account id]";
 
         private async Task<(bool Success, string Error)> TryConnect(CancellationToken cancellationToken, ILoggerFactory? loggerFactory = null, bool retry = true)
         {
@@ -80,7 +85,10 @@ namespace Pal.Client.Net
                 var createAccountReply = await accountClient.CreateAccountAsync(new CreateAccountRequest(), headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
                 if (createAccountReply.Success)
                 {
-                    AccountId = Guid.Parse(createAccountReply.AccountId);
+                    Account = new Configuration.AccountInfo
+                    {
+                        Id = Guid.Parse(createAccountReply.AccountId),
+                    };
                     PluginLog.Information($"TryConnect: Account created with id {PartialAccountId}");
 
                     Service.Configuration.Save();
@@ -103,20 +111,29 @@ namespace Pal.Client.Net
                 return (false, "No account-id after account was attempted to be created.");
             }
 
-            if (_lastLoginReply == null || string.IsNullOrEmpty(_lastLoginReply.AuthToken) || _lastLoginReply.ExpiresAt.ToDateTime().ToLocalTime() < DateTime.Now)
+            if (!_loginInfo.IsValid)
             {
                 PluginLog.Information($"TryConnect: Logging in with account id {PartialAccountId}");
-                _lastLoginReply = await accountClient.LoginAsync(new LoginRequest { AccountId = AccountId?.ToString() }, headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
-                if (_lastLoginReply.Success)
+                LoginReply loginReply = await accountClient.LoginAsync(new LoginRequest { AccountId = AccountId?.ToString() }, headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
+                if (loginReply.Success)
                 {
                     PluginLog.Information($"TryConnect: Login successful with account id: {PartialAccountId}");
+                    _loginInfo = new LoginInfo(loginReply.AuthToken);
+
+                    var account = Account;
+                    if (account != null)
+                    {
+                        account.CachedRoles = _loginInfo.Claims?.Roles?.ToList() ?? new List<string>();
+                        Service.Configuration.Save();
+                    }
                 }
                 else
                 {
-                    PluginLog.Error($"TryConnect: Login failed with error {_lastLoginReply.Error}");
-                    if (_lastLoginReply.Error == LoginError.InvalidAccountId)
+                    PluginLog.Error($"TryConnect: Login failed with error {loginReply.Error}");
+                    _loginInfo = new LoginInfo(null);
+                    if (loginReply.Error == LoginError.InvalidAccountId)
                     {
-                        AccountId = null;
+                        Account = null;
                         Service.Configuration.Save();
                         if (retry)
                         {
@@ -126,26 +143,22 @@ namespace Pal.Client.Net
                         else
                             return (false, "Invalid account id.");
                     }
-                    if (_lastLoginReply.Error == LoginError.UpgradeRequired && !_warnedAboutUpgrade)
+                    if (loginReply.Error == LoginError.UpgradeRequired && !_warnedAboutUpgrade)
                     {
                         Service.Chat.PrintError("[Palace Pal] Your version of Palace Pal is outdated, please update the plugin using the Plugin Installer.");
                         _warnedAboutUpgrade = true;
                     }
-                    return (false, $"Could not log in ({_lastLoginReply.Error}).");
+                    return (false, $"Could not log in ({loginReply.Error}).");
                 }
             }
 
-            if (_lastLoginReply == null)
+            if (!_loginInfo.IsValid)
             {
-                PluginLog.Error("TryConnect: No account available");
+                PluginLog.Error($"TryConnect: Login state is loggedIn={_loginInfo.IsLoggedIn}, expired={_loginInfo.IsExpired}");
                 return (false, "No login information available.");
             }
 
-            bool success = !string.IsNullOrEmpty(_lastLoginReply?.AuthToken);
-            if (!success)
-                return (success, "Login reply did not include auth token.");
-
-            return (success, string.Empty);
+            return (true, string.Empty);
         }
 
         private async Task<bool> Connect(CancellationToken cancellationToken)
@@ -239,7 +252,7 @@ namespace Pal.Client.Net
 
         private Metadata AuthorizedHeaders() => new Metadata
         {
-            { "Authorization", $"Bearer {_lastLoginReply?.AuthToken}" },
+            { "Authorization", $"Bearer {_loginInfo?.AuthToken}" },
             { "User-Agent", UserAgent },
         };
 
@@ -276,11 +289,45 @@ namespace Pal.Client.Net
 #endif
         }
 
+        public bool HasRoleOnCurrentServer(string role)
+        {
+            if (Service.Configuration.Mode != Configuration.EMode.Online)
+                return false;
+
+            var account = Account;
+            return account == null || account.CachedRoles.Contains(role);
+        }
+
         public void Dispose()
         {
             PluginLog.Debug("Disposing gRPC channel");
             _channel?.Dispose();
             _channel = null;
         }
+
+        internal class LoginInfo
+        {
+            public LoginInfo(string? authToken)
+            {
+                if (!string.IsNullOrEmpty(authToken))
+                {
+                    IsLoggedIn = true;
+                    AuthToken = authToken;
+                    Claims = JwtClaims.FromAuthToken(authToken!);
+                }
+                else
+                    IsLoggedIn = false;
+            }
+
+            public bool IsLoggedIn { get; }
+            public string? AuthToken { get; }
+            public JwtClaims? Claims { get; }
+            public DateTimeOffset ExpiresAt => Claims?.ExpiresAt.Subtract(TimeSpan.FromMinutes(5)) ?? DateTimeOffset.MinValue;
+            public bool IsExpired => ExpiresAt < DateTimeOffset.UtcNow;
+
+            public bool IsValid => IsLoggedIn && !IsExpired;
+        }
+
+
     }
 }

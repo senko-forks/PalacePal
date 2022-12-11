@@ -14,6 +14,7 @@ using ECommons.SplatoonAPI;
 using Grpc.Core;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
+using Pal.Client.Net;
 using Pal.Client.Windows;
 using Pal.Common;
 using System;
@@ -556,9 +557,9 @@ namespace Pal.Client
 
         private async Task FetchFloorStatistics()
         {
-            if (Service.Configuration.Mode != Configuration.EMode.Online)
+            if (!Service.RemoteApi.HasRoleOnCurrentServer("statistics:view"))
             {
-                Service.Chat.Print($"[Palace Pal] You can view statistics for the floor you're currently on by opening the 'Debug' tab in the configuration window.");
+                Service.Chat.Print("[Palace Pal] You can view statistics for the floor you're currently on by opening the 'Debug' tab in the configuration window.");
                 return;
             }
 
@@ -578,7 +579,7 @@ namespace Pal.Client
             }
             catch (RpcException e) when (e.StatusCode == StatusCode.PermissionDenied)
             {
-                Service.Chat.Print($"[Palace Pal] You can view statistics for the floor you're currently on by opening the 'Debug' tab in the configuration window.");
+                Service.Chat.Print("[Palace Pal] You can view statistics for the floor you're currently on by opening the 'Debug' tab in the configuration window.");
             }
             catch (Exception e)
             {
