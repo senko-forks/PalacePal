@@ -1,12 +1,18 @@
-﻿using Dalamud.Interface.Components;
+﻿using Account;
+using Dalamud.Interface;
+using Dalamud.Interface.Components;
+using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Windowing;
 using Dalamud.Logging;
 using ECommons.Reflection;
 using ECommons.SplatoonAPI;
+using Google.Protobuf;
 using ImGuiNET;
+using Pal.Client.Net;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
@@ -32,6 +38,12 @@ namespace Pal.Client.Windows
 
         private string? _connectionText;
         private bool _switchToCommunityTab;
+        private string _openImportPath = string.Empty;
+        private string _saveExportPath = string.Empty;
+        private string? _openImportDialogStartPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        private string? _saveExportDialogStartPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        private FileDialogManager _importDialog;
+        private FileDialogManager _exportDialog;
 
         public ConfigWindow() : base("Palace Pal###PalPalaceConfig")
         {
@@ -41,6 +53,9 @@ namespace Pal.Client.Windows
             SizeCondition = ImGuiCond.FirstUseEver;
             Position = new Vector2(300, 300);
             PositionCondition = ImGuiCond.FirstUseEver;
+
+            _importDialog = new FileDialogManager { AddedWindowFlags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking };
+            _exportDialog = new FileDialogManager { AddedWindowFlags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking };
         }
 
         public override void OnOpen()
@@ -59,6 +74,12 @@ namespace Pal.Client.Windows
             _connectionText = null;
         }
 
+        public override void OnClose()
+        {
+            _importDialog.Reset();
+            _exportDialog.Reset();
+        }
+
         public override void Draw()
         {
             bool save = false;
@@ -67,10 +88,14 @@ namespace Pal.Client.Windows
             {
                 DrawTrapCofferTab(ref save, ref saveAndClose);
                 DrawCommunityTab(ref saveAndClose);
+                //DrawImportTab();
+                DrawExportTab();
                 DrawDebugTab();
 
                 ImGui.EndTabBar();
             }
+
+            _importDialog.Draw();
 
             if (save || saveAndClose)
             {
@@ -169,6 +194,63 @@ namespace Pal.Client.Windows
             }
         }
 
+        private void DrawImportTab()
+        {
+            if (ImGui.BeginTabItem("Import"))
+            {
+                ImGui.Text("File to Import:");
+                ImGui.SameLine();
+                ImGui.InputTextWithHint("", "Path to *.pal file", ref _openImportPath, 260);
+                ImGui.SameLine();
+                if (ImGuiComponents.IconButton(FontAwesomeIcon.Search))
+                {
+                    _importDialog.OpenFileDialog("Palace Pal - Import", "Palace Pal (*.pal) {*.pal}", (success, paths) =>
+                    {
+                        if (success && paths.Count == 1)
+                        {
+                            _openImportPath = paths.First();
+                        }
+                    }, selectionCountMax: 1, startPath: _openImportDialogStartPath, isModal: false);
+                    _openImportDialogStartPath = null; // only use this once, FileDialogManager will save path between calls
+                }
+                ImGui.EndTabItem();
+            }
+        }
+
+        private void DrawExportTab()
+        {
+            if (Service.RemoteApi.HasRoleOnCurrentServer("export:run") && ImGui.BeginTabItem("Export"))
+            {
+                string todaysFileName = $"export-{DateTime.Today:yyyy-MM-dd}.pal";
+                if (string.IsNullOrEmpty(_saveExportPath) && !string.IsNullOrEmpty(_saveExportDialogStartPath))
+                    _saveExportPath = Path.Join(_saveExportDialogStartPath, todaysFileName);
+
+                ImGui.TextWrapped($"Export all markers from {RemoteApi.RemoteUrl}:");
+                ImGui.Text("Save as:");
+                ImGui.SameLine();
+                ImGui.InputTextWithHint("", "Path to *.pal file", ref _saveExportPath, 260);
+                ImGui.SameLine();
+                if (ImGuiComponents.IconButton(FontAwesomeIcon.Search))
+                {
+                    _importDialog.SaveFileDialog("Palace Pal - Export", "Palace Pal (*.pal) {*.pal}", todaysFileName, "pal", (success, path) =>
+                    {
+                        if (success && !string.IsNullOrEmpty(path))
+                        {
+                            _saveExportPath = path;
+                        }
+                    }, startPath: _saveExportDialogStartPath, isModal: false);
+                    _saveExportDialogStartPath = null; // only use this once, FileDialogManager will save path between calls
+                }
+
+                ImGui.BeginDisabled(string.IsNullOrEmpty(_saveExportPath) || File.Exists(_saveExportPath));
+                if (ImGui.Button("Start Export"))
+                    this.DoExport(_saveExportPath);
+                ImGui.EndDisabled();
+
+                ImGui.EndTabItem();
+            }
+        }
+
         private void DrawDebugTab()
         {
             if (ImGui.BeginTabItem("Debug"))
@@ -227,10 +309,10 @@ namespace Pal.Client.Windows
                 if (pos != null)
                 {
                     var elements = new List<Element>
-                                {
-                                    Plugin.CreateSplatoonElement(Marker.EType.Trap, pos.Value, _trapColor),
-                                    Plugin.CreateSplatoonElement(Marker.EType.Hoard, pos.Value, _hoardColor),
-                                };
+                    {
+                        Plugin.CreateSplatoonElement(Marker.EType.Trap, pos.Value, _trapColor),
+                        Plugin.CreateSplatoonElement(Marker.EType.Hoard, pos.Value, _hoardColor),
+                    };
 
                     if (!Splatoon.AddDynamicElements("PalacePal.Test", elements.ToArray(), new long[] { Environment.TickCount64 + 10000 }))
                     {
@@ -296,6 +378,33 @@ namespace Pal.Client.Windows
                 {
                     PluginLog.Error(e, "Could not establish remote connection");
                     _connectionText = e.ToString();
+                }
+            });
+        }
+
+        internal void DoExport(string destination)
+        {
+            Task.Run(async () =>
+            {
+                try
+                {
+                    (bool success, ExportRoot export) = await Service.RemoteApi.DoExport();
+                    if (success)
+                    {
+                        using var output = File.Create(destination);
+                        export.WriteTo(output);
+
+                        Service.Chat.Print($"Export saved as {destination}.");
+                    }
+                    else
+                    {
+                        Service.Chat.PrintError("Export failed due to server error.");
+                    }
+                }
+                catch (Exception e)
+                {
+                    PluginLog.Error(e, "Export failed");
+                    Service.Chat.PrintError($"Export failed: {e}");
                 }
             });
         }

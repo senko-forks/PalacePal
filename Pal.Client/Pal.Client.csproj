@@ -49,6 +49,7 @@
 	<ItemGroup>
 		<Protobuf Include="..\Pal.Common\Protos\account.proto" Link="Protos\account.proto" GrpcServices="Client" Access="Internal" />
 		<Protobuf Include="..\Pal.Common\Protos\palace.proto" Link="Protos\palace.proto" GrpcServices="Client" Access="Internal" />
+		<Protobuf Include="..\Pal.Common\Protos\export.proto" Link="Protos\export.proto" GrpcServices="Client" Access="Internal" />
 	</ItemGroup>
 
 	<ItemGroup>
