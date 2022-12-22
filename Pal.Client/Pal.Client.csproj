@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<TargetFramework>net6.0-windows</TargetFramework>
 		<LangVersion>9.0</LangVersion>
-		<Version>1.24</Version>
+		<Version>1.25</Version>
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
