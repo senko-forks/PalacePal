@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package account;
 
-import "google/protobuf/timestamp.proto";
-
 service AccountService {
 	// Accounts are a way to distinguish different players.
 	//
