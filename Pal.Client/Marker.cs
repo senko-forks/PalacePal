@@ -41,6 +41,15 @@ namespace Pal.Client
         [JsonIgnore]
         public bool RemoteSeenRequested { get; set; } = false;
 
+        /// <summary>
+        /// To keep track of which markers were imported through a downloaded file, we save the associated import-id.
+        /// 
+        /// Importing another file for the same remote server will remove the old import-id, and add the new import-id here.
+        /// </summary>
+        public List<Guid> Imports { get; set; } = new List<Guid>();
+
+        public bool WasImported { get; set; }
+
         [JsonIgnore]
         public Element? SplatoonElement { get; set; }
 

@@ -15,6 +15,7 @@ using Grpc.Core;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
 using Pal.Client.Net;
+using Pal.Client.Scheduled;
 using Pal.Client.Windows;
 using Pal.Common;
 using System;
@@ -35,23 +36,23 @@ namespace Pal.Client
         private const string SPLATOON_TRAP_HOARD = "PalacePal.TrapHoard";
         private const string SPLATOON_REGULAR_COFFERS = "PalacePal.RegularCoffers";
 
-        private readonly ConcurrentQueue<Sync> _pendingSyncResponses = new();
         private readonly static Dictionary<Marker.EType, MarkerConfig> _markerConfig = new Dictionary<Marker.EType, MarkerConfig>
         {
             { Marker.EType.Trap, new MarkerConfig { Radius = 1.7f } },
             { Marker.EType.Hoard, new MarkerConfig { Radius = 1.7f, OffsetY = -0.03f } },
             { Marker.EType.SilverCoffer, new MarkerConfig { Radius = 1f } },
         };
-        private bool _configUpdated = false;
         private LocalizedChatMessages _localizedChatMessages = new();
 
         internal ConcurrentDictionary<ushort, LocalState> FloorMarkers { get; } = new();
         internal ConcurrentBag<Marker> EphemeralMarkers { get; set; } = new();
-        internal ushort LastTerritory { get; private set; }
+        internal ushort LastTerritory { get; set; }
         public SyncState TerritorySyncState { get; set; }
         public PomanderState PomanderOfSight { get; set; } = PomanderState.Inactive;
         public PomanderState PomanderOfIntuition { get; set; } = PomanderState.Inactive;
         public string? DebugMessage { get; set; }
+        internal Queue<IQueueOnFrameworkThread> EarlyEventQueue { get; } = new();
+        internal Queue<IQueueOnFrameworkThread> LateEventQueue { get; } = new();
 
         public string Name => "Palace Pal";
 
@@ -101,7 +102,6 @@ namespace Pal.Client
             pluginInterface.UiBuilder.Draw += Service.WindowSystem.Draw;
             pluginInterface.UiBuilder.OpenConfigUi += OnOpenConfigUi;
             Service.Framework.Update += OnFrameworkUpdate;
-            Service.Configuration.Saved += OnConfigSaved;
             Service.Chat.ChatMessage += OnChatMessage;
             Service.CommandManager.AddHandler("/pal", new CommandInfo(OnCommand)
             {
@@ -182,7 +182,6 @@ namespace Pal.Client
             Service.PluginInterface.UiBuilder.Draw -= Service.WindowSystem.Draw;
             Service.PluginInterface.UiBuilder.OpenConfigUi -= OnOpenConfigUi;
             Service.Framework.Update -= OnFrameworkUpdate;
-            Service.Configuration.Saved -= OnConfigSaved;
             Service.Chat.ChatMessage -= OnChatMessage;
 
             Service.WindowSystem.RemoveAllWindows();
@@ -207,11 +206,6 @@ namespace Pal.Client
             GC.SuppressFinalize(this);
         }
         #endregion
-
-        private void OnConfigSaved()
-        {
-            _configUpdated = true;
-        }
 
         private void OnChatMessage(XivChatType type, uint senderId, ref SeString sender, ref SeString seMessage, ref bool isHandled)
         {
@@ -259,27 +253,18 @@ namespace Pal.Client
             try
             {
                 bool recreateLayout = false;
-                if (_configUpdated)
-                {
-                    if (Service.Configuration.Mode == Configuration.EMode.Offline)
-                    {
-                        LocalState.UpdateAll();
-                        FloorMarkers.Clear();
-                        EphemeralMarkers.Clear();
-                        LastTerritory = 0;
-                    }
-                    _configUpdated = false;
-                    recreateLayout = true;
-                }
-
                 bool saveMarkers = false;
+
+                while (EarlyEventQueue.TryDequeue(out IQueueOnFrameworkThread? queued))
+                    queued?.Run(this, ref recreateLayout, ref saveMarkers);
+
                 if (LastTerritory != Service.ClientState.TerritoryType)
                 {
                     LastTerritory = Service.ClientState.TerritoryType;
                     TerritorySyncState = SyncState.NotAttempted;
 
                     if (IsInDeepDungeon())
-                        FloorMarkers[LastTerritory] = LocalState.Load(LastTerritory) ?? new LocalState(LastTerritory);
+                        GetFloorMarkers(LastTerritory);
                     EphemeralMarkers.Clear();
                     PomanderOfSight = PomanderState.Inactive;
                     PomanderOfIntuition = PomanderState.Inactive;
@@ -296,15 +281,10 @@ namespace Pal.Client
                     Task.Run(async () => await DownloadMarkersForTerritory(LastTerritory));
                 }
 
-                if (_pendingSyncResponses.Count > 0)
-                {
-                    HandleSyncResponses();
-                    recreateLayout = true;
-                    saveMarkers = true;
-                }
+                while (LateEventQueue.TryDequeue(out IQueueOnFrameworkThread? queued))
+                    queued?.Run(this, ref recreateLayout, ref saveMarkers);
 
-                if (!FloorMarkers.TryGetValue(LastTerritory, out var currentFloor))
-                    FloorMarkers[LastTerritory] = currentFloor = new LocalState(LastTerritory);
+                var currentFloor = GetFloorMarkers(LastTerritory);
 
                 IList<Marker> visibleMarkers = GetRelevantGameObjects();
                 HandlePersistentMarkers(currentFloor, visibleMarkers.Where(x => x.IsPermanent()).ToList(), saveMarkers, recreateLayout);
@@ -314,6 +294,11 @@ namespace Pal.Client
             {
                 DebugMessage = $"{DateTime.Now}\n{e}";
             }
+        }
+
+        internal LocalState GetFloorMarkers(ushort territoryType)
+        {
+            return FloorMarkers.GetOrAdd(territoryType, tt => LocalState.Load(tt) ?? new LocalState(tt));
         }
 
         private void HandlePersistentMarkers(LocalState currentFloor, IList<Marker> visibleMarkers, bool saveMarkers, bool recreateLayout)
@@ -403,7 +388,7 @@ namespace Pal.Client
                 List<Element> elements = new List<Element>();
                 foreach (var marker in currentFloorMarkers)
                 {
-                    if (marker.Seen || config.Mode == Configuration.EMode.Online)
+                    if (marker.Seen || config.Mode == Configuration.EMode.Online || (marker.WasImported && marker.Imports.Count > 0))
                     {
                         if (marker.Type == Marker.EType.Trap && config.ShowTraps)
                         {
@@ -503,7 +488,7 @@ namespace Pal.Client
             try
             {
                 var (success, downloadedMarkers) = await Service.RemoteApi.DownloadRemoteMarkers(territoryId);
-                _pendingSyncResponses.Enqueue(new Sync
+                LateEventQueue.Enqueue(new QueuedSyncResponse
                 {
                     Type = SyncType.Download,
                     TerritoryType = territoryId,
@@ -522,7 +507,7 @@ namespace Pal.Client
             try
             {
                 var (success, uploadedMarkers) = await Service.RemoteApi.UploadMarker(territoryId, markersToUpload);
-                _pendingSyncResponses.Enqueue(new Sync
+                LateEventQueue.Enqueue(new QueuedSyncResponse
                 {
                     Type = SyncType.Upload,
                     TerritoryType = territoryId,
@@ -541,7 +526,7 @@ namespace Pal.Client
             try
             {
                 var success = await Service.RemoteApi.MarkAsSeen(territoryId, markersToUpdate);
-                _pendingSyncResponses.Enqueue(new Sync
+                LateEventQueue.Enqueue(new QueuedSyncResponse
                 {
                     Type = SyncType.MarkSeen,
                     TerritoryType = territoryId,
@@ -584,70 +569,6 @@ namespace Pal.Client
             catch (Exception e)
             {
                 Service.Chat.PrintError($"[Palace Pal] {e}");
-            }
-        }
-
-        private void HandleSyncResponses()
-        {
-            while (_pendingSyncResponses.TryDequeue(out Sync? sync) && sync != null)
-            {
-                try
-                {
-                    var territoryId = sync.TerritoryType;
-                    var remoteMarkers = sync.Markers;
-                    if (Service.Configuration.Mode == Configuration.EMode.Online && sync.Success && FloorMarkers.TryGetValue(territoryId, out var currentFloor) && remoteMarkers.Count > 0)
-                    {
-                        switch (sync.Type)
-                        {
-                            case SyncType.Download:
-                            case SyncType.Upload:
-                                foreach (var remoteMarker in remoteMarkers)
-                                {
-                                    // Both uploads and downloads return the network id to be set, but only the downloaded marker is new as in to-be-saved.
-                                    Marker? localMarker = currentFloor.Markers.SingleOrDefault(x => x == remoteMarker);
-                                    if (localMarker != null)
-                                    {
-                                        localMarker.NetworkId = remoteMarker.NetworkId;
-                                        continue;
-                                    }
-
-                                    if (sync.Type == SyncType.Download)
-                                        currentFloor.Markers.Add(remoteMarker);
-                                }
-                                break;
-
-                            case SyncType.MarkSeen:
-                                var accountId = Service.RemoteApi.AccountId;
-                                if (accountId == null)
-                                    break;
-                                foreach (var remoteMarker in remoteMarkers)
-                                {
-                                    Marker? localMarker = currentFloor.Markers.SingleOrDefault(x => x == remoteMarker);
-                                    if (localMarker != null)
-                                        localMarker.RemoteSeenOn.Add(accountId.Value);
-                                }
-                                break;
-                        }
-                    }
-
-                    // don't modify state for outdated floors
-                    if (LastTerritory != territoryId)
-                        continue;
-
-                    if (sync.Type == SyncType.Download)
-                    {
-                        if (sync.Success)
-                            TerritorySyncState = SyncState.Complete;
-                        else
-                            TerritorySyncState = SyncState.Failed;
-                    }
-                }
-                catch (Exception e)
-                {
-                    DebugMessage = $"{DateTime.Now}\n{e}";
-                    if (sync.Type == SyncType.Download)
-                        TerritorySyncState = SyncState.Failed;
-                }
             }
         }
 
@@ -727,30 +648,6 @@ namespace Pal.Client
         private string GetLocalizedString(uint id)
         {
             return Service.DataManager.GetExcelSheet<LogMessage>()?.GetRow(id)?.Text?.ToString() ?? "Unknown";
-        }
-
-        internal class Sync
-        {
-            public SyncType Type { get; set; }
-            public ushort TerritoryType { get; set; }
-            public bool Success { get; set; }
-            public List<Marker> Markers { get; set; } = new();
-        }
-
-        public enum SyncState
-        {
-            NotAttempted,
-            NotNeeded,
-            Started,
-            Complete,
-            Failed,
-        }
-
-        public enum SyncType
-        {
-            Upload,
-            Download,
-            MarkSeen,
         }
 
         public enum PomanderState

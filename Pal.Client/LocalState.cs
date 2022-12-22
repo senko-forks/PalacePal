@@ -26,7 +26,11 @@ namespace Pal.Client
         private void ApplyFilters()
         {
             if (Service.Configuration.Mode == Configuration.EMode.Offline)
-                Markers = new ConcurrentBag<Marker>(Markers.Where(x => x.Seen));
+                Markers = new ConcurrentBag<Marker>(Markers.Where(x => x.Seen || (x.WasImported && x.Imports.Count > 0)));
+            else
+                // ensure old import markers are removed if they are no longer part of a "current" import
+                // this MAY remove markers the server sent you (and that you haven't seen), but this should be fixed the next time you enter the zone
+                Markers = new ConcurrentBag<Marker>(Markers.Where(x => x.Seen || !x.WasImported || x.Imports.Count > 0));
         }
 
         public static LocalState? Load(uint territoryType)

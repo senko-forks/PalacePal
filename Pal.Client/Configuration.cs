@@ -1,5 +1,6 @@
 ﻿using Dalamud.Configuration;
 using Dalamud.Logging;
+using Pal.Client.Scheduled;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,6 +26,8 @@ namespace Pal.Client
         public Dictionary<string, Guid> AccountIds { private get; set; } = new();
         public Dictionary<string, AccountInfo> Accounts { get; set; } = new();
 
+        public List<ImportHistoryEntry> ImportHistory { get; set; } = new();
+
         public bool ShowTraps { get; set; } = true;
         public Vector4 TrapColor { get; set; } = new Vector4(1, 0, 0, 0.4f);
         public bool OnlyVisibleTrapsAfterPomander { get; set; } = true;
@@ -36,10 +39,12 @@ namespace Pal.Client
         public bool ShowSilverCoffers { get; set; } = false;
         public Vector4 SilverCofferColor { get; set; } = new Vector4(1, 1, 1, 0.4f);
         public bool FillSilverCoffers { get; set; } = true;
-        #endregion
 
-        public delegate void OnSaved();
-        public event OnSaved? Saved;
+        /// <summary>
+        /// Needs to be manually set.
+        /// </summary>
+        public string BetaKey { get; set; } = "";
+        #endregion
 
 #pragma warning disable CS0612 // Type or member is obsolete
         public void Migrate()
@@ -75,7 +80,7 @@ namespace Pal.Client
         public void Save()
         {
             Service.PluginInterface.SavePluginConfig(this);
-            Saved?.Invoke();
+            Service.Plugin.EarlyEventQueue.Enqueue(new QueuedConfigUpdate());
         }
 
         public enum EMode
@@ -104,6 +109,18 @@ namespace Pal.Client
             /// easier to draw a consistent UI. The server will still reject unauthorized calls.
             /// </summary>
             public List<string> CachedRoles { get; set; } = new List<string>();
+        }
+
+        public class ImportHistoryEntry
+        {
+            public Guid Id { get; set; }
+            public string? RemoteUrl { get; set; }
+            public DateTime ExportedAt { get; set; }
+
+            /// <summary>
+            /// Set when the file is imported locally.
+            /// </summary>
+            public DateTime ImportedAt { get; set; }
         }
     }
 }

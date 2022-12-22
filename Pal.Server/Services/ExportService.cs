@@ -3,6 +3,7 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Pal.Common;
 using System.Data;
 using static Account.ExportService;
 
@@ -24,7 +25,7 @@ namespace Pal.Server.Services
         {
             try
             {
-                var objectsByFloor = await _dbContext.Locations.Where(x => x.SeenLocations.Count >= 5)
+                var objectsByFloor = await _dbContext.Locations.Where(x => x.SeenLocations.Count >= 10)
                     .GroupBy(x => x.TerritoryType)
                     .ToDictionaryAsync(x => x.Key, x => x.ToList(), context.CancellationToken);
 
@@ -32,7 +33,7 @@ namespace Pal.Server.Services
                 {
 
                     ExportId = Guid.NewGuid().ToString(),
-                    ExportVersion = 1,
+                    ExportVersion = ExportConfig.ExportVersion,
                     ServerUrl = request.ServerUrl,
                     CreatedAt = Timestamp.FromDateTime(DateTime.UtcNow),
 

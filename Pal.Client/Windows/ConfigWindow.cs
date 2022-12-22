@@ -4,11 +4,14 @@ using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Windowing;
 using Dalamud.Logging;
+using ECommons;
 using ECommons.Reflection;
 using ECommons.SplatoonAPI;
 using Google.Protobuf;
 using ImGuiNET;
 using Pal.Client.Net;
+using Pal.Client.Scheduled;
+using Pal.Common;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -88,7 +91,7 @@ namespace Pal.Client.Windows
             {
                 DrawTrapCofferTab(ref save, ref saveAndClose);
                 DrawCommunityTab(ref saveAndClose);
-                //DrawImportTab();
+                DrawImportTab();
                 DrawExportTab();
                 DrawDebugTab();
 
@@ -196,15 +199,26 @@ namespace Pal.Client.Windows
 
         private void DrawImportTab()
         {
+            if (Service.Configuration.BetaKey != "import")
+                return;
+
             if (ImGui.BeginTabItem("Import"))
             {
+                ImGui.TextWrapped("Using an export is useful if you're unable to connect to the server, or don't wish to share your findings.");
+                ImGui.TextWrapped("Exports are (currently) generated manually, and they only include traps and hoard coffers encountered by 5 or more people. This may lead to higher floors having very sporadic coverage, but commonly run floors (e.g. PotD 51-60, HoH 21-30) are closer to complete.");
+                ImGui.TextWrapped("If you aren't offline, importing a file won't have any noticeable effect.");
+                ImGui.Separator();
+                ImGui.TextWrapped("Exports are available from https://github.com/carvelli/PalacePal/releases/ (as *.pal files).");
+                if (ImGui.Button("Visit GitHub"))
+                    GenericHelpers.ShellStart("https://github.com/carvelli/PalacePal/releases/");
+                ImGui.Separator();
                 ImGui.Text("File to Import:");
                 ImGui.SameLine();
                 ImGui.InputTextWithHint("", "Path to *.pal file", ref _openImportPath, 260);
                 ImGui.SameLine();
                 if (ImGuiComponents.IconButton(FontAwesomeIcon.Search))
                 {
-                    _importDialog.OpenFileDialog("Palace Pal - Import", "Palace Pal (*.pal) {*.pal}", (success, paths) =>
+                    _importDialog.OpenFileDialog("Palace Pal - Import", "Palace Pal (*.pal) {.pal}", (success, paths) =>
                     {
                         if (success && paths.Count == 1)
                         {
@@ -213,6 +227,11 @@ namespace Pal.Client.Windows
                     }, selectionCountMax: 1, startPath: _openImportDialogStartPath, isModal: false);
                     _openImportDialogStartPath = null; // only use this once, FileDialogManager will save path between calls
                 }
+
+                ImGui.BeginDisabled(string.IsNullOrEmpty(_openImportPath) || !File.Exists(_openImportPath));
+                if (ImGui.Button("Start Import"))
+                    DoImport(_openImportPath);
+                ImGui.EndDisabled();
                 ImGui.EndTabItem();
             }
         }
@@ -232,7 +251,7 @@ namespace Pal.Client.Windows
                 ImGui.SameLine();
                 if (ImGuiComponents.IconButton(FontAwesomeIcon.Search))
                 {
-                    _importDialog.SaveFileDialog("Palace Pal - Export", "Palace Pal (*.pal) {*.pal}", todaysFileName, "pal", (success, path) =>
+                    _importDialog.SaveFileDialog("Palace Pal - Export", "Palace Pal (*.pal) {.pal}", todaysFileName, "pal", (success, path) =>
                     {
                         if (success && !string.IsNullOrEmpty(path))
                         {
@@ -244,7 +263,7 @@ namespace Pal.Client.Windows
 
                 ImGui.BeginDisabled(string.IsNullOrEmpty(_saveExportPath) || File.Exists(_saveExportPath));
                 if (ImGui.Button("Start Export"))
-                    this.DoExport(_saveExportPath);
+                    DoExport(_saveExportPath);
                 ImGui.EndDisabled();
 
                 ImGui.EndTabItem();
@@ -382,7 +401,12 @@ namespace Pal.Client.Windows
             });
         }
 
-        internal void DoExport(string destination)
+        internal void DoImport(string sourcePath)
+        {
+            Service.Plugin.EarlyEventQueue.Enqueue(new QueuedImport(sourcePath));
+        }
+
+        internal void DoExport(string destinationPath)
         {
             Task.Run(async () =>
             {
@@ -391,10 +415,10 @@ namespace Pal.Client.Windows
                     (bool success, ExportRoot export) = await Service.RemoteApi.DoExport();
                     if (success)
                     {
-                        using var output = File.Create(destination);
+                        using var output = File.Create(destinationPath);
                         export.WriteTo(output);
 
-                        Service.Chat.Print($"Export saved as {destination}.");
+                        Service.Chat.Print($"Export saved as {destinationPath}.");
                     }
                     else
                     {
