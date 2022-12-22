@@ -131,7 +131,6 @@ namespace Pal.Server.Services
                 {
                     Success = true,
                     AuthToken = tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor)),
-                    ExpiresAt = Timestamp.FromDateTime(DateTime.UtcNow.AddDays(1).AddMinutes(-5)),
                 };
             }
             catch (Exception e)
