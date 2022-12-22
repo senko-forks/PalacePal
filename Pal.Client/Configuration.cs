@@ -1,16 +1,20 @@
 ﻿using Dalamud.Configuration;
 using Dalamud.Logging;
+using Newtonsoft.Json;
 using Pal.Client.Scheduled;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Security.Cryptography;
 
 namespace Pal.Client
 {
     public class Configuration : IPluginConfiguration
     {
-        public int Version { get; set; } = 3;
+        private static readonly byte[] _entropy = { 0x22, 0x4b, 0xe7, 0x21, 0x44, 0x83, 0x69, 0x55, 0x80, 0x38 };
+
+        public int Version { get; set; } = 4;
 
         #region Saved configuration values
         public bool FirstUse { get; set; } = true;
@@ -74,6 +78,12 @@ namespace Pal.Client
                 Version = 3;
                 Save();
             }
+
+            if (Version == 3)
+            {
+                Version = 4;
+                Save();
+            }
         }
 #pragma warning restore CS0612 // Type or member is obsolete
 
@@ -98,6 +108,7 @@ namespace Pal.Client
 
         public class AccountInfo
         {
+            [JsonConverter(typeof(AccountIdConverter))]
             public Guid? Id { get; set; }
 
             /// <summary>
@@ -109,6 +120,62 @@ namespace Pal.Client
             /// easier to draw a consistent UI. The server will still reject unauthorized calls.
             /// </summary>
             public List<string> CachedRoles { get; set; } = new List<string>();
+        }
+
+        public class AccountIdConverter : JsonConverter
+        {
+            public override bool CanConvert(Type objectType) => true;
+
+            public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+            {
+                if (reader.TokenType == JsonToken.String)
+                {
+                    string? text = reader.Value?.ToString();
+                    if (string.IsNullOrEmpty(text))
+                        return null;
+
+                    if (Guid.TryParse(text, out Guid guid) && guid != Guid.Empty)
+                        return guid;
+
+                    if (text.StartsWith("s:"))
+                    {
+                        try
+                        {
+                            byte[] guidBytes = ProtectedData.Unprotect(Convert.FromBase64String(text.Substring(2)), _entropy, DataProtectionScope.CurrentUser);
+                            return new Guid(guidBytes);
+                        }
+                        catch (CryptographicException e)
+                        {
+                            PluginLog.Error(e, "Could not load account id");
+                            return null;
+                        }
+                    }
+                }
+                throw new JsonSerializationException();
+            }
+
+            public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
+            {
+                if (value == null)
+                {
+                    writer.WriteNull();
+                    return;
+                }
+
+                Guid g = (Guid)value;
+                string text;
+                try
+                {
+                    byte[] guidBytes = ProtectedData.Protect(g.ToByteArray(), _entropy, DataProtectionScope.CurrentUser);
+                    text = $"s:{Convert.ToBase64String(guidBytes)}";
+                }
+                catch (CryptographicException)
+                {
+                    text = g.ToString();
+                }
+
+                writer.WriteValue(text);
+            }
         }
 
         public class ImportHistoryEntry
