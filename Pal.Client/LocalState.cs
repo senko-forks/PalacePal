@@ -1,4 +1,5 @@
 ﻿using Pal.Common;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -79,11 +80,16 @@ namespace Pal.Client
             string path = GetSaveLocation(TerritoryType);
 
             ApplyFilters();
-            File.WriteAllText(path, JsonSerializer.Serialize(new SaveFile
+            if (Markers.Count == 0)
+                File.Delete(path);
+            else
             {
-                Version = _currentVersion,
-                Markers = new HashSet<Marker>(Markers)
-            }, _jsonSerializerOptions));
+                File.WriteAllText(path, JsonSerializer.Serialize(new SaveFile
+                {
+                    Version = _currentVersion,
+                    Markers = new HashSet<Marker>(Markers)
+                }, _jsonSerializerOptions));
+            }
         }
 
         private static string GetSaveLocation(uint territoryType) => Path.Join(Service.PluginInterface.GetPluginConfigDirectory(), $"{territoryType}.json");
@@ -96,6 +102,14 @@ namespace Pal.Client
                 if (localState != null)
                     localState.Save();
             }
+        }
+
+        public void UndoImport(List<Guid> importIds)
+        {
+            // When saving a floor state, any markers not seen, not remote seen, and not having an import id are removed;
+            // so it is possible to remove "wrong" markers by not having them be in the current import.
+            foreach (var marker in Markers)
+                marker.Imports.RemoveAll(id => importIds.Contains(id));
         }
 
         public class SaveFile

@@ -37,7 +37,7 @@ namespace Pal.Client.Scheduled
                     ushort territoryType = (ushort)remoteFloor.TerritoryType;
                     var localState = plugin.GetFloorMarkers(territoryType);
 
-                    CleanupFloor(localState, oldExportIds);
+                    localState.UndoImport(oldExportIds);
                     ImportFloor(remoteFloor, localState);
 
                     localState.Save();
@@ -87,14 +87,6 @@ namespace Pal.Client.Scheduled
             }
 
             return true;
-        }
-
-        private void CleanupFloor(LocalState localState, List<Guid> oldExportIds)
-        {
-            // When saving a floor state, any markers not seen, not remote seen, and not having an import id are removed;
-            // so it is possible to remove "wrong" markers by not having them be in the current import.
-            foreach (var marker in localState.Markers)
-                marker.Imports.RemoveAll(id => oldExportIds.Contains(id));
         }
 
         private void ImportFloor(ExportFloor remoteFloor, LocalState localState)

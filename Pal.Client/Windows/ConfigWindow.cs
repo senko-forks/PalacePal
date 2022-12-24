@@ -11,7 +11,6 @@ using Google.Protobuf;
 using ImGuiNET;
 using Pal.Client.Net;
 using Pal.Client.Scheduled;
-using Pal.Common;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -199,9 +198,6 @@ namespace Pal.Client.Windows
 
         private void DrawImportTab()
         {
-            if (Service.Configuration.BetaKey != "import")
-                return;
-
             if (ImGui.BeginTabItem("Import"))
             {
                 ImGui.TextWrapped("Using an export is useful if you're unable to connect to the server, or don't wish to share your findings.");
@@ -232,6 +228,17 @@ namespace Pal.Client.Windows
                 if (ImGui.Button("Start Import"))
                     DoImport(_openImportPath);
                 ImGui.EndDisabled();
+
+                var importHistory = Service.Configuration.ImportHistory.OrderByDescending(x => x.ImportedAt).ThenBy(x => x.Id).FirstOrDefault();
+                if (importHistory != null)
+                {
+                    ImGui.Separator();
+                    ImGui.TextWrapped($"Your last import was on {importHistory.ImportedAt}, which added the trap/hoard coffer database from {importHistory.RemoteUrl} created on {importHistory.ExportedAt:d}.");
+                    ImGui.TextWrapped("If you think that was a mistake, you can remove all locations only found in the import (any location you've seen yourself is not changed).");
+                    if (ImGui.Button("Undo Import"))
+                        UndoImport(importHistory.Id);
+                }
+
                 ImGui.EndTabItem();
             }
         }
@@ -404,6 +411,11 @@ namespace Pal.Client.Windows
         internal void DoImport(string sourcePath)
         {
             Service.Plugin.EarlyEventQueue.Enqueue(new QueuedImport(sourcePath));
+        }
+
+        internal void UndoImport(Guid importId)
+        {
+            Service.Plugin.EarlyEventQueue.Enqueue(new QueuedUndoImport(importId));
         }
 
         internal void DoExport(string destinationPath)
