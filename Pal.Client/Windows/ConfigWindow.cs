@@ -206,7 +206,7 @@ namespace Pal.Client.Windows
                 ImGui.Separator();
                 ImGui.TextWrapped("Exports are available from https://github.com/carvelli/PalacePal/releases/ (as *.pal files).");
                 if (ImGui.Button("Visit GitHub"))
-                    GenericHelpers.ShellStart("https://github.com/carvelli/PalacePal/releases/");
+                    GenericHelpers.ShellStart("https://github.com/carvelli/PalacePal/releases/latest");
                 ImGui.Separator();
                 ImGui.Text("File to Import:");
                 ImGui.SameLine();
