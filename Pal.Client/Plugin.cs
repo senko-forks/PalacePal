@@ -162,6 +162,18 @@ namespace Pal.Client
                         Service.WindowSystem.GetWindow<ConfigWindow>()?.Toggle();
                         break;
 
+                    case "near":
+                        DebugNearest(m => true);
+                        break;
+
+                    case "tnear":
+                        DebugNearest(m => m.Type == Marker.EType.Trap);
+                        break;
+
+                    case "hnear":
+                        DebugNearest(m => m.Type == Marker.EType.Hoard);
+                        break;
+
                     default:
                         Service.Chat.PrintError($"[Palace Pal] Unknown sub-command '{arguments}' for '{command}'.");
                         break;
@@ -483,6 +495,7 @@ namespace Pal.Client
             }
         }
 
+        #region Up-/Download
         private async Task DownloadMarkersForTerritory(ushort territoryId)
         {
             try
@@ -539,7 +552,9 @@ namespace Pal.Client
                 DebugMessage = $"{DateTime.Now}\n{e}";
             }
         }
+        #endregion
 
+        #region Command Handling
         private async Task FetchFloorStatistics()
         {
             if (!Service.RemoteApi.HasRoleOnCurrentServer("statistics:view"))
@@ -571,6 +586,29 @@ namespace Pal.Client
                 Service.Chat.PrintError($"[Palace Pal] {e}");
             }
         }
+
+        private void DebugNearest(Predicate<Marker> predicate)
+        {
+            if (!IsInDeepDungeon())
+                return;
+
+            var state = GetFloorMarkers(Service.ClientState.TerritoryType);
+            var playerPosition = Service.ClientState.LocalPlayer?.Position;
+            if (playerPosition == null)
+                return;
+            Service.Chat.Print($"[Pal] {playerPosition}");
+
+            var nearbyMarkers = state.Markers
+                .Where(m => predicate(m))
+                .Where(m => m.SplatoonElement != null && m.SplatoonElement.color != COLOR_INVISIBLE)
+                .Select(m => new { m = m, distance = (playerPosition - m.Position)?.Length() ?? float.MaxValue })
+                .OrderBy(m => m.distance)
+                .Take(5)
+                .ToList();
+            foreach (var nearbyMarker in nearbyMarkers)
+                Service.Chat.Print($"{nearbyMarker.distance:F2} - {nearbyMarker.m.Type} {nearbyMarker.m.NetworkId?.ToString()?.Substring(0, 8)} - {nearbyMarker.m.Position}");
+        }
+        #endregion
 
         private IList<Marker> GetRelevantGameObjects()
         {
