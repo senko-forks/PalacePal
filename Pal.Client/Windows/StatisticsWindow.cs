@@ -21,6 +21,7 @@ namespace Pal.Client.Windows
         {
             Size = new Vector2(500, 500);
             SizeCondition = ImGuiCond.FirstUseEver;
+            Flags = ImGuiWindowFlags.AlwaysAutoResize;
 
             foreach (ETerritoryType territory in typeof(ETerritoryType).GetEnumValues())
             {
@@ -30,14 +31,16 @@ namespace Pal.Client.Windows
 
         public override void Draw()
         {
-            DrawDungeonStats("Palace of the Dead", ETerritoryType.Palace_1_10, ETerritoryType.Palace_191_200);
-            DrawDungeonStats("Heaven on High", ETerritoryType.HeavenOnHigh_1_10, ETerritoryType.HeavenOnHigh_91_100);
+            if (ImGui.BeginTabBar("Tabs"))
+            {
+                DrawDungeonStats("Palace of the Dead", ETerritoryType.Palace_1_10, ETerritoryType.Palace_191_200);
+                DrawDungeonStats("Heaven on High", ETerritoryType.HeavenOnHigh_1_10, ETerritoryType.HeavenOnHigh_91_100);
+            }
         }
 
         private void DrawDungeonStats(string name, ETerritoryType minTerritory, ETerritoryType maxTerritory)
         {
-
-            if (ImGui.CollapsingHeader(name, ImGuiTreeNodeFlags.DefaultOpen))
+            if (ImGui.BeginTabItem(name))
             {
                 if (ImGui.BeginTable($"TrapHoardStatistics{name}", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable))
                 {
@@ -64,6 +67,7 @@ namespace Pal.Client.Windows
                     }
                     ImGui.EndTable();
                 }
+                ImGui.EndTabItem();
             }
         }
 
