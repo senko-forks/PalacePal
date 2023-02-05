@@ -14,7 +14,6 @@ using ECommons.SplatoonAPI;
 using Grpc.Core;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
-using Pal.Client.Net;
 using Pal.Client.Scheduled;
 using Pal.Client.Windows;
 using Pal.Common;
