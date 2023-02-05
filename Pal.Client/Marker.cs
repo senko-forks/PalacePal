@@ -53,7 +53,7 @@ namespace Pal.Client
         /// <summary>
         /// To make rollbacks of local data easier, keep track of the version which was used to write the marker initially.
         /// </summary>
-        public string SinceVersion { get; set; }
+        public string? SinceVersion { get; set; }
 
         [JsonIgnore]
         public Element? SplatoonElement { get; set; }
@@ -86,7 +86,7 @@ namespace Pal.Client
         }
 
 
-        public bool IsPermanent() => Type == EType.Trap || Type == EType.Hoard;
+        public bool IsPermanent() => Type == EType.Trap || Type == EType.Hoard || Type == EType.Debug;
 
         public enum EType
         {
@@ -95,6 +95,7 @@ namespace Pal.Client
             #region Permanent Markers
             Trap = ObjectType.Trap,
             Hoard = ObjectType.Hoard,
+            Debug = ObjectType.Debug,
             #endregion
 
             # region Markers that only show up if they're currently visible

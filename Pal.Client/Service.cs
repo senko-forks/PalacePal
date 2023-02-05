@@ -27,5 +27,6 @@ namespace Pal.Client
         public static WindowSystem WindowSystem { get; set; } = new(typeof(Service).AssemblyQualifiedName);
         internal static RemoteApi RemoteApi { get; set; } = new RemoteApi();
         public static Configuration Configuration { get; set; } = null!;
+        internal static Hooks Hooks { get; set; } = null!;
     }
 }

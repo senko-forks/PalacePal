@@ -62,7 +62,7 @@ namespace Pal.Client
 
                 localState = new LocalState(territoryType)
                 {
-                    Markers = new ConcurrentBag<Marker>(save.Markers),
+                    Markers = new ConcurrentBag<Marker>(save.Markers.Where(o => o.Type != Marker.EType.Debug)),
                 };
                 version = save.Version;
             }

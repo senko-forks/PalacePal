@@ -41,6 +41,7 @@ namespace Pal.Client
             { Marker.EType.Trap, new MarkerConfig { Radius = 1.7f } },
             { Marker.EType.Hoard, new MarkerConfig { Radius = 1.7f, OffsetY = -0.03f } },
             { Marker.EType.SilverCoffer, new MarkerConfig { Radius = 1f } },
+            { Marker.EType.Debug, new MarkerConfig { Radius = 1.5f } },
         };
         private LocalizedChatMessages _localizedChatMessages = new();
 
@@ -53,6 +54,7 @@ namespace Pal.Client
         public string? DebugMessage { get; set; }
         internal Queue<IQueueOnFrameworkThread> EarlyEventQueue { get; } = new();
         internal Queue<IQueueOnFrameworkThread> LateEventQueue { get; } = new();
+        internal ConcurrentQueue<nint> NextUpdateObjects { get; } = new();
 
         public string Name => "Palace Pal";
 
@@ -79,6 +81,7 @@ namespace Pal.Client
             Service.Plugin = this;
             Service.Configuration = (Configuration?)pluginInterface.GetPluginConfig() ?? pluginInterface.Create<Configuration>()!;
             Service.Configuration.Migrate();
+            Service.Hooks = new Hooks();
 
             var agreementWindow = pluginInterface.Create<AgreementWindow>();
             if (agreementWindow is not null)
@@ -174,6 +177,10 @@ namespace Pal.Client
                         DebugNearest(m => m.Type == Marker.EType.Hoard);
                         break;
 
+                    case "dnear":
+                        DebugNearest(m => m.Type == Marker.EType.Debug);
+                        break;
+
                     default:
                         Service.Chat.PrintError($"[Palace Pal] Unknown sub-command '{arguments}' for '{command}'.");
                         break;
@@ -199,6 +206,7 @@ namespace Pal.Client
             Service.WindowSystem.RemoveAllWindows();
 
             Service.RemoteApi.Dispose();
+            Service.Hooks.Dispose();
 
             try
             {
@@ -274,6 +282,7 @@ namespace Pal.Client
                 {
                     LastTerritory = Service.ClientState.TerritoryType;
                     TerritorySyncState = SyncState.NotAttempted;
+                    NextUpdateObjects.Clear();
 
                     if (IsInDeepDungeon())
                         GetFloorMarkers(LastTerritory);
@@ -414,6 +423,12 @@ namespace Pal.Client
                             marker.SplatoonElement = element;
                             elements.Add(element);
                         }
+                        else if (marker.Type == Marker.EType.Debug && Service.Configuration.BetaKey == "VFX")
+                        {
+                            var element = CreateSplatoonElement(marker.Type, marker.Position, DetermineColor(marker, visibleMarkers));
+                            marker.SplatoonElement = element;
+                            elements.Add(element);
+                        }
                     }
                 }
 
@@ -444,13 +459,15 @@ namespace Pal.Client
                 else
                     return COLOR_INVISIBLE;
             }
-            else
+            else if (marker.Type == Marker.EType.Hoard)
             {
                 if (PomanderOfIntuition == PomanderState.Inactive || !Service.Configuration.OnlyVisibleHoardAfterPomander || visibleMarkers.Any(x => x == marker))
                     return ImGui.ColorConvertFloat4ToU32(Service.Configuration.HoardColor);
                 else
                     return COLOR_INVISIBLE;
             }
+            else
+                return ImGui.ColorConvertFloat4ToU32(new Vector4(1, 0.5f, 1, 0.4f));
         }
 
         private void HandleEphemeralMarkers(IList<Marker> visibleMarkers, bool recreateLayout)
@@ -596,7 +613,7 @@ namespace Pal.Client
             var playerPosition = Service.ClientState.LocalPlayer?.Position;
             if (playerPosition == null)
                 return;
-            Service.Chat.Print($"[Pal] {playerPosition}");
+            Service.Chat.Print($"[Palace Pal] {playerPosition}");
 
             var nearbyMarkers = state.Markers
                 .Where(m => predicate(m))
@@ -639,6 +656,13 @@ namespace Pal.Client
                         result.Add(new Marker(Marker.EType.SilverCoffer, obj.Position) { Seen = true });
                         break;
                 }
+            }
+
+            while (NextUpdateObjects.TryDequeue(out nint address))
+            {
+                var obj = Service.ObjectTable.FirstOrDefault(x => x.Address == address);
+                if (obj != null && obj.Position.Length() > 0.1)
+                    result.Add(new Marker(Marker.EType.Debug, obj.Position) { Seen = true });
             }
 
             return result;
