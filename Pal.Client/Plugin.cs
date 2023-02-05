@@ -14,6 +14,7 @@ using ECommons.SplatoonAPI;
 using Grpc.Core;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
+using Pal.Client.Net;
 using Pal.Client.Scheduled;
 using Pal.Client.Windows;
 using Pal.Common;
@@ -612,7 +613,7 @@ namespace Pal.Client
         private IList<Marker> GetRelevantGameObjects()
         {
             List<Marker> result = new();
-            for (int i = 0; i < Service.ObjectTable.Length; i++)
+            for (int i = 246; i < Service.ObjectTable.Length; i++)
             {
                 GameObject? obj = Service.ObjectTable[i];
                 if (obj == null)
@@ -620,7 +621,6 @@ namespace Pal.Client
 
                 switch ((uint)Marshal.ReadInt32(obj.Address + 128))
                 {
-                    // traps as seen through pomander of sight
                     case 2007182:
                     case 2007183:
                     case 2007184:
@@ -628,37 +628,16 @@ namespace Pal.Client
                     case 2007186:
                     case 2009504:
                         result.Add(new Marker(Marker.EType.Trap, obj.Position) { Seen = true });
-                        continue;
+                        break;
 
-                    // hoard coffer, one is through pomander of intuition, the other as visible coffer
                     case 2007542:
                     case 2007543:
                         result.Add(new Marker(Marker.EType.Hoard, obj.Position) { Seen = true });
-                        continue;
+                        break;
 
-                    // silver coffer, visible
                     case 2007357:
                         result.Add(new Marker(Marker.EType.SilverCoffer, obj.Position) { Seen = true });
-                        continue;
-                }
-
-                // Even with a pomander of sight, the BattleChara's position for the trap remains at {0, 0, 0} until it is activated.
-                // Upon exploding, the trap's position is moved to the exact location that the pomander of sight would have revealed.
-                //
-                // That exact position appears to be used for VFX playing when you walk into it - even if you barely walk into the
-                // outer ring of an otter/luring/impeding/landmine trap, the VFX plays at the exact center and not at your character's
-                // location.
-                //
-                // Especially at higher floors, you're more likely to walk into an undiscovered trap compared to e.g. 51-60,
-                // and you probably don't want to/can't use sight on every floor - yet the trap location is still useful information.
-                //
-                // For reasons unknown, you typically have more BattleChara for traps than actual traps on the floor,
-                // this may be traps in inaccessible rooms.
-                if (obj is BattleChara bc && (bc.NameId == /* potd */ 5042 || bc.NameId == /* hoh */ 7395) && obj.Position.Length() > 0.1)
-                {
-                    var m = new Marker(Marker.EType.Trap, obj.Position) { Seen = true };
-                    if (!result.Contains(m))
-                        result.Add(m);
+                        break;
                 }
             }
 
