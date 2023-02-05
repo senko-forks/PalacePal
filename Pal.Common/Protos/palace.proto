@@ -65,4 +65,8 @@ enum ObjectType {
 	OBJECT_TYPE_UNKNOWN = 0;
 	OBJECT_TYPE_TRAP = 1;
 	OBJECT_TYPE_HOARD = 2;
+
+	// Objects only really used for debugging, may not return any objects at any point in time.
+	// Semi-Permanent: Not saved locally, but saved on the server.
+	OBJECT_TYPE_DEBUG = 3;
 }

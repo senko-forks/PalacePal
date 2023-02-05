@@ -40,7 +40,8 @@ namespace Pal.Server
         public enum EType
         {
             Trap = 1,
-            Hoard = 2
+            Hoard = 2,
+            Debug = 3,
         }
     }
 
