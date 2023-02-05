@@ -1,9 +1,12 @@
 ﻿using Dalamud.Configuration;
 using Dalamud.Logging;
+using ECommons.Schedulers;
 using Newtonsoft.Json;
 using Pal.Client.Scheduled;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Security.Cryptography;
@@ -82,6 +85,48 @@ namespace Pal.Client
             if (Version == 3)
             {
                 Version = 4;
+                Save();
+            }
+
+            if (Version == 4)
+            {
+                // 2.2 had a bug that would mark chests as traps, there's no easy way to detect this -- or clean this up.
+                // Not a problem for online players, but offline players might be fucked.
+                bool changedAnyFile = false;
+                LocalState.ForEach(s =>
+                {
+                    foreach (var marker in s.Markers)
+                        marker.SinceVersion = "0.0";
+
+                    var lastModified = File.GetLastWriteTimeUtc(s.GetSaveLocation());
+                    if (lastModified >= new DateTime(2023, 2, 3, 0, 0, 0, DateTimeKind.Utc))
+                    {
+                        s.Backup(suffix: "bak");
+
+                        s.Markers = new ConcurrentBag<Marker>(s.Markers.Where(m => m.SinceVersion != "0.0" || m.Type == Marker.EType.Hoard || m.WasImported));
+                        s.Save();
+
+                        changedAnyFile = true;
+                    }
+                    else
+                    {
+                        // just add version information, nothing else
+                        s.Save();
+                    }
+                });
+
+                // Only notify offline users - we can just re-download the backup markers from the server seamlessly.
+                if (Mode == EMode.Offline && changedAnyFile)
+                {
+                    new TickScheduler(delegate
+                    {
+                        Service.Chat.PrintError("[Palace Pal] Due to a bug, some coffers were accidentally saved as traps. To fix the related display issue, locally cached data was cleaned up.");
+                        Service.Chat.PrintError($"If you have any backup tools installed, please restore the contents of '{Service.PluginInterface.GetPluginConfigDirectory()}' to any backup from February 2, 2023 or before.");
+                        Service.Chat.PrintError("You can also manually restore .json.bak files (by removing the '.bak') if you have not been in any deep dungeon since February 2, 2023.");
+                    }, 2500);
+                }
+
+                Version = 5;
                 Save();
             }
         }

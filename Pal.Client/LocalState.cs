@@ -80,6 +80,26 @@ namespace Pal.Client
             string path = GetSaveLocation(TerritoryType);
 
             ApplyFilters();
+            SaveImpl(path);
+        }
+
+        public void Backup(string suffix)
+        {
+            string path = $"{GetSaveLocation(TerritoryType)}.{suffix}";
+            if (!File.Exists(path))
+            {
+                SaveImpl(path);
+            }
+        }
+
+        private void SaveImpl(string path)
+        {
+            foreach (var marker in Markers)
+            {
+                if (string.IsNullOrEmpty(marker.SinceVersion))
+                    marker.SinceVersion = typeof(Plugin).Assembly.GetName().Version!.ToString(2);
+            }
+
             if (Markers.Count == 0)
                 File.Delete(path);
             else
@@ -92,16 +112,23 @@ namespace Pal.Client
             }
         }
 
+        public string GetSaveLocation() => GetSaveLocation(TerritoryType);
+
         private static string GetSaveLocation(uint territoryType) => Path.Join(Service.PluginInterface.GetPluginConfigDirectory(), $"{territoryType}.json");
 
-        public static void UpdateAll()
+        public static void ForEach(Action<LocalState> action)
         {
             foreach (ETerritoryType territory in typeof(ETerritoryType).GetEnumValues())
             {
                 LocalState? localState = Load((ushort)territory);
                 if (localState != null)
-                    localState.Save();
+                    action(localState);
             }
+        }
+
+        public static void UpdateAll()
+        {
+            ForEach(s => s.Save());
         }
 
         public void UndoImport(List<Guid> importIds)

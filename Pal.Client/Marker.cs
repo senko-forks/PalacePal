@@ -50,6 +50,11 @@ namespace Pal.Client
 
         public bool WasImported { get; set; }
 
+        /// <summary>
+        /// To make rollbacks of local data easier, keep track of the version which was used to write the marker initially.
+        /// </summary>
+        public string SinceVersion { get; set; }
+
         [JsonIgnore]
         public Element? SplatoonElement { get; set; }
 
