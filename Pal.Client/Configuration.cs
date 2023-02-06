@@ -17,7 +17,7 @@ namespace Pal.Client
     {
         private static readonly byte[] _entropy = { 0x22, 0x4b, 0xe7, 0x21, 0x44, 0x83, 0x69, 0x55, 0x80, 0x38 };
 
-        public int Version { get; set; } = 4;
+        public int Version { get; set; } = 5;
 
         #region Saved configuration values
         public bool FirstUse { get; set; } = true;
