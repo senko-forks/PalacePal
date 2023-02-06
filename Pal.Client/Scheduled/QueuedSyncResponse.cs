@@ -45,14 +45,14 @@ namespace Pal.Client.Scheduled
                             break;
 
                         case SyncType.MarkSeen:
-                            var accountId = Service.RemoteApi.AccountId;
-                            if (accountId == null)
+                            var partialAccountId = Service.RemoteApi.PartialAccountId;
+                            if (partialAccountId == null)
                                 break;
                             foreach (var remoteMarker in remoteMarkers)
                             {
                                 Marker? localMarker = currentFloor.Markers.SingleOrDefault(x => x == remoteMarker);
                                 if (localMarker != null)
-                                    localMarker.RemoteSeenOn.Add(accountId.Value);
+                                    localMarker.RemoteSeenOn.Add(partialAccountId);
                             }
                             break;
                     }

@@ -34,8 +34,9 @@ namespace Pal.Client.Net
 
         public Guid? AccountId => Account?.Id;
 
-        private string PartialAccountId =>
-            Account?.Id?.ToString()?.PadRight(14).Substring(0, 13) ?? "[no account id]";
+        public string? PartialAccountId => Account?.Id?.ToString()?.PadRight(14).Substring(0, 13);
+
+        private string FormattedPartialAccountId => PartialAccountId ?? "[no account id]";
 
         public void Dispose()
         {

@@ -14,7 +14,7 @@ namespace Pal.Client
     internal class LocalState
     {
         private static readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions { IncludeFields = true };
-        private static readonly int _currentVersion = 3;
+        private static readonly int _currentVersion = 4;
 
         public uint TerritoryType { get; set; }
         public ConcurrentBag<Marker> Markers { get; set; } = new();
@@ -68,6 +68,12 @@ namespace Pal.Client
             }
 
             localState.ApplyFilters();
+
+            if (version <= 3)
+            {
+                foreach (var marker in localState.Markers)
+                    marker.RemoteSeenOn = marker.RemoteSeenOn.Select(x => x.PadRight(14).Substring(0, 13)).ToList();
+            }
 
             if (version < _currentVersion)
                 localState.Save();

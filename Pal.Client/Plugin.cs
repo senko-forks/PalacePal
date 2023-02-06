@@ -327,7 +327,7 @@ namespace Pal.Client
             var currentFloorMarkers = currentFloor.Markers;
 
             bool updateSeenMarkers = false;
-            var accountId = Service.RemoteApi.AccountId;
+            var partialAccountId = Service.RemoteApi.PartialAccountId;
             foreach (var visibleMarker in visibleMarkers)
             {
                 Marker? knownMarker = currentFloorMarkers.SingleOrDefault(x => x == visibleMarker);
@@ -341,7 +341,7 @@ namespace Pal.Client
 
                     // This requires you to have seen a trap/hoard marker once per floor to synchronize this for older local states,
                     // markers discovered afterwards are automatically marked seen.
-                    if (accountId != null && knownMarker.NetworkId != null && !knownMarker.RemoteSeenRequested && !knownMarker.RemoteSeenOn.Contains(accountId.Value))
+                    if (partialAccountId != null && knownMarker.NetworkId != null && !knownMarker.RemoteSeenRequested && !knownMarker.RemoteSeenOn.Contains(partialAccountId))
                         updateSeenMarkers = true;
 
                     continue;
@@ -377,9 +377,9 @@ namespace Pal.Client
                 }
             }
 
-            if (updateSeenMarkers && accountId != null)
+            if (updateSeenMarkers && partialAccountId != null)
             {
-                var markersToUpdate = currentFloorMarkers.Where(x => x.Seen && x.NetworkId != null && !x.RemoteSeenRequested && !x.RemoteSeenOn.Contains(accountId.Value)).ToList();
+                var markersToUpdate = currentFloorMarkers.Where(x => x.Seen && x.NetworkId != null && !x.RemoteSeenRequested && !x.RemoteSeenOn.Contains(partialAccountId)).ToList();
                 foreach (var marker in markersToUpdate)
                     marker.RemoteSeenRequested = true;
                 Task.Run(async () => await SyncSeenMarkersForTerritory(LastTerritory, markersToUpdate));

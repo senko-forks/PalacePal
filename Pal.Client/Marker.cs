@@ -33,7 +33,7 @@ namespace Pal.Client
         /// Which account ids this marker was seen. This is a list merely to support different remote endpoints
         /// (where each server would assign you a different id).
         /// </summary>
-        public List<Guid> RemoteSeenOn { get; set; } = new List<Guid>();
+        public List<string> RemoteSeenOn { get; set; } = new List<string>();
 
         /// <summary>
         /// Whether this marker was requested to be seen, to avoid duplicate requests.

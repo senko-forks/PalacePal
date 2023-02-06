@@ -52,7 +52,7 @@ namespace Pal.Client.Net
                     {
                         Id = Guid.Parse(createAccountReply.AccountId),
                     };
-                    PluginLog.Information($"TryConnect: Account created with id {PartialAccountId}");
+                    PluginLog.Information($"TryConnect: Account created with id {FormattedPartialAccountId}");
 
                     Service.Configuration.Save();
                 }
@@ -76,11 +76,11 @@ namespace Pal.Client.Net
 
             if (!_loginInfo.IsValid)
             {
-                PluginLog.Information($"TryConnect: Logging in with account id {PartialAccountId}");
+                PluginLog.Information($"TryConnect: Logging in with account id {FormattedPartialAccountId}");
                 LoginReply loginReply = await accountClient.LoginAsync(new LoginRequest { AccountId = AccountId?.ToString() }, headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
                 if (loginReply.Success)
                 {
-                    PluginLog.Information($"TryConnect: Login successful with account id: {PartialAccountId}");
+                    PluginLog.Information($"TryConnect: Login successful with account id: {FormattedPartialAccountId}");
                     _loginInfo = new LoginInfo(loginReply.AuthToken);
 
                     var account = Account;
@@ -141,6 +141,8 @@ namespace Pal.Client.Net
             PluginLog.Information("VerifyConnection: Connection established, trying to verify auth token");
             var accountClient = new AccountService.AccountServiceClient(_channel);
             await accountClient.VerifyAsync(new VerifyRequest(), headers: AuthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
+
+            PluginLog.Information("VerifyConnection: Verification returned no errors.");
             return "Connection successful.";
         }
 
