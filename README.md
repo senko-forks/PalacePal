@@ -2,4 +2,10 @@
 
 Shows possible trap & hoard coffer locations in Palace of the Dead & Heaven on High. 
 
-Requires Splatoon to be installed.
+## Installation
+
+To install this plugin from my plugin repository, please check the
+[Installation Instructions](https://github.com/carvelli/Dalamud-Plugins#installation).
+
+Additionally, you **need to install Splatoon**, which is used to render the visible overlays.
+Please check [Splatoon's Installation Instructions](https://github.com/NightmareXIV/MyDalamudPlugins#installation).
