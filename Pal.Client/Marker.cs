@@ -1,4 +1,5 @@
 ﻿using ECommons.SplatoonAPI;
+using Pal.Common;
 using Palace;
 using System;
 using System.Collections.Generic;
@@ -67,12 +68,12 @@ namespace Pal.Client
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(Type, (int)Position.X, (int)Position.Y, (int)Position.Z);
+            return HashCode.Combine(Type, PalaceMath.GetHashCode(Position));
         }
 
         public override bool Equals(object? obj)
         {
-            return obj is Marker otherMarker && Type == otherMarker.Type && (int)Position.X == (int)otherMarker.Position.X && (int)Position.Y == (int)otherMarker.Position.Y && (int)Position.Z == (int)otherMarker.Position.Z;
+            return obj is Marker otherMarker && Type == otherMarker.Type && PalaceMath.IsNearlySamePosition(Position, otherMarker.Position);
         }
 
         public static bool operator ==(Marker? a, object? b)

@@ -5,6 +5,7 @@ using Pal.Common;
 using Palace;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using static Palace.PalaceService;
 
 namespace Pal.Server.Services
@@ -201,17 +202,13 @@ namespace Pal.Server.Services
                 else if (first == null || second == null)
                     return false;
                 else
-                {
-                    return first.Type == second.Type &&
-                        (int)first.X == (int)second.X &&
-                        (int)first.Y == (int)second.Y &&
-                        (int)first.Z == (int)second.Z;
-                }
+                    return first.Type == second.Type
+                        && PalaceMath.IsNearlySamePosition(new Vector3(first.X, first.Y, first.Z), new Vector3(second.X, second.Y, second.Z));
             }
 
             public int GetHashCode([DisallowNull] PalaceObject obj)
             {
-                return HashCode.Combine(obj.Type, (int)obj.X, (int)obj.Y, (int)obj.Z);
+                return HashCode.Combine(obj.Type, PalaceMath.GetHashCode(new Vector3(obj.X, obj.Y, obj.Z)));
             }
         }
     }
