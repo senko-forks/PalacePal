@@ -10,7 +10,6 @@ namespace Pal.Client.Rendering
             { Marker.EType.Trap, new MarkerConfig { Radius = 1.7f } },
             { Marker.EType.Hoard, new MarkerConfig { Radius = 1.7f, OffsetY = -0.03f } },
             { Marker.EType.SilverCoffer, new MarkerConfig { Radius = 1f } },
-            { Marker.EType.Debug, new MarkerConfig { Radius = 1.7f, OffsetY = 0.1f } },
         };
 
         public float OffsetY { get; set; } = 0;

@@ -167,10 +167,6 @@ namespace Pal.Client
                         DebugNearest(m => m.Type == Marker.EType.Hoard);
                         break;
 
-                    case "dnear":
-                        DebugNearest(m => m.Type == Marker.EType.Debug);
-                        break;
-
                     default:
                         Service.Chat.PrintError($"[Palace Pal] Unknown sub-command '{arguments}' for '{command}'.");
                         break;
@@ -402,10 +398,6 @@ namespace Pal.Client
                         {
                             CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers));
                         }
-                        else if (marker.Type == Marker.EType.Debug && Service.Configuration.BetaKey == "VFX")
-                        {
-                            CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers));
-                        }
                     }
                 }
 
@@ -626,7 +618,7 @@ namespace Pal.Client
             {
                 var obj = Service.ObjectTable.FirstOrDefault(x => x.Address == address);
                 if (obj != null && obj.Position.Length() > 0.1)
-                    result.Add(new Marker(Marker.EType.Debug, obj.Position) { Seen = true });
+                    result.Add(new Marker(Marker.EType.Trap, obj.Position) { Seen = true });
             }
 
             return result;

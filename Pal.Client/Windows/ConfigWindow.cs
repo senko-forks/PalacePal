@@ -336,11 +336,6 @@ namespace Pal.Client.Windows
                             int silverCoffers = plugin.EphemeralMarkers.Count(x => x.Type == Marker.EType.SilverCoffer);
                             ImGui.Text($"{silverCoffers} silver coffer{(silverCoffers == 1 ? "" : "s")} visible on current floor");
                         }
-                        if (Service.Configuration.BetaKey == "VFX")
-                        {
-                            int debugMarkers = currentFloor.Markers.Count(x => x.Type == Marker.EType.Debug);
-                            ImGui.Text($"{debugMarkers} debug marker{(debugMarkers == 1 ? "" : "s")}");
-                        }
 
                         ImGui.Text($"Pomander of Sight: {plugin.PomanderOfSight}");
                         ImGui.Text($"Pomander of Intuition: {plugin.PomanderOfIntuition}");

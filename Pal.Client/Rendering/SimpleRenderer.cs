@@ -126,7 +126,6 @@ namespace Pal.Client.Rendering
                         goto case Marker.EType.Trap;
 
                     case Marker.EType.Trap:
-                    case Marker.EType.Debug:
                         var playerPos = Service.ClientState.LocalPlayer?.Position;
                         if (playerPos == null)
                             return;

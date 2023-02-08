@@ -88,7 +88,7 @@ namespace Pal.Client
         }
 
 
-        public bool IsPermanent() => Type == EType.Trap || Type == EType.Hoard || Type == EType.Debug;
+        public bool IsPermanent() => Type == EType.Trap || Type == EType.Hoard;
 
         public enum EType
         {
@@ -97,7 +97,9 @@ namespace Pal.Client
             #region Permanent Markers
             Trap = ObjectType.Trap,
             Hoard = ObjectType.Hoard,
-            Debug = ObjectType.Debug,
+
+            [Obsolete]
+            Debug = 3,
             #endregion
 
             # region Markers that only show up if they're currently visible

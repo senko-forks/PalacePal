@@ -69,6 +69,7 @@ namespace Pal.Server.Services
                 DateTime createdAt = DateTime.Now;
                 var newLocations = request.Objects.Where(o => !objects.Values.Contains(o, _objEqualityComparer))
                     .Where(o => o.Type != ObjectType.Unknown && !(o.X == 0 && o.Y == 0 && o.Z == 0))
+                    .Where(o => o.Type == ObjectType.Trap || o.Type == ObjectType.Hoard)
                     .Distinct(_objEqualityComparer)
                     .Select(o => new PalaceLocation
                     {
