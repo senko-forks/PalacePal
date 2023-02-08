@@ -19,6 +19,7 @@ namespace Pal.Client.Rendering
     internal class SplatoonRenderer : IRenderer, IDrawDebugItems, IDisposable
     {
         private const long ON_TERRITORY_CHANGE = -2;
+        private bool IsDisposed { get; set; } = false;
 
         public SplatoonRenderer(DalamudPluginInterface pluginInterface, IDalamudPlugin plugin)
         {
@@ -74,7 +75,7 @@ namespace Pal.Client.Rendering
                 color = color,
                 thicc = 2,
             };
-            return new SplatoonElement(element);
+            return new SplatoonElement(this, element);
         }
 
         public void DrawDebugItems(Vector4 trapColor, Vector4 hoardColor)
@@ -123,6 +124,8 @@ namespace Pal.Client.Rendering
 
         public void Dispose()
         {
+            IsDisposed = true;
+
             ResetLayer(ELayer.TrapHoard);
             ResetLayer(ELayer.RegularCoffers);
 
@@ -131,14 +134,17 @@ namespace Pal.Client.Rendering
 
         public class SplatoonElement : IRenderElement
         {
-            public SplatoonElement(Element element)
+            private readonly SplatoonRenderer renderer;
+
+            public SplatoonElement(SplatoonRenderer renderer, Element element)
             {
+                this.renderer = renderer;
                 Delegate = element;
             }
 
             public Element Delegate { get; }
 
-            public bool IsValid => Delegate.IsValid();
+            public bool IsValid => !renderer.IsDisposed && Delegate.IsValid();
             public uint Color
             {
                 get => Delegate.color;
