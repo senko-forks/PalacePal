@@ -10,6 +10,7 @@ using ECommons.SplatoonAPI;
 using Google.Protobuf;
 using ImGuiNET;
 using Pal.Client.Net;
+using Pal.Client.Rendering;
 using Pal.Client.Scheduled;
 using System;
 using System.Collections;
@@ -28,6 +29,7 @@ namespace Pal.Client.Windows
     internal class ConfigWindow : Window
     {
         private int _mode;
+        private int _renderer;
         private bool _showTraps;
         private Vector4 _trapColor;
         private bool _onlyVisibleTrapsAfterPomander;
@@ -64,6 +66,7 @@ namespace Pal.Client.Windows
         {
             var config = Service.Configuration;
             _mode = (int)config.Mode;
+            _renderer = (int)config.Renderer;
             _showTraps = config.ShowTraps;
             _trapColor = config.TrapColor;
             _onlyVisibleTrapsAfterPomander = config.OnlyVisibleTrapsAfterPomander;
@@ -92,6 +95,7 @@ namespace Pal.Client.Windows
                 DrawCommunityTab(ref saveAndClose);
                 DrawImportTab();
                 DrawExportTab();
+                DrawRenderTab(ref save, ref saveAndClose);
                 DrawDebugTab();
 
                 ImGui.EndTabBar();
@@ -103,6 +107,7 @@ namespace Pal.Client.Windows
             {
                 var config = Service.Configuration;
                 config.Mode = (Configuration.EMode)_mode;
+                config.Renderer = (Configuration.ERenderer)_renderer;
                 config.ShowTraps = _showTraps;
                 config.TrapColor = _trapColor;
                 config.OnlyVisibleTrapsAfterPomander = _onlyVisibleTrapsAfterPomander;
@@ -277,6 +282,31 @@ namespace Pal.Client.Windows
             }
         }
 
+        private void DrawRenderTab(ref bool save, ref bool saveAndClose)
+        {
+            if (ImGui.BeginTabItem("Renderer"))
+            {
+                ImGui.Text("Select which render backend to use for markers:");
+                ImGui.RadioButton("Splatoon (default, required Splatoon to be installed)", ref _renderer, (int)Configuration.ERenderer.Splatoon);
+                ImGui.RadioButton("Simple (experimental)", ref _renderer, (int)Configuration.ERenderer.Simple);
+
+                ImGui.Separator();
+
+                save = ImGui.Button("Save");
+                ImGui.SameLine();
+                saveAndClose = ImGui.Button("Save & Close");
+
+                ImGui.Separator();
+                ImGui.Text("Splatoon Test:");
+                ImGui.BeginDisabled(!(Service.Plugin.Renderer is IDrawDebugItems));
+                if (ImGui.Button("Draw trap & coffer circles around self"))
+                    (Service.Plugin.Renderer as IDrawDebugItems)?.DrawDebugItems(_trapColor, _hoardColor);
+                ImGui.EndDisabled();
+
+                ImGui.EndTabItem();
+            }
+        }
+
         private void DrawDebugTab()
         {
             if (ImGui.BeginTabItem("Debug"))
@@ -323,56 +353,7 @@ namespace Pal.Client.Windows
                 else
                     ImGui.Text("You are NOT in a deep dungeon.");
 
-                ImGui.Separator();
-
-                if (ImGui.Button("Draw trap & coffer circles around self"))
-                    DrawDebugItems();
-
                 ImGui.EndTabItem();
-            }
-        }
-
-        private void DrawDebugItems()
-        {
-            try
-            {
-                Vector3? pos = Service.ClientState.LocalPlayer?.Position;
-                if (pos != null)
-                {
-                    var elements = new List<Element>
-                    {
-                        Plugin.CreateSplatoonElement(Marker.EType.Trap, pos.Value, _trapColor),
-                        Plugin.CreateSplatoonElement(Marker.EType.Hoard, pos.Value, _hoardColor),
-                    };
-
-                    if (!Splatoon.AddDynamicElements("PalacePal.Test", elements.ToArray(), new long[] { Environment.TickCount64 + 10000 }))
-                    {
-                        Service.Chat.PrintError("Could not draw markers :(");
-                    }
-                }
-            }
-            catch (Exception)
-            {
-                try
-                {
-                    var pluginManager = DalamudReflector.GetPluginManager();
-                    IList installedPlugins = pluginManager.GetType().GetProperty("InstalledPlugins")?.GetValue(pluginManager) as IList ?? new List<object>();
-
-                    foreach (var t in installedPlugins)
-                    {
-                        AssemblyName? assemblyName = (AssemblyName?)t.GetType().GetProperty("AssemblyName")?.GetValue(t);
-                        string? pluginName = (string?)t.GetType().GetProperty("Name")?.GetValue(t);
-                        if (assemblyName?.Name == "Splatoon" && pluginName != "Splatoon")
-                        {
-                            Service.Chat.PrintError($"[Palace Pal] Splatoon is installed under the plugin name '{pluginName}', which is incompatible with the Splatoon API.");
-                            Service.Chat.Print("[Palace Pal] You need to install Splatoon from the official repository at https://github.com/NightmareXIV/MyDalamudPlugins.");
-                            return;
-                        }
-                    }
-                }
-                catch (Exception) { }
-
-                Service.Chat.PrintError("Could not draw markers, is Splatoon installed and enabled?");
             }
         }
 

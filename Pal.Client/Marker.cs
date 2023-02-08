@@ -1,4 +1,5 @@
 ﻿using ECommons.SplatoonAPI;
+using Pal.Client.Rendering;
 using Pal.Common;
 using Palace;
 using System;
@@ -57,6 +58,9 @@ namespace Pal.Client
         public string? SinceVersion { get; set; }
 
         [JsonIgnore]
+        public IRenderElement? RenderElement { get; set; }
+
+        [Obsolete]
         public Element? SplatoonElement { get; set; }
 
         public Marker(EType type, Vector3 position, Guid? networkId = null)

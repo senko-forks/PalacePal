@@ -9,11 +9,10 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Logging;
 using Dalamud.Plugin;
 using ECommons;
-using ECommons.Schedulers;
-using ECommons.SplatoonAPI;
 using Grpc.Core;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
+using Pal.Client.Rendering;
 using Pal.Client.Scheduled;
 using Pal.Client.Windows;
 using Pal.Common;
@@ -30,18 +29,8 @@ namespace Pal.Client
 {
     public class Plugin : IDalamudPlugin
     {
-        private const long ON_TERRITORY_CHANGE = -2;
-        private const uint COLOR_INVISIBLE = 0;
-        private const string SPLATOON_TRAP_HOARD = "PalacePal.TrapHoard";
-        private const string SPLATOON_REGULAR_COFFERS = "PalacePal.RegularCoffers";
+        internal const uint COLOR_INVISIBLE = 0;
 
-        private readonly static Dictionary<Marker.EType, MarkerConfig> _markerConfig = new Dictionary<Marker.EType, MarkerConfig>
-        {
-            { Marker.EType.Trap, new MarkerConfig { Radius = 1.7f } },
-            { Marker.EType.Hoard, new MarkerConfig { Radius = 1.7f, OffsetY = -0.03f } },
-            { Marker.EType.SilverCoffer, new MarkerConfig { Radius = 1f } },
-            { Marker.EType.Debug, new MarkerConfig { Radius = 1.5f } },
-        };
         private LocalizedChatMessages _localizedChatMessages = new();
 
         internal ConcurrentDictionary<ushort, LocalState> FloorMarkers { get; } = new();
@@ -54,6 +43,7 @@ namespace Pal.Client
         internal Queue<IQueueOnFrameworkThread> EarlyEventQueue { get; } = new();
         internal Queue<IQueueOnFrameworkThread> LateEventQueue { get; } = new();
         internal ConcurrentQueue<nint> NextUpdateObjects { get; } = new();
+        internal IRenderer Renderer { get; private set; } = null!;
 
         public string Name => "Palace Pal";
 
@@ -74,12 +64,13 @@ namespace Pal.Client
             }
 #endif
 
-            ECommonsMain.Init(pluginInterface, this, Module.SplatoonAPI);
-
             pluginInterface.Create<Service>();
             Service.Plugin = this;
             Service.Configuration = (Configuration?)pluginInterface.GetPluginConfig() ?? pluginInterface.Create<Configuration>()!;
             Service.Configuration.Migrate();
+
+            ResetRenderer();
+
             Service.Hooks = new Hooks();
 
             var agreementWindow = pluginInterface.Create<AgreementWindow>();
@@ -101,7 +92,7 @@ namespace Pal.Client
                 Service.WindowSystem.AddWindow(statisticsWindow);
             }
 
-            pluginInterface.UiBuilder.Draw += Service.WindowSystem.Draw;
+            pluginInterface.UiBuilder.Draw += Draw;
             pluginInterface.UiBuilder.OpenConfigUi += OnOpenConfigUi;
             Service.Framework.Update += OnFrameworkUpdate;
             Service.Chat.ChatMessage += OnChatMessage;
@@ -197,7 +188,7 @@ namespace Pal.Client
             if (!disposing) return;
 
             Service.CommandManager.RemoveHandler("/pal");
-            Service.PluginInterface.UiBuilder.Draw -= Service.WindowSystem.Draw;
+            Service.PluginInterface.UiBuilder.Draw -= Draw;
             Service.PluginInterface.UiBuilder.OpenConfigUi -= OnOpenConfigUi;
             Service.Framework.Update -= OnFrameworkUpdate;
             Service.Chat.ChatMessage -= OnChatMessage;
@@ -207,16 +198,8 @@ namespace Pal.Client
             Service.RemoteApi.Dispose();
             Service.Hooks.Dispose();
 
-            try
-            {
-                Splatoon.RemoveDynamicElements(SPLATOON_TRAP_HOARD);
-                Splatoon.RemoveDynamicElements(SPLATOON_REGULAR_COFFERS);
-            }
-            catch
-            {
-                // destroyed on territory change either way
-            }
-            ECommonsMain.Dispose();
+            if (Renderer is IDisposable disposable)
+                disposable.Dispose();
         }
 
         public void Dispose()
@@ -321,6 +304,7 @@ namespace Pal.Client
             return FloorMarkers.GetOrAdd(territoryType, tt => LocalState.Load(tt) ?? new LocalState(tt));
         }
 
+        #region Rendering markers
         private void HandlePersistentMarkers(LocalState currentFloor, IList<Marker> visibleMarkers, bool saveMarkers, bool recreateLayout)
         {
             var config = Service.Configuration;
@@ -360,14 +344,14 @@ namespace Pal.Client
                     foreach (var marker in currentFloorMarkers)
                     {
                         uint desiredColor = DetermineColor(marker, visibleMarkers);
-                        if (marker.SplatoonElement == null || !marker.SplatoonElement.IsValid())
+                        if (marker.RenderElement == null || !marker.RenderElement.IsValid)
                         {
                             recreateLayout = true;
                             break;
                         }
 
-                        if (marker.SplatoonElement.color != desiredColor)
-                            marker.SplatoonElement.color = desiredColor;
+                        if (marker.RenderElement.Color != desiredColor)
+                            marker.RenderElement.Color = desiredColor;
                     }
                 }
                 catch (Exception e)
@@ -403,30 +387,24 @@ namespace Pal.Client
 
             if (recreateLayout)
             {
-                Splatoon.RemoveDynamicElements(SPLATOON_TRAP_HOARD);
+                Renderer.ResetLayer(ELayer.TrapHoard);
 
-                List<Element> elements = new List<Element>();
+                List<IRenderElement> elements = new();
                 foreach (var marker in currentFloorMarkers)
                 {
                     if (marker.Seen || config.Mode == Configuration.EMode.Online || (marker.WasImported && marker.Imports.Count > 0))
                     {
                         if (marker.Type == Marker.EType.Trap && config.ShowTraps)
                         {
-                            var element = CreateSplatoonElement(marker.Type, marker.Position, DetermineColor(marker, visibleMarkers));
-                            marker.SplatoonElement = element;
-                            elements.Add(element);
+                            CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers));
                         }
                         else if (marker.Type == Marker.EType.Hoard && config.ShowHoard)
                         {
-                            var element = CreateSplatoonElement(marker.Type, marker.Position, DetermineColor(marker, visibleMarkers));
-                            marker.SplatoonElement = element;
-                            elements.Add(element);
+                            CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers));
                         }
                         else if (marker.Type == Marker.EType.Debug && Service.Configuration.BetaKey == "VFX")
                         {
-                            var element = CreateSplatoonElement(marker.Type, marker.Position, DetermineColor(marker, visibleMarkers));
-                            marker.SplatoonElement = element;
-                            elements.Add(element);
+                            CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers));
                         }
                     }
                 }
@@ -434,18 +412,37 @@ namespace Pal.Client
                 if (elements.Count == 0)
                     return;
 
-                // we need to delay this, as the current framework update could be before splatoon's, in which case it would immediately delete the layout
-                new TickScheduler(delegate
+                Renderer.SetLayer(ELayer.TrapHoard, elements);
+            }
+        }
+
+        private void HandleEphemeralMarkers(IList<Marker> visibleMarkers, bool recreateLayout)
+        {
+            recreateLayout |= EphemeralMarkers.Any(existingMarker => !visibleMarkers.Any(x => x == existingMarker));
+            recreateLayout |= visibleMarkers.Any(visibleMarker => !EphemeralMarkers.Any(x => x == visibleMarker));
+
+            if (recreateLayout)
+            {
+                Renderer.ResetLayer(ELayer.RegularCoffers);
+                EphemeralMarkers.Clear();
+
+                var config = Service.Configuration;
+
+                List<IRenderElement> elements = new();
+                foreach (var marker in visibleMarkers)
                 {
-                    try
+                    EphemeralMarkers.Add(marker);
+
+                    if (marker.Type == Marker.EType.SilverCoffer && config.ShowSilverCoffers)
                     {
-                        Splatoon.AddDynamicElements(SPLATOON_TRAP_HOARD, elements.ToArray(), new long[] { Environment.TickCount64 + 60 * 60 * 1000, ON_TERRITORY_CHANGE });
+                        CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers), config.FillSilverCoffers);
                     }
-                    catch (Exception e)
-                    {
-                        DebugMessage = $"{DateTime.Now}\n{e}";
-                    }
-                });
+                }
+
+                if (elements.Count == 0)
+                    return;
+
+                Renderer.SetLayer(ELayer.RegularCoffers, elements);
             }
         }
 
@@ -465,51 +462,19 @@ namespace Pal.Client
                 else
                     return COLOR_INVISIBLE;
             }
+            else if (marker.Type == Marker.EType.SilverCoffer)
+                return ImGui.ColorConvertFloat4ToU32(Service.Configuration.SilverCofferColor);
             else
                 return ImGui.ColorConvertFloat4ToU32(new Vector4(1, 0.5f, 1, 0.4f));
         }
 
-        private void HandleEphemeralMarkers(IList<Marker> visibleMarkers, bool recreateLayout)
+        private void CreateRenderElement(Marker marker, List<IRenderElement> elements, uint color, bool fill = false)
         {
-            recreateLayout |= EphemeralMarkers.Any(existingMarker => !visibleMarkers.Any(x => x == existingMarker));
-            recreateLayout |= visibleMarkers.Any(visibleMarker => !EphemeralMarkers.Any(x => x == visibleMarker));
-
-            if (recreateLayout)
-            {
-                Splatoon.RemoveDynamicElements(SPLATOON_REGULAR_COFFERS);
-                EphemeralMarkers.Clear();
-
-                var config = Service.Configuration;
-
-                List<Element> elements = new List<Element>();
-                foreach (var marker in visibleMarkers)
-                {
-                    EphemeralMarkers.Add(marker);
-
-                    if (marker.Type == Marker.EType.SilverCoffer && config.ShowSilverCoffers)
-                    {
-                        var element = CreateSplatoonElement(marker.Type, marker.Position, config.SilverCofferColor, config.FillSilverCoffers);
-                        marker.SplatoonElement = element;
-                        elements.Add(element);
-                    }
-                }
-
-                if (elements.Count == 0)
-                    return;
-
-                new TickScheduler(delegate
-                {
-                    try
-                    {
-                        Splatoon.AddDynamicElements(SPLATOON_REGULAR_COFFERS, elements.ToArray(), new long[] { Environment.TickCount64 + 60 * 60 * 1000, ON_TERRITORY_CHANGE });
-                    }
-                    catch (Exception e)
-                    {
-                        DebugMessage = $"{DateTime.Now}\n{e}";
-                    }
-                });
-            }
+            var element = Renderer.CreateElement(marker.Type, marker.Position, color, fill);
+            marker.RenderElement = element;
+            elements.Add(element);
         }
+        #endregion
 
         #region Up-/Download
         private async Task DownloadMarkersForTerritory(ushort territoryId)
@@ -616,7 +581,7 @@ namespace Pal.Client
 
             var nearbyMarkers = state.Markers
                 .Where(m => predicate(m))
-                .Where(m => m.SplatoonElement != null && m.SplatoonElement.color != COLOR_INVISIBLE)
+                .Where(m => m.RenderElement != null && m.RenderElement.Color != COLOR_INVISIBLE)
                 .Select(m => new { m = m, distance = (playerPosition - m.Position)?.Length() ?? float.MaxValue })
                 .OrderBy(m => m.distance)
                 .Take(5)
@@ -672,27 +637,6 @@ namespace Pal.Client
             && Service.Condition[ConditionFlag.InDeepDungeon]
             && typeof(ETerritoryType).IsEnumDefined(Service.ClientState.TerritoryType);
 
-        internal static Element CreateSplatoonElement(Marker.EType type, Vector3 pos, Vector4 color, bool fill = false)
-            => CreateSplatoonElement(type, pos, ImGui.ColorConvertFloat4ToU32(color), fill);
-
-        internal static Element CreateSplatoonElement(Marker.EType type, Vector3 pos, uint color, bool fill = false)
-        {
-            return new Element(ElementType.CircleAtFixedCoordinates)
-            {
-                refX = pos.X,
-                refY = pos.Z, // z and y are swapped
-                refZ = pos.Y,
-                offX = 0,
-                offY = 0,
-                offZ = _markerConfig[type].OffsetY,
-                Filled = fill,
-                radius = _markerConfig[type].Radius,
-                FillStep = 1,
-                color = color,
-                thicc = 2,
-            };
-        }
-
         private void ReloadLanguageStrings()
         {
             _localizedChatMessages = new LocalizedChatMessages
@@ -706,6 +650,30 @@ namespace Pal.Client
             };
         }
 
+        internal void ResetRenderer()
+        {
+            if (Renderer is SplatoonRenderer && Service.Configuration.Renderer == Configuration.ERenderer.Splatoon)
+                return;
+            else if (Renderer is SimpleRenderer && Service.Configuration.Renderer == Configuration.ERenderer.Simple)
+                return;
+
+            if (Renderer is IDisposable disposable)
+                disposable.Dispose();
+
+            if (Service.Configuration.Renderer == Configuration.ERenderer.Splatoon)
+                Renderer = new SplatoonRenderer(Service.PluginInterface, this);
+            else
+                Renderer = new SimpleRenderer();
+        }
+
+        private void Draw()
+        {
+            if (Renderer is SimpleRenderer sr)
+                sr.DrawLayers();
+
+            Service.WindowSystem.Draw();
+        }
+
         private string GetLocalizedString(uint id)
         {
             return Service.DataManager.GetExcelSheet<LogMessage>()?.GetRow(id)?.Text?.ToString() ?? "Unknown";
@@ -717,12 +685,6 @@ namespace Pal.Client
             Active,
             FoundOnCurrentFloor,
             PomanderOfSafetyUsed,
-        }
-
-        private class MarkerConfig
-        {
-            public float OffsetY { get; set; } = 0;
-            public float Radius { get; set; } = 0.25f;
         }
 
         private class LocalizedChatMessages

@@ -22,6 +22,7 @@ namespace Pal.Client
         #region Saved configuration values
         public bool FirstUse { get; set; } = true;
         public EMode Mode { get; set; } = EMode.Offline;
+        public ERenderer Renderer { get; set; } = ERenderer.Splatoon;
 
         [Obsolete]
         public string? DebugAccountId { private get; set; }
@@ -157,6 +158,15 @@ namespace Pal.Client
             /// Only shows traps found by yourself uisng a pomander of sight.
             /// </summary>
             Offline = 2,
+        }
+
+        public enum ERenderer
+        {
+            /// <see cref="Rendering.SimpleRenderer"/>
+            Simple = 0,
+
+            /// <see cref="Rendering.SplatoonRenderer"/>
+            Splatoon = 1,
         }
 
         public class AccountInfo

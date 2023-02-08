@@ -14,6 +14,8 @@
                 recreateLayout = true;
                 saveMarkers = true;
             }
+
+            plugin.ResetRenderer();
         }
     }
 }
