@@ -60,9 +60,6 @@ namespace Pal.Client
         [JsonIgnore]
         public IRenderElement? RenderElement { get; set; }
 
-        [Obsolete]
-        public Element? SplatoonElement { get; set; }
-
         public Marker(EType type, Vector3 position, Guid? networkId = null)
         {
             Type = type;
