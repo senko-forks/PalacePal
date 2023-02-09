@@ -18,6 +18,7 @@ namespace Pal.Server.Services
         private readonly PalContext _dbContext;
         private readonly string _tokenIssuer;
         private readonly string _tokenAudience;
+        private readonly bool _useForwardedIp;
         private readonly SymmetricSecurityKey _signingKey;
 
         private byte[]? _salt;
@@ -30,6 +31,7 @@ namespace Pal.Server.Services
 
             _tokenIssuer = configuration.GetOrThrow("JWT:Issuer");
             _tokenAudience = configuration.GetOrThrow("JWT:Audience");
+            _useForwardedIp = bool.Parse(configuration.GetOrThrow("UseForwardedIp"));
             _signingKey = new SymmetricSecurityKey(Convert.FromBase64String(configuration.GetOrThrow("JWT:Key")));
         }
 
@@ -39,8 +41,7 @@ namespace Pal.Server.Services
             try
             {
                 var remoteIp = context.GetHttpContext().Connection.RemoteIpAddress;
-#if !DEBUG
-                if (remoteIp != null && (remoteIp.ToString().StartsWith("127.") || remoteIp.ToString() == "::1"))
+                if (_useForwardedIp)
                 {
                     remoteIp = null;
                     foreach (var header in context.RequestHeaders)
@@ -52,7 +53,6 @@ namespace Pal.Server.Services
                         }
                     }
                 }
-#endif
                 if (remoteIp == null)
                     return new CreateAccountReply { Success = false, Error = CreateAccountError.InvalidHash };
 

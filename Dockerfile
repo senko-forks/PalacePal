@@ -11,7 +11,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS runtime
 EXPOSE 5415
 ENV DOTNET_ENVIRONMENT=Production
 ENV ASPNETCORE_URLS=
-ENV DATADIRECTORY=/data
+ENV DataDirectory=/data
+ENV UseForwardedIp=true
 ENV Kestrel__Endpoints__Http2__Url=http://+:5415
 
 RUN adduser --uid 2000 --disabled-password --group --no-create-home --quiet --system pal
