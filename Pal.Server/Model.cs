@@ -85,19 +85,7 @@ namespace Pal.Server
         public DbSet<PalaceLocation> Locations { get; set; } = null!;
         public DbSet<GlobalSetting> GlobalSettings { get; set; } = null!;
 
-        public string DbPath { get; }
-
-        public PalContext()
-        {
-#if DEBUG
-            DbPath = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "pal.db");
-#else
-            DbPath = "palace-pal.db";
-#endif
-        }
-
-        protected override void OnConfiguring(DbContextOptionsBuilder options)
-            => options.UseSqlite($"Data Source={DbPath}");
+        public PalContext(DbContextOptions<PalContext> options) : base(options) { }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -11,7 +11,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Pal.Common", "Pal.Common\Pa
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{753F1752-AB41-4908-8359-C5809A79E5E7}"
 	ProjectSection(SolutionItems) = preProject
+		Dockerfile = Dockerfile
 		README.md = README.md
+		.github\workflows\server.yml = .github\workflows\server.yml
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ECommons", "vendor\ECommons\ECommons\ECommons.csproj", "{D0B37096-5BC3-41B0-8D81-203CBA3932B0}"
