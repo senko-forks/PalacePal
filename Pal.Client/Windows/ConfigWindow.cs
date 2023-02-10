@@ -155,7 +155,7 @@ namespace Pal.Client.Windows
                 ImGui.Separator();
 
                 ImGui.Checkbox("Show silver coffers on current floor", ref _showSilverCoffers);
-                ImGuiComponents.HelpMarker("Shows all the silver coffers visible to you on the current floor.\nThis is not synchronized with other players and not saved between floors/runs.\n\nExperimental feature.");
+                ImGuiComponents.HelpMarker("Shows all the silver coffers visible to you on the current floor.\nThis is not synchronized with other players and not saved between floors/runs.");
                 ImGui.Indent();
                 ImGui.BeginDisabled(!_showSilverCoffers);
                 ImGui.Spacing();
