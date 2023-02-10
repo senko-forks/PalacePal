@@ -9,3 +9,8 @@ To install this plugin from my plugin repository, please check the
 
 Additionally, you **need to install Splatoon**, which is used to render the visible overlays.
 Please check [Splatoon's Installation Instructions](https://github.com/NightmareXIV/MyDalamudPlugins#installation).
+
+
+## Translation
+
+Please feel free to help by [translating this plugin into your language](https://crowdin.com/project/palace-pal).
