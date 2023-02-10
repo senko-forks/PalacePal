@@ -459,6 +459,7 @@ namespace Pal.Client
                     return ImGui.ColorConvertFloat4ToU32(Service.Configuration.SilverCofferColor);
                 case Marker.EType.Trap:
                 case Marker.EType.Hoard:
+                    return ColorInvisible;
                 default:
                     return ImGui.ColorConvertFloat4ToU32(new Vector4(1, 0.5f, 1, 0.4f));
             }
