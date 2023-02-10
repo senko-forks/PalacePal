@@ -113,7 +113,7 @@ namespace Pal.Client.Rendering
 
             public void Draw()
             {
-                if (Color == Plugin.COLOR_INVISIBLE)
+                if (Color == Plugin.ColorInvisible)
                     return;
 
                 switch (Type)

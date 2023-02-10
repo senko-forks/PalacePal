@@ -5,24 +5,20 @@ using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Windowing;
 using Dalamud.Logging;
 using ECommons;
-using ECommons.Reflection;
-using ECommons.SplatoonAPI;
 using Google.Protobuf;
 using ImGuiNET;
 using Pal.Client.Net;
 using Pal.Client.Rendering;
 using Pal.Client.Scheduled;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Pal.Client.Properties;
 
 namespace Pal.Client.Windows
 {
@@ -49,10 +45,10 @@ namespace Pal.Client.Windows
         private FileDialogManager _importDialog;
         private FileDialogManager _exportDialog;
 
-        public ConfigWindow() : base("Palace Pal###PalPalaceConfig")
+        public ConfigWindow() : base($"{Localization.Palace_Pal}###PalPalaceConfig")
         {
             var version = typeof(Plugin).Assembly.GetName().Version!.ToString(2);
-            WindowName = $"Palace Pal v{version}###PalPalaceConfig";
+            WindowName = $"{Localization.Palace_Pal} v{version}###PalPalaceConfig";
             Size = new Vector2(500, 400);
             SizeCondition = ImGuiCond.FirstUseEver;
             Position = new Vector2(300, 300);
@@ -91,7 +87,7 @@ namespace Pal.Client.Windows
             bool saveAndClose = false;
             if (ImGui.BeginTabBar("PalTabs"))
             {
-                DrawTrapCofferTab(ref save, ref saveAndClose);
+                DrawDeepDungeonItemsTab(ref save, ref saveAndClose);
                 DrawCommunityTab(ref saveAndClose);
                 DrawImportTab();
                 DrawExportTab();
@@ -124,51 +120,51 @@ namespace Pal.Client.Windows
             }
         }
 
-        private void DrawTrapCofferTab(ref bool save, ref bool saveAndClose)
+        private void DrawDeepDungeonItemsTab(ref bool save, ref bool saveAndClose)
         {
-            if (ImGui.BeginTabItem("PotD/HoH"))
+            if (ImGui.BeginTabItem(Localization.ConfigTab_DeepDungeons))
             {
-                ImGui.Checkbox("Show traps", ref _showTraps);
+                ImGui.Checkbox(Localization.Config_Traps_Show, ref _showTraps);
                 ImGui.Indent();
                 ImGui.BeginDisabled(!_showTraps);
                 ImGui.Spacing();
-                ImGui.ColorEdit4("Trap color", ref _trapColor, ImGuiColorEditFlags.NoInputs);
-                ImGui.Checkbox("Hide traps not on current floor", ref _onlyVisibleTrapsAfterPomander);
+                ImGui.ColorEdit4(Localization.Config_Traps_Color, ref _trapColor, ImGuiColorEditFlags.NoInputs);
+                ImGui.Checkbox(Localization.Config_Traps_HideImpossible, ref _onlyVisibleTrapsAfterPomander);
                 ImGui.SameLine();
-                ImGuiComponents.HelpMarker("When using a Pomander of sight, only the actual trap locations are visible, all other traps are hidden.");
+                ImGuiComponents.HelpMarker(Localization.Config_Traps_HideImpossible_ToolTip);
                 ImGui.EndDisabled();
                 ImGui.Unindent();
 
                 ImGui.Separator();
 
-                ImGui.Checkbox("Show hoard coffers", ref _showHoard);
+                ImGui.Checkbox(Localization.Config_HoardCoffers_Show, ref _showHoard);
                 ImGui.Indent();
                 ImGui.BeginDisabled(!_showHoard);
                 ImGui.Spacing();
-                ImGui.ColorEdit4("Hoard Coffer color", ref _hoardColor, ImGuiColorEditFlags.NoInputs);
-                ImGui.Checkbox("Hide hoard coffers not on current floor", ref _onlyVisibleHoardAfterPomander);
+                ImGui.ColorEdit4(Localization.Config_HoardCoffers_Color, ref _hoardColor, ImGuiColorEditFlags.NoInputs);
+                ImGui.Checkbox(Localization.Config_HoardCoffers_HideImpossible, ref _onlyVisibleHoardAfterPomander);
                 ImGui.SameLine();
-                ImGuiComponents.HelpMarker("When using a Pomander of intuition, only the actual hoard coffer location is visible, all other (potential) hoard coffers are hidden.");
+                ImGuiComponents.HelpMarker(Localization.Config_HoardCoffers_HideImpossible_ToolTip);
                 ImGui.EndDisabled();
                 ImGui.Unindent();
 
                 ImGui.Separator();
 
-                ImGui.Checkbox("Show silver coffers on current floor", ref _showSilverCoffers);
-                ImGuiComponents.HelpMarker("Shows all the silver coffers visible to you on the current floor.\nThis is not synchronized with other players and not saved between floors/runs.");
+                ImGui.Checkbox(Localization.Config_SilverCoffer_Show, ref _showSilverCoffers);
+                ImGuiComponents.HelpMarker(Localization.Config_SilverCoffers_ToolTip);
                 ImGui.Indent();
                 ImGui.BeginDisabled(!_showSilverCoffers);
                 ImGui.Spacing();
-                ImGui.ColorEdit4("Silver Coffer color", ref _silverCofferColor, ImGuiColorEditFlags.NoInputs);
-                ImGui.Checkbox("Draw filled", ref _fillSilverCoffers);
+                ImGui.ColorEdit4(Localization.Config_SilverCoffer_Color, ref _silverCofferColor, ImGuiColorEditFlags.NoInputs);
+                ImGui.Checkbox(Localization.Config_SilverCoffer_Filled, ref _fillSilverCoffers);
                 ImGui.EndDisabled();
                 ImGui.Unindent();
 
                 ImGui.Separator();
 
-                save = ImGui.Button("Save");
+                save = ImGui.Button(Localization.Save);
                 ImGui.SameLine();
-                saveAndClose = ImGui.Button("Save & Close");
+                saveAndClose = ImGui.Button(Localization.SaveAndClose);
 
                 ImGui.EndTabItem();
             }
@@ -176,21 +172,21 @@ namespace Pal.Client.Windows
 
         private void DrawCommunityTab(ref bool saveAndClose)
         {
-            if (BeginTabItemEx("Community", _switchToCommunityTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
+            if (BeginTabItemEx(Localization.ConfigTab_Community, _switchToCommunityTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
             {
                 _switchToCommunityTab = false;
 
-                ImGui.TextWrapped("Ideally, we want to discover every potential trap and chest location in the game, but doing this alone is very tedious. Floor 51-60 has over 230 trap locations and over 200 coffer locations - and we don't know if that map is complete. Higher floors naturally see fewer runs, making solo attempts to map the place much harder.");
-                ImGui.TextWrapped("You can decide whether you want to share traps and chests you find with the community, which likewise also will let you see chests and coffers found by other players. This can be changed at any time. No data regarding your FFXIV character or account is ever sent to our server.");
+                ImGui.TextWrapped(Localization.Explanation_3);
+                ImGui.TextWrapped(Localization.Explanation_4);
 
-                ImGui.RadioButton("Upload my discoveries, show traps & coffers other players have discovered", ref _mode, (int)Configuration.EMode.Online);
-                ImGui.RadioButton("Never upload discoveries, show only traps and coffers I found myself", ref _mode, (int)Configuration.EMode.Offline);
-                saveAndClose = ImGui.Button("Save & Close");
+                ImGui.RadioButton(Localization.Config_UploadMyDiscoveries_ShowOtherTraps, ref _mode, (int)Configuration.EMode.Online);
+                ImGui.RadioButton(Localization.Config_NeverUploadDiscoveries_ShowMyTraps, ref _mode, (int)Configuration.EMode.Offline);
+                saveAndClose = ImGui.Button(Localization.SaveAndClose);
 
                 ImGui.Separator();
 
                 ImGui.BeginDisabled(Service.Configuration.Mode != Configuration.EMode.Online);
-                if (ImGui.Button("Test Connection"))
+                if (ImGui.Button(Localization.Config_TestConnection))
                     TestConnection();
 
                 if (_connectionText != null)
@@ -203,23 +199,23 @@ namespace Pal.Client.Windows
 
         private void DrawImportTab()
         {
-            if (ImGui.BeginTabItem("Import"))
+            if (ImGui.BeginTabItem(Localization.ConfigTab_Import))
             {
-                ImGui.TextWrapped("Using an export is useful if you're unable to connect to the server, or don't wish to share your findings.");
-                ImGui.TextWrapped("Exports are (currently) generated manually, and they only include traps and hoard coffers encountered by 5 or more people. This may lead to higher floors having very sporadic coverage, but commonly run floors (e.g. PotD 51-60, HoH 21-30) are closer to complete.");
-                ImGui.TextWrapped("If you aren't offline, importing a file won't have any noticeable effect.");
+                ImGui.TextWrapped(Localization.Config_ImportExplanation1);
+                ImGui.TextWrapped(Localization.Config_ImportExplanation2);
+                ImGui.TextWrapped(Localization.Config_ImportExplanation3);
                 ImGui.Separator();
-                ImGui.TextWrapped("Exports are available from https://github.com/carvelli/PalacePal/releases/ (as *.pal files).");
-                if (ImGui.Button("Visit GitHub"))
+                ImGui.TextWrapped(string.Format(Localization.Config_ImportDownloadLocation, "https://github.com/carvelli/PalacePal/releases/"));
+                if (ImGui.Button(Localization.Config_Import_VisitGitHub))
                     GenericHelpers.ShellStart("https://github.com/carvelli/PalacePal/releases/latest");
                 ImGui.Separator();
-                ImGui.Text("File to Import:");
+                ImGui.Text(Localization.Config_SelectImportFile);
                 ImGui.SameLine();
                 ImGui.InputTextWithHint("", "Path to *.pal file", ref _openImportPath, 260);
                 ImGui.SameLine();
                 if (ImGuiComponents.IconButton(FontAwesomeIcon.Search))
                 {
-                    _importDialog.OpenFileDialog("Palace Pal - Import", "Palace Pal (*.pal) {.pal}", (success, paths) =>
+                    _importDialog.OpenFileDialog(Localization.Palace_Pal, $"{Localization.Palace_Pal} (*.pal) {{.pal}}", (success, paths) =>
                     {
                         if (success && paths.Count == 1)
                         {
@@ -230,7 +226,7 @@ namespace Pal.Client.Windows
                 }
 
                 ImGui.BeginDisabled(string.IsNullOrEmpty(_openImportPath) || !File.Exists(_openImportPath));
-                if (ImGui.Button("Start Import"))
+                if (ImGui.Button(Localization.Config_StartImport))
                     DoImport(_openImportPath);
                 ImGui.EndDisabled();
 
@@ -238,9 +234,9 @@ namespace Pal.Client.Windows
                 if (importHistory != null)
                 {
                     ImGui.Separator();
-                    ImGui.TextWrapped($"Your last import was on {importHistory.ImportedAt}, which added the trap/hoard coffer database from {importHistory.RemoteUrl} created on {importHistory.ExportedAt:d}.");
-                    ImGui.TextWrapped("If you think that was a mistake, you can remove all locations only found in the import (any location you've seen yourself is not changed).");
-                    if (ImGui.Button("Undo Import"))
+                    ImGui.TextWrapped(string.Format(Localization.Config_UndoImportExplanation1, importHistory.ImportedAt, importHistory.RemoteUrl, importHistory.ExportedAt));
+                    ImGui.TextWrapped(Localization.Config_UndoImportExplanation2);
+                    if (ImGui.Button(Localization.Config_UndoImport))
                         UndoImport(importHistory.Id);
                 }
 
@@ -250,20 +246,20 @@ namespace Pal.Client.Windows
 
         private void DrawExportTab()
         {
-            if (Service.RemoteApi.HasRoleOnCurrentServer("export:run") && ImGui.BeginTabItem("Export"))
+            if (Service.RemoteApi.HasRoleOnCurrentServer("export:run") && ImGui.BeginTabItem(Localization.ConfigTab_Export))
             {
                 string todaysFileName = $"export-{DateTime.Today:yyyy-MM-dd}.pal";
                 if (string.IsNullOrEmpty(_saveExportPath) && !string.IsNullOrEmpty(_saveExportDialogStartPath))
                     _saveExportPath = Path.Join(_saveExportDialogStartPath, todaysFileName);
 
-                ImGui.TextWrapped($"Export all markers from {RemoteApi.RemoteUrl}:");
-                ImGui.Text("Save as:");
+                ImGui.TextWrapped(string.Format(Localization.Config_ExportSource, RemoteApi.RemoteUrl));
+                ImGui.Text(Localization.Config_Export_SaveAs);
                 ImGui.SameLine();
                 ImGui.InputTextWithHint("", "Path to *.pal file", ref _saveExportPath, 260);
                 ImGui.SameLine();
                 if (ImGuiComponents.IconButton(FontAwesomeIcon.Search))
                 {
-                    _importDialog.SaveFileDialog("Palace Pal - Export", "Palace Pal (*.pal) {.pal}", todaysFileName, "pal", (success, path) =>
+                    _importDialog.SaveFileDialog(Localization.Palace_Pal, $"{Localization.Palace_Pal} (*.pal) {{.pal}}", todaysFileName, "pal", (success, path) =>
                     {
                         if (success && !string.IsNullOrEmpty(path))
                         {
@@ -274,7 +270,7 @@ namespace Pal.Client.Windows
                 }
 
                 ImGui.BeginDisabled(string.IsNullOrEmpty(_saveExportPath) || File.Exists(_saveExportPath));
-                if (ImGui.Button("Start Export"))
+                if (ImGui.Button(Localization.Config_StartExport))
                     DoExport(_saveExportPath);
                 ImGui.EndDisabled();
 
@@ -284,22 +280,22 @@ namespace Pal.Client.Windows
 
         private void DrawRenderTab(ref bool save, ref bool saveAndClose)
         {
-            if (ImGui.BeginTabItem("Renderer"))
+            if (ImGui.BeginTabItem(Localization.ConfigTab_Renderer))
             {
-                ImGui.Text("Select which render backend to use for markers:");
-                ImGui.RadioButton("Splatoon (default, required Splatoon to be installed)", ref _renderer, (int)Configuration.ERenderer.Splatoon);
-                ImGui.RadioButton("Simple (experimental)", ref _renderer, (int)Configuration.ERenderer.Simple);
+                ImGui.Text(Localization.Config_SelectRenderBackend);
+                ImGui.RadioButton($"{Localization.Config_Renderer_Splatoon} ({Localization.Config_Renderer_Splatoon_Hint})", ref _renderer, (int)Configuration.ERenderer.Splatoon);
+                ImGui.RadioButton($"{Localization.Config_Renderer_Simple} ({Localization.Config_Renderer_Simple_Hint})", ref _renderer, (int)Configuration.ERenderer.Simple);
 
                 ImGui.Separator();
 
-                save = ImGui.Button("Save");
+                save = ImGui.Button(Localization.Save);
                 ImGui.SameLine();
-                saveAndClose = ImGui.Button("Save & Close");
+                saveAndClose = ImGui.Button(Localization.SaveAndClose);
 
                 ImGui.Separator();
-                ImGui.Text("Splatoon Test:");
+                ImGui.Text(Localization.Config_Splatoon_Test);
                 ImGui.BeginDisabled(!(Service.Plugin.Renderer is IDrawDebugItems));
-                if (ImGui.Button("Draw trap & coffer circles around self"))
+                if (ImGui.Button(Localization.Config_Splatoon_DrawCircles))
                     (Service.Plugin.Renderer as IDrawDebugItems)?.DrawDebugItems(_trapColor, _hoardColor);
                 ImGui.EndDisabled();
 
@@ -309,7 +305,7 @@ namespace Pal.Client.Windows
 
         private void DrawDebugTab()
         {
-            if (ImGui.BeginTabItem("Debug"))
+            if (ImGui.BeginTabItem(Localization.ConfigTab_Debug))
             {
                 var plugin = Service.Plugin;
                 if (plugin.IsInDeepDungeon())
@@ -346,7 +342,7 @@ namespace Pal.Client.Windows
                     ImGui.TextWrapped("Traps and coffers may not be discovered even after using a pomander if they're far away (around 1,5-2 rooms).");
                 }
                 else
-                    ImGui.Text("You are NOT in a deep dungeon.");
+                    ImGui.Text(Localization.Config_Debug_NotInADeepDungeon);
 
                 ImGui.EndTabItem();
             }

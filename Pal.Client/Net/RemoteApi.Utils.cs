@@ -9,13 +9,13 @@ namespace Pal.Client.Net
     {
         private Metadata UnauthorizedHeaders() => new Metadata
         {
-            { "User-Agent", UserAgent },
+            { "User-Agent", _userAgent },
         };
 
         private Metadata AuthorizedHeaders() => new Metadata
         {
             { "Authorization", $"Bearer {_loginInfo?.AuthToken}" },
-            { "User-Agent", UserAgent },
+            { "User-Agent", _userAgent },
         };
 
         private SslClientAuthenticationOptions? GetSslClientAuthenticationOptions()

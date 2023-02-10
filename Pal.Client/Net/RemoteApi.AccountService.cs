@@ -9,6 +9,8 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Pal.Client.Extensions;
+using Pal.Client.Properties;
 
 namespace Pal.Client.Net
 {
@@ -19,7 +21,7 @@ namespace Pal.Client.Net
             if (Service.Configuration.Mode != Configuration.EMode.Online)
             {
                 PluginLog.Debug("TryConnect: Not Online, not attempting to establish a connection");
-                return (false, "You are not online.");
+                return (false, Localization.ConnectionError_NotOnline);
             }
 
             if (_channel == null || !(_channel.State == ConnectivityState.Ready || _channel.State == ConnectivityState.Idle))
@@ -61,17 +63,17 @@ namespace Pal.Client.Net
                     PluginLog.Error($"TryConnect: Account creation failed with error {createAccountReply.Error}");
                     if (createAccountReply.Error == CreateAccountError.UpgradeRequired && !_warnedAboutUpgrade)
                     {
-                        Service.Chat.PrintError("[Palace Pal] Your version of Palace Pal is outdated, please update the plugin using the Plugin Installer.");
+                        Service.Chat.PalError(Localization.ConnectionError_OldVersion);
                         _warnedAboutUpgrade = true;
                     }
-                    return (false, $"Could not create account ({createAccountReply.Error}).");
+                    return (false, string.Format(Localization.ConnectionError_CreateAccountFailed, createAccountReply.Error));
                 }
             }
 
             if (AccountId == null)
             {
                 PluginLog.Warning("TryConnect: No account id to login with");
-                return (false, "No account-id after account was attempted to be created.");
+                return (false, Localization.ConnectionError_CreateAccountReturnedNoId);
             }
 
             if (!_loginInfo.IsValid)
@@ -104,21 +106,21 @@ namespace Pal.Client.Net
                             return await TryConnect(cancellationToken, retry: false);
                         }
                         else
-                            return (false, "Invalid account id.");
+                            return (false, Localization.ConnectionError_InvalidAccountId);
                     }
                     if (loginReply.Error == LoginError.UpgradeRequired && !_warnedAboutUpgrade)
                     {
-                        Service.Chat.PrintError("[Palace Pal] Your version of Palace Pal is outdated, please update the plugin using the Plugin Installer.");
+                        Service.Chat.PalError(Localization.ConnectionError_OldVersion);
                         _warnedAboutUpgrade = true;
                     }
-                    return (false, $"Could not log in ({loginReply.Error}).");
+                    return (false, string.Format(Localization.ConnectionError_LoginFailed, loginReply.Error));
                 }
             }
 
             if (!_loginInfo.IsValid)
             {
                 PluginLog.Error($"TryConnect: Login state is loggedIn={_loginInfo.IsLoggedIn}, expired={_loginInfo.IsExpired}");
-                return (false, "No login information available.");
+                return (false, Localization.ConnectionError_LoginReturnedNoToken);
             }
 
             return (true, string.Empty);
@@ -136,14 +138,14 @@ namespace Pal.Client.Net
 
             var connectionResult = await TryConnect(cancellationToken, loggerFactory: _grpcToPluginLogLoggerFactory);
             if (!connectionResult.Success)
-                return $"Could not connect to server: {connectionResult.Error}";
+                return string.Format(Localization.ConnectionError_CouldNotConnectToServer, connectionResult.Error);
 
             PluginLog.Information("VerifyConnection: Connection established, trying to verify auth token");
             var accountClient = new AccountService.AccountServiceClient(_channel);
             await accountClient.VerifyAsync(new VerifyRequest(), headers: AuthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
 
             PluginLog.Information("VerifyConnection: Verification returned no errors.");
-            return "Connection successful.";
+            return Localization.ConnectionSuccessful;
         }
 
         internal class LoginInfo

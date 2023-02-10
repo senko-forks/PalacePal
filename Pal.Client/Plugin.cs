@@ -8,7 +8,6 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.Windowing;
 using Dalamud.Logging;
 using Dalamud.Plugin;
-using ECommons;
 using Grpc.Core;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
@@ -19,17 +18,20 @@ using Pal.Common;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Pal.Client.Extensions;
+using Pal.Client.Properties;
 
 namespace Pal.Client
 {
     public class Plugin : IDalamudPlugin
     {
-        internal const uint COLOR_INVISIBLE = 0;
+        internal const uint ColorInvisible = 0;
 
         private LocalizedChatMessages _localizedChatMessages = new();
 
@@ -45,10 +47,12 @@ namespace Pal.Client
         internal ConcurrentQueue<nint> NextUpdateObjects { get; } = new();
         internal IRenderer Renderer { get; private set; } = null!;
 
-        public string Name => "Palace Pal";
+        public string Name => Localization.Palace_Pal;
 
         public Plugin(DalamudPluginInterface pluginInterface, ChatGui chat)
         {
+            LanguageChanged(pluginInterface.UiLanguage);
+
             PluginLog.Information($"Install source: {pluginInterface.SourceRepository}");
 
 #if RELEASE
@@ -59,7 +63,7 @@ namespace Pal.Client
                 && !pluginInterface.SourceRepository.StartsWith("https://raw.githubusercontent.com/carvelli/") 
                 && !pluginInterface.SourceRepository.StartsWith("https://github.com/carvelli/"))
             {
-                chat.PrintError("[Palace Pal] Please install this plugin from the official repository at https://github.com/carvelli/Dalamud-Plugins to continue using it.");
+                chat.PalError(string.Format(Localization.Error_WrongRepository, "https://github.com/carvelli/Dalamud-Plugins"));
                 throw new InvalidOperationException();
             }
 #endif
@@ -94,11 +98,12 @@ namespace Pal.Client
 
             pluginInterface.UiBuilder.Draw += Draw;
             pluginInterface.UiBuilder.OpenConfigUi += OnOpenConfigUi;
+            pluginInterface.LanguageChanged += LanguageChanged;
             Service.Framework.Update += OnFrameworkUpdate;
             Service.Chat.ChatMessage += OnChatMessage;
             Service.CommandManager.AddHandler("/pal", new CommandInfo(OnCommand)
             {
-                HelpMessage = "Open the configuration/debug window"
+                HelpMessage = Localization.Command_pal_HelpText
             });
 
             ReloadLanguageStrings();
@@ -120,7 +125,7 @@ namespace Pal.Client
         {
             if (Service.Configuration.FirstUse)
             {
-                Service.Chat.PrintError("[Palace Pal] Please finish the first-time setup first.");
+                Service.Chat.PalError(Localization.Error_FirstTimeSetupRequired);
                 return;
             }
 
@@ -146,7 +151,7 @@ namespace Pal.Client
 #if DEBUG
                     case "update-saves":
                         LocalState.UpdateAll();
-                        Service.Chat.Print("Updated all locally cached marker files to latest version.");
+                        Service.Chat.Print(Localization.Command_pal_updatesaves);
                         break;
 #endif
 
@@ -168,13 +173,13 @@ namespace Pal.Client
                         break;
 
                     default:
-                        Service.Chat.PrintError($"[Palace Pal] Unknown sub-command '{arguments}' for '{command}'.");
+                        Service.Chat.PalError(string.Format(Localization.Command_pal_UnknownSubcommand, arguments, command));
                         break;
                 }
             }
             catch (Exception e)
             {
-                Service.Chat.PrintError($"[Palace Pal] {e}");
+                Service.Chat.PalError(e.ToString());
             }
         }
 
@@ -186,6 +191,7 @@ namespace Pal.Client
             Service.CommandManager.RemoveHandler("/pal");
             Service.PluginInterface.UiBuilder.Draw -= Draw;
             Service.PluginInterface.UiBuilder.OpenConfigUi -= OnOpenConfigUi;
+            Service.PluginInterface.LanguageChanged -= LanguageChanged;
             Service.Framework.Update -= OnFrameworkUpdate;
             Service.Chat.ChatMessage -= OnChatMessage;
 
@@ -242,6 +248,9 @@ namespace Pal.Client
             else
                 return;
         }
+
+        private void LanguageChanged(string langcode)
+            => Localization.Culture = new CultureInfo(langcode);
 
         private void OnFrameworkUpdate(Framework framework)
         {
@@ -410,8 +419,8 @@ namespace Pal.Client
 
         private void HandleEphemeralMarkers(IList<Marker> visibleMarkers, bool recreateLayout)
         {
-            recreateLayout |= EphemeralMarkers.Any(existingMarker => !visibleMarkers.Any(x => x == existingMarker));
-            recreateLayout |= visibleMarkers.Any(visibleMarker => !EphemeralMarkers.Any(x => x == visibleMarker));
+            recreateLayout |= EphemeralMarkers.Any(existingMarker => visibleMarkers.All(x => x != existingMarker));
+            recreateLayout |= visibleMarkers.Any(visibleMarker => EphemeralMarkers.All(x => x != visibleMarker));
 
             if (recreateLayout)
             {
@@ -440,24 +449,19 @@ namespace Pal.Client
 
         private uint DetermineColor(Marker marker, IList<Marker> visibleMarkers)
         {
-            if (marker.Type == Marker.EType.Trap)
+            switch (marker.Type)
             {
-                if (PomanderOfSight == PomanderState.Inactive || !Service.Configuration.OnlyVisibleTrapsAfterPomander || visibleMarkers.Any(x => x == marker))
+                case Marker.EType.Trap when PomanderOfSight == PomanderState.Inactive || !Service.Configuration.OnlyVisibleTrapsAfterPomander || visibleMarkers.Any(x => x == marker):
                     return ImGui.ColorConvertFloat4ToU32(Service.Configuration.TrapColor);
-                else
-                    return COLOR_INVISIBLE;
-            }
-            else if (marker.Type == Marker.EType.Hoard)
-            {
-                if (PomanderOfIntuition == PomanderState.Inactive || !Service.Configuration.OnlyVisibleHoardAfterPomander || visibleMarkers.Any(x => x == marker))
+                case Marker.EType.Hoard when PomanderOfIntuition == PomanderState.Inactive || !Service.Configuration.OnlyVisibleHoardAfterPomander || visibleMarkers.Any(x => x == marker):
                     return ImGui.ColorConvertFloat4ToU32(Service.Configuration.HoardColor);
-                else
-                    return COLOR_INVISIBLE;
+                case Marker.EType.SilverCoffer:
+                    return ImGui.ColorConvertFloat4ToU32(Service.Configuration.SilverCofferColor);
+                case Marker.EType.Trap:
+                case Marker.EType.Hoard:
+                default:
+                    return ImGui.ColorConvertFloat4ToU32(new Vector4(1, 0.5f, 1, 0.4f));
             }
-            else if (marker.Type == Marker.EType.SilverCoffer)
-                return ImGui.ColorConvertFloat4ToU32(Service.Configuration.SilverCofferColor);
-            else
-                return ImGui.ColorConvertFloat4ToU32(new Vector4(1, 0.5f, 1, 0.4f));
         }
 
         private void CreateRenderElement(Marker marker, List<IRenderElement> elements, uint color, bool fill = false)
@@ -532,7 +536,7 @@ namespace Pal.Client
         {
             if (!Service.RemoteApi.HasRoleOnCurrentServer("statistics:view"))
             {
-                Service.Chat.Print("[Palace Pal] You can view statistics for the floor you're currently on by opening the 'Debug' tab in the configuration window.");
+                Service.Chat.PalError(Localization.Command_pal_stats_CurrentFloor);
                 return;
             }
 
@@ -547,16 +551,16 @@ namespace Pal.Client
                 }
                 else
                 {
-                    Service.Chat.PrintError("[Palace Pal] Unable to fetch statistics.");
+                    Service.Chat.PalError(Localization.Command_pal_stats_UnableToFetchStatistics);
                 }
             }
             catch (RpcException e) when (e.StatusCode == StatusCode.PermissionDenied)
             {
-                Service.Chat.Print("[Palace Pal] You can view statistics for the floor you're currently on by opening the 'Debug' tab in the configuration window.");
+                Service.Chat.Print(Localization.Command_pal_stats_CurrentFloor);
             }
             catch (Exception e)
             {
-                Service.Chat.PrintError($"[Palace Pal] {e}");
+                Service.Chat.PalError(e.ToString());
             }
         }
 
@@ -573,7 +577,7 @@ namespace Pal.Client
 
             var nearbyMarkers = state.Markers
                 .Where(m => predicate(m))
-                .Where(m => m.RenderElement != null && m.RenderElement.Color != COLOR_INVISIBLE)
+                .Where(m => m.RenderElement != null && m.RenderElement.Color != ColorInvisible)
                 .Select(m => new { m = m, distance = (playerPosition - m.Position)?.Length() ?? float.MaxValue })
                 .OrderBy(m => m.distance)
                 .Take(5)

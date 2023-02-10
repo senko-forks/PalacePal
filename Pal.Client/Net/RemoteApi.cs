@@ -12,12 +12,12 @@ namespace Pal.Client.Net
 #else
         public static string RemoteUrl { get; } = "https://pal.μ.tv";
 #endif
-        private readonly string UserAgent = $"{typeof(RemoteApi).Assembly.GetName().Name?.Replace(" ", "")}/{typeof(RemoteApi).Assembly.GetName().Version?.ToString(2)}";
+        private readonly string _userAgent = $"{typeof(RemoteApi).Assembly.GetName().Name?.Replace(" ", "")}/{typeof(RemoteApi).Assembly.GetName().Version?.ToString(2)}";
 
         private readonly ILoggerFactory _grpcToPluginLogLoggerFactory = LoggerFactory.Create(builder => builder.AddProvider(new GrpcLoggerProvider()).AddFilter("Grpc", LogLevel.Trace));
 
         private GrpcChannel? _channel;
-        private LoginInfo _loginInfo = new LoginInfo(null);
+        private LoginInfo _loginInfo = new(null);
         private bool _warnedAboutUpgrade = false;
 
         public Configuration.AccountInfo? Account

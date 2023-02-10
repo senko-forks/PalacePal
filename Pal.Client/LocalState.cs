@@ -13,8 +13,8 @@ namespace Pal.Client
     /// </summary>
     internal class LocalState
     {
-        private static readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions { IncludeFields = true };
-        private static readonly int _currentVersion = 4;
+        private static readonly JsonSerializerOptions JsonSerializerOptions = new() { IncludeFields = true };
+        private const int CurrentVersion = 4;
 
         public uint TerritoryType { get; set; }
         public ConcurrentBag<Marker> Markers { get; set; } = new();
@@ -51,12 +51,12 @@ namespace Pal.Client
                 // v1 only had a list of markers, not a JSON object as root
                 localState = new LocalState(territoryType)
                 {
-                    Markers = new ConcurrentBag<Marker>(JsonSerializer.Deserialize<HashSet<Marker>>(content, _jsonSerializerOptions) ?? new()),
+                    Markers = new ConcurrentBag<Marker>(JsonSerializer.Deserialize<HashSet<Marker>>(content, JsonSerializerOptions) ?? new()),
                 };
             }
             else
             {
-                var save = JsonSerializer.Deserialize<SaveFile>(content, _jsonSerializerOptions);
+                var save = JsonSerializer.Deserialize<SaveFile>(content, JsonSerializerOptions);
                 if (save == null)
                     return null;
 
@@ -75,7 +75,7 @@ namespace Pal.Client
                     marker.RemoteSeenOn = marker.RemoteSeenOn.Select(x => x.PadRight(14).Substring(0, 13)).ToList();
             }
 
-            if (version < _currentVersion)
+            if (version < CurrentVersion)
                 localState.Save();
 
             return localState;
@@ -112,9 +112,9 @@ namespace Pal.Client
             {
                 File.WriteAllText(path, JsonSerializer.Serialize(new SaveFile
                 {
-                    Version = _currentVersion,
+                    Version = CurrentVersion,
                     Markers = new HashSet<Marker>(Markers)
-                }, _jsonSerializerOptions));
+                }, JsonSerializerOptions));
             }
         }
 
@@ -142,7 +142,7 @@ namespace Pal.Client
             // When saving a floor state, any markers not seen, not remote seen, and not having an import id are removed;
             // so it is possible to remove "wrong" markers by not having them be in the current import.
             foreach (var marker in Markers)
-                marker.Imports.RemoveAll(id => importIds.Contains(id));
+                marker.Imports.RemoveAll(importIds.Contains);
         }
 
         public class SaveFile

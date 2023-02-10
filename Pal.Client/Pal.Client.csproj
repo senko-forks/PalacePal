@@ -28,6 +28,10 @@
 
 	<ItemGroup Condition="'$(Configuration)' == 'Release' And Exists('Certificate.pfx')">
 	  <EmbeddedResource Include="Certificate.pfx" />
+	  <EmbeddedResource Update="Properties\Localization.resx">
+	    <Generator>ResXFileCodeGenerator</Generator>
+	    <LastGenOutput>Localization.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -83,6 +87,14 @@
 			<HintPath>$(AppData)\XIVLauncher\addon\Hooks\dev\FFXIVClientStructs.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Update="Properties\Localization.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>Localization.resx</DependentUpon>
+	  </Compile>
 	</ItemGroup>
 
 	<Target Name="RenameLatestZip" AfterTargets="PackagePlugin">

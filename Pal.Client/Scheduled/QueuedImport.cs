@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using Pal.Client.Extensions;
+using Pal.Client.Properties;
 
 namespace Pal.Client.Scheduled
 {
@@ -56,12 +58,12 @@ namespace Pal.Client.Scheduled
                 recreateLayout = true;
                 saveMarkers = true;
 
-                Service.Chat.Print($"Imported {importedTraps} new trap locations and {importedHoardCoffers} new hoard coffer locations.");
+                Service.Chat.Print(string.Format(Localization.ImportCompleteStatistics, importedTraps, importedHoardCoffers));
             }
             catch (Exception e)
             {
                 PluginLog.Error(e, "Import failed");
-                Service.Chat.PrintError($"Import failed: {e}");
+                Service.Chat.PalError(string.Format(Localization.Error_ImportFailed, e));
             }
         }
 
@@ -69,20 +71,20 @@ namespace Pal.Client.Scheduled
         {
             if (_export.ExportVersion != ExportConfig.ExportVersion)
             {
-                Service.Chat.PrintError("Import failed: Incompatible version.");
+                Service.Chat.PrintError(Localization.Error_ImportFailed_IncompatibleVersion);
                 return false;
             }
 
             if (!Guid.TryParse(_export.ExportId, out _exportId) || _exportId == Guid.Empty)
             {
-                Service.Chat.PrintError("Import failed: No id present.");
+                Service.Chat.PrintError(Localization.Error_ImportFailed_InvalidFile);
                 return false;
             }
 
             if (string.IsNullOrEmpty(_export.ServerUrl))
             {
                 // If we allow for backups as import/export, this should be removed
-                Service.Chat.PrintError("Import failed: Unknown server.");
+                Service.Chat.PrintError(Localization.Error_ImportFailed_InvalidFile);
                 return false;
             }
 

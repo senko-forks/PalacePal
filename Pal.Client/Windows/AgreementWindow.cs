@@ -3,6 +3,7 @@ using Dalamud.Interface.Windowing;
 using ECommons;
 using ImGuiNET;
 using System.Numerics;
+using Pal.Client.Properties;
 
 namespace Pal.Client.Windows
 {
@@ -10,7 +11,7 @@ namespace Pal.Client.Windows
     {
         private int _choice;
 
-        public AgreementWindow() : base("Palace Pal###PalPalaceAgreement")
+        public AgreementWindow() : base($"{Localization.Palace_Pal}###PalPalaceAgreement")
         {
             Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse;
             Size = new Vector2(500, 500);
@@ -28,29 +29,29 @@ namespace Pal.Client.Windows
         {
             var config = Service.Configuration;
 
-            ImGui.TextWrapped("Pal Palace will show you via Splatoon overlays where potential trap & hoard coffer locations are.");
-            ImGui.TextWrapped("To do this, using a pomander to reveal trap or treasure chest locations will save the position of what you see.");
+            ImGui.TextWrapped(Localization.Explanation_1);
+            ImGui.TextWrapped(Localization.Explanation_2);
 
             ImGui.Spacing();
 
-            ImGui.TextWrapped("Ideally, we want to discover every potential trap and chest location in the game, but doing this alone is very tedious. Floor 51-60 has over 230 trap locations and over 200 coffer locations - and we don't know if that map is complete. Higher floors naturally see fewer runs, making solo attempts to map the place much harder.");
-            ImGui.TextWrapped("You can decide whether you want to share traps and chests you find with the community, which likewise also will let you see chests and coffers found by other players. This can be changed at any time. No data regarding your FFXIV character or account is ever sent to our server.");
+            ImGui.TextWrapped(Localization.Explanation_3);
+            ImGui.TextWrapped(Localization.Explanation_4);
 
-            ImGui.RadioButton("Upload my discoveries, show traps & coffers other players have discovered", ref _choice, (int)Configuration.EMode.Online);
-            ImGui.RadioButton("Never upload discoveries, show only traps and coffers I found myself", ref _choice, (int)Configuration.EMode.Offline);
+            ImGui.RadioButton(Localization.Config_UploadMyDiscoveries_ShowOtherTraps, ref _choice, (int)Configuration.EMode.Online);
+            ImGui.RadioButton(Localization.Config_NeverUploadDiscoveries_ShowMyTraps, ref _choice, (int)Configuration.EMode.Offline);
 
             ImGui.Separator();
 
-            ImGui.TextColored(ImGuiColors.DalamudRed, "While this is not an automation feature, you're still very likely to break the ToS.");
-            ImGui.TextColored(ImGuiColors.DalamudRed, "Other players in your party can always see where you're standing/walking.");
-            ImGui.TextColored(ImGuiColors.DalamudRed, "As such, please avoid mentioning it in-game and do not share videos/screenshots.");
+            ImGui.TextColored(ImGuiColors.DalamudRed, Localization.Agreement_Warning1);
+            ImGui.TextColored(ImGuiColors.DalamudRed, Localization.Agreement_Warning2);
+            ImGui.TextColored(ImGuiColors.DalamudRed, Localization.Agreement_Warning3);
 
             ImGui.Separator();
 
             if (_choice == -1)
-                ImGui.TextDisabled("Please chose one of the options above.");
+                ImGui.TextDisabled(Localization.Agreement_PickOneOption);
             ImGui.BeginDisabled(_choice == -1);
-            if (ImGui.Button("I understand I'm using this plugin on my own risk."))
+            if (ImGui.Button(Localization.Agreement_UsingThisOnMyOwnRisk))
             {
                 config.Mode = (Configuration.EMode)_choice;
                 config.FirstUse = false;
@@ -62,7 +63,7 @@ namespace Pal.Client.Windows
 
             ImGui.Separator();
 
-            if (ImGui.Button("View plugin & server source code"))
+            if (ImGui.Button(Localization.Agreement_ViewPluginAndServerSourceCode))
                 GenericHelpers.ShellStart("https://github.com/LizaCarvbelli/PalPalace");
         }
     }

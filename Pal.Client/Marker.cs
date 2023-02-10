@@ -17,7 +17,7 @@ namespace Pal.Client
         /// <summary>
         /// Whether we have encountered the trap/coffer at this location in-game.
         /// </summary>
-        public bool Seen { get; set; } = false;
+        public bool Seen { get; set; }
 
         /// <summary>
         /// Network id for the server you're currently connected to.
@@ -35,20 +35,20 @@ namespace Pal.Client
         /// Which account ids this marker was seen. This is a list merely to support different remote endpoints
         /// (where each server would assign you a different id).
         /// </summary>
-        public List<string> RemoteSeenOn { get; set; } = new List<string>();
+        public List<string> RemoteSeenOn { get; set; } = new();
 
         /// <summary>
         /// Whether this marker was requested to be seen, to avoid duplicate requests.
         /// </summary>
         [JsonIgnore]
-        public bool RemoteSeenRequested { get; set; } = false;
+        public bool RemoteSeenRequested { get; set; }
 
         /// <summary>
         /// To keep track of which markers were imported through a downloaded file, we save the associated import-id.
         /// 
         /// Importing another file for the same remote server will remove the old import-id, and add the new import-id here.
         /// </summary>
-        public List<Guid> Imports { get; set; } = new List<Guid>();
+        public List<Guid> Imports { get; set; } = new();
 
         public bool WasImported { get; set; }
 

@@ -10,6 +10,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using Pal.Client.Properties;
 
 namespace Pal.Client.Windows
 {
@@ -17,7 +18,7 @@ namespace Pal.Client.Windows
     {
         private SortedDictionary<ETerritoryType, TerritoryStatistics> _territoryStatistics = new();
 
-        public StatisticsWindow() : base("Palace Pal - Statistics###PalacePalStats")
+        public StatisticsWindow() : base($"{Localization.Palace_Pal} - {Localization.Statistics}###PalacePalStats")
         {
             Size = new Vector2(500, 500);
             SizeCondition = ImGuiCond.FirstUseEver;
@@ -33,8 +34,8 @@ namespace Pal.Client.Windows
         {
             if (ImGui.BeginTabBar("Tabs"))
             {
-                DrawDungeonStats("Palace of the Dead", ETerritoryType.Palace_1_10, ETerritoryType.Palace_191_200);
-                DrawDungeonStats("Heaven on High", ETerritoryType.HeavenOnHigh_1_10, ETerritoryType.HeavenOnHigh_91_100);
+                DrawDungeonStats(Localization.PalaceOfTheDead, ETerritoryType.Palace_1_10, ETerritoryType.Palace_191_200);
+                DrawDungeonStats(Localization.HeavenOnHigh, ETerritoryType.HeavenOnHigh_1_10, ETerritoryType.HeavenOnHigh_91_100);
             }
         }
 
@@ -44,10 +45,10 @@ namespace Pal.Client.Windows
             {
                 if (ImGui.BeginTable($"TrapHoardStatistics{name}", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable))
                 {
-                    ImGui.TableSetupColumn("Id");
-                    ImGui.TableSetupColumn("Instance");
-                    ImGui.TableSetupColumn("Traps");
-                    ImGui.TableSetupColumn("Hoard");
+                    ImGui.TableSetupColumn(Localization.Statistics_TerritoryId);
+                    ImGui.TableSetupColumn(Localization.Statistics_InstanceName);
+                    ImGui.TableSetupColumn(Localization.Statistics_Traps);
+                    ImGui.TableSetupColumn(Localization.Statistics_HoardCoffers);
                     ImGui.TableHeadersRow();
 
                     foreach (var (territoryType, stats) in _territoryStatistics.Where(x => x.Key >= minTerritory && x.Key <= maxTerritory))

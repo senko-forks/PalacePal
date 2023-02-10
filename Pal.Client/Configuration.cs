@@ -10,12 +10,13 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Security.Cryptography;
+using Pal.Client.Extensions;
 
 namespace Pal.Client
 {
     public class Configuration : IPluginConfiguration
     {
-        private static readonly byte[] _entropy = { 0x22, 0x4b, 0xe7, 0x21, 0x44, 0x83, 0x69, 0x55, 0x80, 0x38 };
+        private static readonly byte[] Entropy = { 0x22, 0x4b, 0xe7, 0x21, 0x44, 0x83, 0x69, 0x55, 0x80, 0x38 };
 
         public int Version { get; set; } = 6;
 
@@ -121,7 +122,7 @@ namespace Pal.Client
                 {
                     new TickScheduler(delegate
                     {
-                        Service.Chat.PrintError("[Palace Pal] Due to a bug, some coffers were accidentally saved as traps. To fix the related display issue, locally cached data was cleaned up.");
+                        Service.Chat.PalError("Due to a bug, some coffers were accidentally saved as traps. To fix the related display issue, locally cached data was cleaned up.");
                         Service.Chat.PrintError($"If you have any backup tools installed, please restore the contents of '{Service.PluginInterface.GetPluginConfigDirectory()}' to any backup from February 2, 2023 or before.");
                         Service.Chat.PrintError("You can also manually restore .json.bak files (by removing the '.bak') if you have not been in any deep dungeon since February 2, 2023.");
                     }, 2500);
@@ -182,7 +183,7 @@ namespace Pal.Client
             /// This has no impact on what roles the JWT actually contains, but is just to make it 
             /// easier to draw a consistent UI. The server will still reject unauthorized calls.
             /// </summary>
-            public List<string> CachedRoles { get; set; } = new List<string>();
+            public List<string> CachedRoles { get; set; } = new();
         }
 
         public class AccountIdConverter : JsonConverter
@@ -204,7 +205,7 @@ namespace Pal.Client
                     {
                         try
                         {
-                            byte[] guidBytes = ProtectedData.Unprotect(Convert.FromBase64String(text.Substring(2)), _entropy, DataProtectionScope.CurrentUser);
+                            byte[] guidBytes = ProtectedData.Unprotect(Convert.FromBase64String(text.Substring(2)), Entropy, DataProtectionScope.CurrentUser);
                             return new Guid(guidBytes);
                         }
                         catch (CryptographicException e)
@@ -229,7 +230,7 @@ namespace Pal.Client
                 string text;
                 try
                 {
-                    byte[] guidBytes = ProtectedData.Protect(g.ToByteArray(), _entropy, DataProtectionScope.CurrentUser);
+                    byte[] guidBytes = ProtectedData.Protect(g.ToByteArray(), Entropy, DataProtectionScope.CurrentUser);
                     text = $"s:{Convert.ToBase64String(guidBytes)}";
                 }
                 catch (CryptographicException)

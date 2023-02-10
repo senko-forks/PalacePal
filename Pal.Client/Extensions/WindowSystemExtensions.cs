@@ -1,14 +1,14 @@
-﻿using Dalamud.Interface.Windowing;
-using System.Linq;
+﻿using System.Linq;
+using Dalamud.Interface.Windowing;
 
-namespace Pal.Client
+namespace Pal.Client.Extensions
 {
     internal static class WindowSystemExtensions
     {
         public static T? GetWindow<T>(this WindowSystem windowSystem)
                 where T : Window
         {
-            return windowSystem.Windows.Select(w => w as T).FirstOrDefault(w => w != null);
+            return windowSystem.Windows.OfType<T>().FirstOrDefault();
         }
     }
 }
