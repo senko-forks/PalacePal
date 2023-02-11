@@ -13,11 +13,17 @@ namespace Pal.Client.Windows
 
         public AgreementWindow() : base($"{Localization.Palace_Pal}###PalPalaceAgreement")
         {
-            Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse;
+            Flags = ImGuiWindowFlags.NoCollapse;
             Size = new Vector2(500, 500);
-            SizeCondition = ImGuiCond.Always;
-            PositionCondition = ImGuiCond.Always;
+            SizeCondition = ImGuiCond.FirstUseEver;
+            PositionCondition = ImGuiCond.FirstUseEver;
             Position = new Vector2(310, 310);
+
+            SizeConstraints = new WindowSizeConstraints
+            {
+                MinimumSize = new Vector2(500, 500),
+                MaximumSize = new Vector2(2000, 2000),
+            };
         }
 
         public override void OnOpen()
@@ -42,9 +48,11 @@ namespace Pal.Client.Windows
 
             ImGui.Separator();
 
-            ImGui.TextColored(ImGuiColors.DalamudRed, Localization.Agreement_Warning1);
-            ImGui.TextColored(ImGuiColors.DalamudRed, Localization.Agreement_Warning2);
-            ImGui.TextColored(ImGuiColors.DalamudRed, Localization.Agreement_Warning3);
+            ImGui.PushStyleColor(ImGuiCol.Text, ImGuiColors.DalamudRed);
+            ImGui.TextWrapped(Localization.Agreement_Warning1);
+            ImGui.TextWrapped(Localization.Agreement_Warning2);
+            ImGui.TextWrapped(Localization.Agreement_Warning3);
+            ImGui.PopStyleColor();
 
             ImGui.Separator();
 
@@ -64,7 +72,7 @@ namespace Pal.Client.Windows
             ImGui.Separator();
 
             if (ImGui.Button(Localization.Agreement_ViewPluginAndServerSourceCode))
-                GenericHelpers.ShellStart("https://github.com/LizaCarvbelli/PalPalace");
+                GenericHelpers.ShellStart("https://github.com/carvelli/PalPalace");
         }
     }
 }
