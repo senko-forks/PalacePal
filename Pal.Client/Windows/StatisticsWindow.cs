@@ -22,7 +22,7 @@ namespace Pal.Client.Windows
         public StatisticsWindow() : base(WindowId)
         {
             LanguageChanged();
-            
+
             Size = new Vector2(500, 500);
             SizeCondition = ImGuiCond.FirstUseEver;
             Flags = ImGuiWindowFlags.AlwaysAutoResize;

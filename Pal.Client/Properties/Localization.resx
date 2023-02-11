@@ -159,6 +159,10 @@ This is not synchronized with other players and not saved between floors/runs.</
     <data name="Config_TestConnection" xml:space="preserve">
         <value>Test Connection</value>
     </data>
+    <data name="Config_TestConnection_Connecting" xml:space="preserve">
+        <value>Testing...</value>
+        <comment>When clicking on the 'Test Connection' button, this is shown until a success/error message is available.</comment>
+    </data>
     
     <data name="ConfigTab_Import" xml:space="preserve">
         <value>Import</value>
@@ -180,6 +184,10 @@ This is not synchronized with other players and not saved between floors/runs.</
     </data>
     <data name="Config_SelectImportFile" xml:space="preserve">
         <value>File to Import:</value>
+    </data>
+    <data name="Config_SelectImportFile_Hint" xml:space="preserve">
+        <value>Path to *.pal file</value>
+        <comment>When importing a file, this is the hint that shows up in the 'path' input box while no file has been selected.</comment>
     </data>
     <data name="Config_StartImport" xml:space="preserve">
         <value>Start Import</value>

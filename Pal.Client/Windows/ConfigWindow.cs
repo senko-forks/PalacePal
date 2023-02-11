@@ -49,7 +49,7 @@ namespace Pal.Client.Windows
         public ConfigWindow() : base(WindowId)
         {
             LanguageChanged();
-            
+
             Size = new Vector2(500, 400);
             SizeCondition = ImGuiCond.FirstUseEver;
             Position = new Vector2(300, 300);
@@ -129,7 +129,7 @@ namespace Pal.Client.Windows
 
         private void DrawDeepDungeonItemsTab(ref bool save, ref bool saveAndClose)
         {
-            if (ImGui.BeginTabItem(Localization.ConfigTab_DeepDungeons))
+            if (ImGui.BeginTabItem($"{Localization.ConfigTab_DeepDungeons}###TabDeepDungeons"))
             {
                 ImGui.Checkbox(Localization.Config_Traps_Show, ref _showTraps);
                 ImGui.Indent();
@@ -179,7 +179,7 @@ namespace Pal.Client.Windows
 
         private void DrawCommunityTab(ref bool saveAndClose)
         {
-            if (BeginTabItemEx(Localization.ConfigTab_Community, _switchToCommunityTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
+            if (BeginTabItemEx($"{Localization.ConfigTab_Community}###TabCommunity", _switchToCommunityTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
             {
                 _switchToCommunityTab = false;
 
@@ -206,7 +206,7 @@ namespace Pal.Client.Windows
 
         private void DrawImportTab()
         {
-            if (ImGui.BeginTabItem(Localization.ConfigTab_Import))
+            if (ImGui.BeginTabItem($"{Localization.ConfigTab_Import}###TabImport"))
             {
                 ImGui.TextWrapped(Localization.Config_ImportExplanation1);
                 ImGui.TextWrapped(Localization.Config_ImportExplanation2);
@@ -218,7 +218,7 @@ namespace Pal.Client.Windows
                 ImGui.Separator();
                 ImGui.Text(Localization.Config_SelectImportFile);
                 ImGui.SameLine();
-                ImGui.InputTextWithHint("", "Path to *.pal file", ref _openImportPath, 260);
+                ImGui.InputTextWithHint("", Localization.Config_SelectImportFile_Hint, ref _openImportPath, 260);
                 ImGui.SameLine();
                 if (ImGuiComponents.IconButton(FontAwesomeIcon.Search))
                 {
@@ -253,7 +253,7 @@ namespace Pal.Client.Windows
 
         private void DrawExportTab()
         {
-            if (Service.RemoteApi.HasRoleOnCurrentServer("export:run") && ImGui.BeginTabItem(Localization.ConfigTab_Export))
+            if (Service.RemoteApi.HasRoleOnCurrentServer("export:run") && ImGui.BeginTabItem($"{Localization.ConfigTab_Export}###TabExport"))
             {
                 string todaysFileName = $"export-{DateTime.Today:yyyy-MM-dd}.pal";
                 if (string.IsNullOrEmpty(_saveExportPath) && !string.IsNullOrEmpty(_saveExportDialogStartPath))
@@ -262,7 +262,7 @@ namespace Pal.Client.Windows
                 ImGui.TextWrapped(string.Format(Localization.Config_ExportSource, RemoteApi.RemoteUrl));
                 ImGui.Text(Localization.Config_Export_SaveAs);
                 ImGui.SameLine();
-                ImGui.InputTextWithHint("", "Path to *.pal file", ref _saveExportPath, 260);
+                ImGui.InputTextWithHint("", Localization.Config_SelectImportFile_Hint, ref _saveExportPath, 260);
                 ImGui.SameLine();
                 if (ImGuiComponents.IconButton(FontAwesomeIcon.Search))
                 {
@@ -287,7 +287,7 @@ namespace Pal.Client.Windows
 
         private void DrawRenderTab(ref bool save, ref bool saveAndClose)
         {
-            if (ImGui.BeginTabItem(Localization.ConfigTab_Renderer))
+            if (ImGui.BeginTabItem($"{Localization.ConfigTab_Renderer}###TabRenderer"))
             {
                 ImGui.Text(Localization.Config_SelectRenderBackend);
                 ImGui.RadioButton($"{Localization.Config_Renderer_Splatoon} ({Localization.Config_Renderer_Splatoon_Hint})", ref _renderer, (int)Configuration.ERenderer.Splatoon);
@@ -312,7 +312,7 @@ namespace Pal.Client.Windows
 
         private void DrawDebugTab()
         {
-            if (ImGui.BeginTabItem(Localization.ConfigTab_Debug))
+            if (ImGui.BeginTabItem($"{Localization.ConfigTab_Debug}###TabDebug"))
             {
                 var plugin = Service.Plugin;
                 if (plugin.IsInDeepDungeon())
@@ -374,7 +374,7 @@ namespace Pal.Client.Windows
         {
             Task.Run(async () =>
             {
-                _connectionText = "Testing...";
+                _connectionText = Localization.Config_TestConnection_Connecting;
                 _switchToCommunityTab = true;
 
                 CancellationTokenSource cts = new CancellationTokenSource();

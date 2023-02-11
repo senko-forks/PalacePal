@@ -321,6 +321,15 @@ namespace Pal.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Path to *.pal file.
+        /// </summary>
+        internal static string Config_SelectImportFile_Hint {
+            get {
+                return ResourceManager.GetString("Config_SelectImportFile_Hint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Select which render backend to use for markers:.
         /// </summary>
         internal static string Config_SelectRenderBackend {
@@ -408,6 +417,15 @@ namespace Pal.Client.Properties {
         internal static string Config_TestConnection {
             get {
                 return ResourceManager.GetString("Config_TestConnection", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Testing....
+        /// </summary>
+        internal static string Config_TestConnection_Connecting {
+            get {
+                return ResourceManager.GetString("Config_TestConnection_Connecting", resourceCulture);
             }
         }
         
