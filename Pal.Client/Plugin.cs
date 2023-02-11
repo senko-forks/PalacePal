@@ -26,6 +26,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Pal.Client.Extensions;
 using Pal.Client.Properties;
+using ECommons;
 
 namespace Pal.Client
 {
@@ -250,7 +251,10 @@ namespace Pal.Client
         }
 
         private void LanguageChanged(string langcode)
-            => Localization.Culture = new CultureInfo(langcode);
+        {
+            Localization.Culture = new CultureInfo(langcode);
+            Service.WindowSystem?.Windows.OfType<ILanguageChanged>().Each(w => w.LanguageChanged());
+        }
 
         private void OnFrameworkUpdate(Framework framework)
         {

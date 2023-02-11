@@ -24,6 +24,7 @@ namespace Pal.Client.Windows
 {
     internal class ConfigWindow : Window
     {
+        private const string WindowId = "###PalPalaceConfig";
         private int _mode;
         private int _renderer;
         private bool _showTraps;
@@ -45,10 +46,10 @@ namespace Pal.Client.Windows
         private FileDialogManager _importDialog;
         private FileDialogManager _exportDialog;
 
-        public ConfigWindow() : base($"{Localization.Palace_Pal}###PalPalaceConfig")
+        public ConfigWindow() : base(WindowId)
         {
-            var version = typeof(Plugin).Assembly.GetName().Version!.ToString(2);
-            WindowName = $"{Localization.Palace_Pal} v{version}###PalPalaceConfig";
+            LanguageChanged();
+            
             Size = new Vector2(500, 400);
             SizeCondition = ImGuiCond.FirstUseEver;
             Position = new Vector2(300, 300);
@@ -56,6 +57,12 @@ namespace Pal.Client.Windows
 
             _importDialog = new FileDialogManager { AddedWindowFlags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking };
             _exportDialog = new FileDialogManager { AddedWindowFlags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking };
+        }
+
+        public void LanguageChanged()
+        {
+            var version = typeof(Plugin).Assembly.GetName().Version!.ToString(2);
+            WindowName = $"{Localization.Palace_Pal} v{version}{WindowId}";
         }
 
         public override void OnOpen()

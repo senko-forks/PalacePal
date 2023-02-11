@@ -7,11 +7,12 @@ using Pal.Client.Properties;
 
 namespace Pal.Client.Windows
 {
-    internal class AgreementWindow : Window
+    internal class AgreementWindow : Window, ILanguageChanged
     {
+        private const string WindowId = "###PalPalaceAgreement";
         private int _choice;
 
-        public AgreementWindow() : base($"{Localization.Palace_Pal}###PalPalaceAgreement")
+        public AgreementWindow() : base(WindowId)
         {
             Flags = ImGuiWindowFlags.NoCollapse;
             Size = new Vector2(500, 500);
@@ -25,6 +26,9 @@ namespace Pal.Client.Windows
                 MaximumSize = new Vector2(2000, 2000),
             };
         }
+
+        public void LanguageChanged()
+            => WindowName = $"{Localization.Palace_Pal}{WindowId}";
 
         public override void OnOpen()
         {

@@ -14,12 +14,15 @@ using Pal.Client.Properties;
 
 namespace Pal.Client.Windows
 {
-    internal class StatisticsWindow : Window
+    internal class StatisticsWindow : Window, ILanguageChanged
     {
+        private const string WindowId = "###PalacePalStats";
         private SortedDictionary<ETerritoryType, TerritoryStatistics> _territoryStatistics = new();
 
-        public StatisticsWindow() : base($"{Localization.Palace_Pal} - {Localization.Statistics}###PalacePalStats")
+        public StatisticsWindow() : base(WindowId)
         {
+            LanguageChanged();
+            
             Size = new Vector2(500, 500);
             SizeCondition = ImGuiCond.FirstUseEver;
             Flags = ImGuiWindowFlags.AlwaysAutoResize;
@@ -29,6 +32,9 @@ namespace Pal.Client.Windows
                 _territoryStatistics[territory] = new TerritoryStatistics(territory.ToString());
             }
         }
+
+        public void LanguageChanged()
+            => WindowName = $"{Localization.Palace_Pal} - {Localization.Statistics}{WindowId}";
 
         public override void Draw()
         {
