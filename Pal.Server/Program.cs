@@ -38,15 +38,16 @@ namespace Pal.Server
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             }).AddJwtBearer(options =>
             {
+                var jwtConfig = builder.Configuration.GetRequiredSection("JWT").Get<JwtConfiguration>() ?? throw new ArgumentException("no JWT config");
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
                     ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    ValidIssuer = builder.Configuration.GetOrThrow("JWT:Issuer"),
-                    ValidAudience = builder.Configuration.GetOrThrow("JWT:Audience"),
-                    IssuerSigningKey = new SymmetricSecurityKey(Convert.FromBase64String(builder.Configuration.GetOrThrow("JWT:Key"))),
+                    ValidIssuer = jwtConfig.Issuer,
+                    ValidAudience = jwtConfig.Audience,
+                    IssuerSigningKey = jwtConfig.ToSecurityKey(),
                 };
             });
             builder.Services.AddAuthorization();

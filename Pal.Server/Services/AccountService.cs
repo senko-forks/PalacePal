@@ -28,11 +28,11 @@ namespace Pal.Server.Services
             _logger = logger;
             _dbContext = dbContext;
 
-
-            _tokenIssuer = configuration.GetOrThrow("JWT:Issuer");
-            _tokenAudience = configuration.GetOrThrow("JWT:Audience");
+            var jwtConfig = configuration.GetRequiredSection("JWT").Get<JwtConfiguration>() ?? throw new ArgumentException("no JWT config");
+            _tokenIssuer = jwtConfig.Issuer;
+            _tokenAudience = jwtConfig.Audience;
             _useForwardedIp = bool.Parse(configuration.GetOrThrow("UseForwardedIp"));
-            _signingKey = new SymmetricSecurityKey(Convert.FromBase64String(configuration.GetOrThrow("JWT:Key")));
+            _signingKey = jwtConfig.ToSecurityKey();
         }
 
         [AllowAnonymous]

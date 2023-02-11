@@ -1,5 +1,16 @@
-﻿namespace Pal.Server
+﻿using Microsoft.IdentityModel.Tokens;
+
+namespace Pal.Server
 {
+    public sealed class JwtConfiguration
+    {
+        public required string Key { get; set; }
+        public required string Issuer { get; set; }
+        public required string Audience { get; set; }
+
+        public SymmetricSecurityKey ToSecurityKey() => new(Convert.FromBase64String(Key));
+    }
+
     internal class CustomConfigurationProvider : ConfigurationProvider
     {
         private readonly string _dataDirectory;
@@ -20,15 +31,15 @@
     internal class CustomConfigurationSource : IConfigurationSource
     {
 
-        private readonly string dataDirectory;
+        private readonly string _dataDirectory;
 
         public CustomConfigurationSource(string dataDirectory)
         {
-            this.dataDirectory = dataDirectory;
+            _dataDirectory = dataDirectory;
         }
 
         public IConfigurationProvider Build(IConfigurationBuilder builder) =>
-            new CustomConfigurationProvider(dataDirectory);
+            new CustomConfigurationProvider(_dataDirectory);
     }
 
     internal static class ConfigurationBuilderExtensions
