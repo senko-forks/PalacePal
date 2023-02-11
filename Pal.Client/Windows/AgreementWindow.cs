@@ -14,6 +14,8 @@ namespace Pal.Client.Windows
 
         public AgreementWindow() : base(WindowId)
         {
+            LanguageChanged();
+
             Flags = ImGuiWindowFlags.NoCollapse;
             Size = new Vector2(500, 500);
             SizeCondition = ImGuiCond.FirstUseEver;
