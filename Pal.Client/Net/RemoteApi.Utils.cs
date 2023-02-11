@@ -1,4 +1,5 @@
-﻿using Dalamud.Logging;
+﻿using System;
+using Dalamud.Logging;
 using Grpc.Core;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -7,14 +8,14 @@ namespace Pal.Client.Net
 {
     internal partial class RemoteApi
     {
-        private Metadata UnauthorizedHeaders() => new Metadata
+        private Metadata UnauthorizedHeaders() => new()
         {
             { "User-Agent", _userAgent },
         };
 
-        private Metadata AuthorizedHeaders() => new Metadata
+        private Metadata AuthorizedHeaders() => new()
         {
-            { "Authorization", $"Bearer {_loginInfo?.AuthToken}" },
+            { "Authorization", $"Bearer {_loginInfo.AuthToken}" },
             { "User-Agent", _userAgent },
         };
 
@@ -34,7 +35,9 @@ namespace Pal.Client.Net
                 return null;
 
             var bytes = new byte[manifestResourceStream.Length];
-            manifestResourceStream.Read(bytes, 0, bytes.Length);
+            int read = manifestResourceStream.Read(bytes, 0, bytes.Length);
+            if (read != bytes.Length)
+                throw new InvalidOperationException();
 
             var certificate = new X509Certificate2(bytes, pass, X509KeyStorageFlags.DefaultKeySet);
             PluginLog.Debug($"Using client certificate {certificate.GetCertHashString()}");

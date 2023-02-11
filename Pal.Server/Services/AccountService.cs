@@ -108,10 +108,10 @@ namespace Pal.Server.Services
                     return new LoginReply { Success = false, Error = LoginError.InvalidAccountId };
                 }
 
-                var claims = new List<Claim>()
+                var claims = new List<Claim>
                 {
-                    new Claim(ClaimTypes.NameIdentifier, accountId.ToString()),
-                    new Claim(ClaimTypes.Role, "default"),
+                    new(ClaimTypes.NameIdentifier, accountId.ToString()),
+                    new(ClaimTypes.Role, "default"),
                 };
 
                 foreach (var role in existingAccount.Roles ?? new List<string>())

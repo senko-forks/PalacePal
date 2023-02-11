@@ -88,7 +88,7 @@ namespace Pal.Client.Net
                     var account = Account;
                     if (account != null)
                     {
-                        account.CachedRoles = _loginInfo.Claims?.Roles?.ToList() ?? new List<string>();
+                        account.CachedRoles = _loginInfo.Claims?.Roles.ToList() ?? new List<string>();
                         Service.Configuration.Save();
                     }
                 }
@@ -156,7 +156,7 @@ namespace Pal.Client.Net
                 {
                     IsLoggedIn = true;
                     AuthToken = authToken;
-                    Claims = JwtClaims.FromAuthToken(authToken!);
+                    Claims = JwtClaims.FromAuthToken(authToken);
                 }
                 else
                     IsLoggedIn = false;

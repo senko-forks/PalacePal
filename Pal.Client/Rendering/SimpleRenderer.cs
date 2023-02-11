@@ -22,11 +22,11 @@ namespace Pal.Client.Rendering
     /// </summary>
     internal class SimpleRenderer : IRenderer, IDisposable
     {
-        private ConcurrentDictionary<ELayer, SimpleLayer> layers = new();
+        private readonly ConcurrentDictionary<ELayer, SimpleLayer> _layers = new();
 
         public void SetLayer(ELayer layer, IReadOnlyList<IRenderElement> elements)
         {
-            layers[layer] = new SimpleLayer
+            _layers[layer] = new SimpleLayer
             {
                 TerritoryType = Service.ClientState.TerritoryType,
                 Elements = elements.Cast<SimpleElement>().ToList()
@@ -35,7 +35,7 @@ namespace Pal.Client.Rendering
 
         public void ResetLayer(ELayer layer)
         {
-            if (layers.Remove(layer, out var l))
+            if (_layers.Remove(layer, out var l))
                 l.Dispose();
         }
 
@@ -54,7 +54,7 @@ namespace Pal.Client.Rendering
 
         public void DrawLayers()
         {
-            if (layers.Count == 0)
+            if (_layers.Count == 0)
                 return;
 
             ImGuiHelpers.ForceNextWindowMainViewport();
@@ -65,10 +65,10 @@ namespace Pal.Client.Rendering
             {
                 ushort territoryType = Service.ClientState.TerritoryType;
 
-                foreach (var layer in layers.Values.Where(l => l.TerritoryType == territoryType))
+                foreach (var layer in _layers.Values.Where(l => l.TerritoryType == territoryType))
                     layer.Draw();
 
-                foreach (var key in layers.Where(l => l.Value.TerritoryType != territoryType).Select(l => l.Key).ToList())
+                foreach (var key in _layers.Where(l => l.Value.TerritoryType != territoryType).Select(l => l.Key).ToList())
                     ResetLayer(key);
 
                 ImGui.End();
@@ -78,14 +78,14 @@ namespace Pal.Client.Rendering
 
         public void Dispose()
         {
-            foreach (var l in layers.Values)
+            foreach (var l in _layers.Values)
                 l.Dispose();
         }
 
         public class SimpleLayer : IDisposable
         {
             public required ushort TerritoryType { get; init; }
-            public required IReadOnlyList<SimpleElement> Elements { get; set; }
+            public required IReadOnlyList<SimpleElement> Elements { get; init; }
 
             public void Draw()
             {
@@ -102,14 +102,14 @@ namespace Pal.Client.Rendering
 
         public class SimpleElement : IRenderElement
         {
-            private const int segmentCount = 20;
+            private const int SegmentCount = 20;
 
             public bool IsValid { get; set; } = true;
-            public required Marker.EType Type { get; set; }
-            public required Vector3 Position { get; set; }
+            public required Marker.EType Type { get; init; }
+            public required Vector3 Position { get; init; }
             public required uint Color { get; set; }
-            public required float Radius { get; set; }
-            public required bool Fill { get; set; }
+            public required float Radius { get; init; }
+            public required bool Fill { get; init; }
 
             public void Draw()
             {
@@ -136,12 +136,12 @@ namespace Pal.Client.Rendering
                 }
 
                 bool onScreen = false;
-                for (int index = 0; index < 2 * segmentCount; ++index)
+                for (int index = 0; index < 2 * SegmentCount; ++index)
                 {
                     onScreen |= Service.GameGui.WorldToScreen(new Vector3(
-                        Position.X + Radius * (float)Math.Sin(Math.PI / segmentCount * index),
+                        Position.X + Radius * (float)Math.Sin(Math.PI / SegmentCount * index),
                         Position.Y,
-                        Position.Z + Radius * (float)Math.Cos(Math.PI / segmentCount * index)),
+                        Position.Z + Radius * (float)Math.Cos(Math.PI / SegmentCount * index)),
                         out Vector2 vector2);
 
                     ImGui.GetWindowDrawList().PathLineTo(vector2);

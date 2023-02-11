@@ -2,6 +2,7 @@
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
 using System;
+using Pal.Client.Extensions;
 
 namespace Pal.Client.Net
 {
@@ -18,7 +19,7 @@ namespace Pal.Client.Net
 
         private GrpcChannel? _channel;
         private LoginInfo _loginInfo = new(null);
-        private bool _warnedAboutUpgrade = false;
+        private bool _warnedAboutUpgrade;
 
         public Configuration.AccountInfo? Account
         {
@@ -34,7 +35,7 @@ namespace Pal.Client.Net
 
         public Guid? AccountId => Account?.Id;
 
-        public string? PartialAccountId => Account?.Id?.ToString()?.PadRight(14).Substring(0, 13);
+        public string? PartialAccountId => Account?.Id?.ToPartialId();
 
         private string FormattedPartialAccountId => PartialAccountId ?? "[no account id]";
 

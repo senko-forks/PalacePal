@@ -9,10 +9,10 @@ namespace Pal.Client.Scheduled
 {
     internal class QueuedSyncResponse : IQueueOnFrameworkThread
     {
-        public SyncType Type { get; set; }
-        public ushort TerritoryType { get; set; }
-        public bool Success { get; set; }
-        public List<Marker> Markers { get; set; } = new();
+        public required SyncType Type { get; init; }
+        public required ushort TerritoryType { get; init; }
+        public required bool Success { get; init; }
+        public required List<Marker> Markers { get; init; }
 
         public void Run(Plugin plugin, ref bool recreateLayout, ref bool saveMarkers)
         {

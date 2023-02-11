@@ -18,8 +18,8 @@ namespace Pal.Client.Rendering
 {
     internal class SplatoonRenderer : IRenderer, IDrawDebugItems, IDisposable
     {
-        private const long ON_TERRITORY_CHANGE = -2;
-        private bool IsDisposed { get; set; } = false;
+        private const long OnTerritoryChange = -2;
+        private bool IsDisposed { get; set; }
 
         public SplatoonRenderer(DalamudPluginInterface pluginInterface, IDalamudPlugin plugin)
         {
@@ -29,11 +29,11 @@ namespace Pal.Client.Rendering
         public void SetLayer(ELayer layer, IReadOnlyList<IRenderElement> elements)
         {
             // we need to delay this, as the current framework update could be before splatoon's, in which case it would immediately delete the layout
-            new TickScheduler(delegate
+            _ = new TickScheduler(delegate
             {
                 try
                 {
-                    Splatoon.AddDynamicElements(ToLayerName(layer), elements.Cast<SplatoonElement>().Select(x => x.Delegate).ToArray(), new long[] { Environment.TickCount64 + 60 * 60 * 1000, ON_TERRITORY_CHANGE });
+                    Splatoon.AddDynamicElements(ToLayerName(layer), elements.Cast<SplatoonElement>().Select(x => x.Delegate).ToArray(), new[] { Environment.TickCount64 + 60 * 60 * 1000, OnTerritoryChange });
                 }
                 catch (Exception e)
                 {
@@ -91,7 +91,7 @@ namespace Pal.Client.Rendering
                         CreateElement(Marker.EType.Hoard, pos.Value, ImGui.ColorConvertFloat4ToU32(hoardColor)),
                     };
 
-                    if (!Splatoon.AddDynamicElements("PalacePal.Test", elements.Cast<SplatoonElement>().Select(x => x.Delegate).ToArray(), new long[] { Environment.TickCount64 + 10000 }))
+                    if (!Splatoon.AddDynamicElements("PalacePal.Test", elements.Cast<SplatoonElement>().Select(x => x.Delegate).ToArray(), new[] { Environment.TickCount64 + 10000 }))
                     {
                         Service.Chat.PrintError("Could not draw markers :(");
                     }
@@ -134,17 +134,17 @@ namespace Pal.Client.Rendering
 
         public class SplatoonElement : IRenderElement
         {
-            private readonly SplatoonRenderer renderer;
+            private readonly SplatoonRenderer _renderer;
 
             public SplatoonElement(SplatoonRenderer renderer, Element element)
             {
-                this.renderer = renderer;
+                _renderer = renderer;
                 Delegate = element;
             }
 
             public Element Delegate { get; }
 
-            public bool IsValid => !renderer.IsDisposed && Delegate.IsValid();
+            public bool IsValid => !_renderer.IsDisposed && Delegate.IsValid();
             public uint Color
             {
                 get => Delegate.color;

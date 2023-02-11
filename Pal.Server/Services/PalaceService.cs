@@ -207,7 +207,7 @@ namespace Pal.Server.Services
                         && PalaceMath.IsNearlySamePosition(new Vector3(first.X, first.Y, first.Z), new Vector3(second.X, second.Y, second.Z));
             }
 
-            public int GetHashCode([DisallowNull] PalaceObject obj)
+            public int GetHashCode(PalaceObject obj)
             {
                 return HashCode.Combine(obj.Type, PalaceMath.GetHashCode(new Vector3(obj.X, obj.Y, obj.Z)));
             }

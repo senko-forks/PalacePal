@@ -17,7 +17,7 @@ namespace Pal.Client.Windows
     internal class StatisticsWindow : Window, ILanguageChanged
     {
         private const string WindowId = "###PalacePalStats";
-        private SortedDictionary<ETerritoryType, TerritoryStatistics> _territoryStatistics = new();
+        private readonly SortedDictionary<ETerritoryType, TerritoryStatistics> _territoryStatistics = new();
 
         public StatisticsWindow() : base(WindowId)
         {

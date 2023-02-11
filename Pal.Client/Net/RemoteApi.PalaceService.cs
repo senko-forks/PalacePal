@@ -18,7 +18,7 @@ namespace Pal.Client.Net
 
             var palaceClient = new PalaceService.PalaceServiceClient(_channel);
             var downloadReply = await palaceClient.DownloadFloorsAsync(new DownloadFloorsRequest { TerritoryType = territoryId }, headers: AuthorizedHeaders(), cancellationToken: cancellationToken);
-            return (downloadReply.Success, downloadReply.Objects.Select(o => CreateMarkerFromNetworkObject(o)).ToList());
+            return (downloadReply.Success, downloadReply.Objects.Select(CreateMarkerFromNetworkObject).ToList());
         }
 
         public async Task<(bool, List<Marker>)> UploadMarker(ushort territoryType, IList<Marker> markers, CancellationToken cancellationToken = default)
@@ -42,7 +42,7 @@ namespace Pal.Client.Net
                 Z = m.Position.Z
             }));
             var uploadReply = await palaceClient.UploadFloorsAsync(uploadRequest, headers: AuthorizedHeaders(), cancellationToken: cancellationToken);
-            return (uploadReply.Success, uploadReply.Objects.Select(o => CreateMarkerFromNetworkObject(o)).ToList());
+            return (uploadReply.Success, uploadReply.Objects.Select(CreateMarkerFromNetworkObject).ToList());
         }
 
         public async Task<bool> MarkAsSeen(ushort territoryType, IList<Marker> markers, CancellationToken cancellationToken = default)

@@ -4,7 +4,7 @@ namespace Pal.Common
 {
     public class PalaceMath
     {
-        private static readonly Vector3 ScaleFactor = new Vector3(5);
+        private static readonly Vector3 ScaleFactor = new(5);
 
         public static bool IsNearlySamePosition(Vector3 a, Vector3 b)
         {

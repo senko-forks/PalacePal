@@ -18,9 +18,9 @@ namespace Pal.Server
         [MaxLength(20)]
         public string? IpHash { get; set; }
         public DateTime CreatedAt { get; set; }
-        public List<string> Roles { get; set; } = new List<string>();
+        public List<string> Roles { get; set; } = new();
 
-        public List<SeenLocation> SeenLocations { get; set; } = new List<SeenLocation>();
+        public List<SeenLocation> SeenLocations { get; set; } = new();
     }
 
     public class PalaceLocation
@@ -35,7 +35,7 @@ namespace Pal.Server
         public Guid AccountId { get; set; }
         public DateTime CreatedAt { get; set; }
 
-        public List<SeenLocation> SeenLocations { get; set; } = new List<SeenLocation>();
+        public List<SeenLocation> SeenLocations { get; set; } = new();
 
         public enum EType
         {

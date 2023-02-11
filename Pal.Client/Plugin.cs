@@ -39,10 +39,10 @@ namespace Pal.Client
         internal ConcurrentDictionary<ushort, LocalState> FloorMarkers { get; } = new();
         internal ConcurrentBag<Marker> EphemeralMarkers { get; set; } = new();
         internal ushort LastTerritory { get; set; }
-        public SyncState TerritorySyncState { get; set; }
-        public PomanderState PomanderOfSight { get; set; } = PomanderState.Inactive;
-        public PomanderState PomanderOfIntuition { get; set; } = PomanderState.Inactive;
-        public string? DebugMessage { get; set; }
+        internal SyncState TerritorySyncState { get; set; }
+        internal PomanderState PomanderOfSight { get; private set; } = PomanderState.Inactive;
+        internal PomanderState PomanderOfIntuition { get; private set; } = PomanderState.Inactive;
+        internal string? DebugMessage { get; set; }
         internal Queue<IQueueOnFrameworkThread> EarlyEventQueue { get; } = new();
         internal Queue<IQueueOnFrameworkThread> LateEventQueue { get; } = new();
         internal ConcurrentQueue<nint> NextUpdateObjects { get; } = new();
@@ -98,7 +98,7 @@ namespace Pal.Client
             }
 
             pluginInterface.UiBuilder.Draw += Draw;
-            pluginInterface.UiBuilder.OpenConfigUi += OnOpenConfigUi;
+            pluginInterface.UiBuilder.OpenConfigUi += OpenConfigUi;
             pluginInterface.LanguageChanged += LanguageChanged;
             Service.Framework.Update += OnFrameworkUpdate;
             Service.Chat.ChatMessage += OnChatMessage;
@@ -110,7 +110,7 @@ namespace Pal.Client
             ReloadLanguageStrings();
         }
 
-        public void OnOpenConfigUi()
+        private void OpenConfigUi()
         {
             Window? configWindow;
             if (Service.Configuration.FirstUse)
@@ -162,7 +162,7 @@ namespace Pal.Client
                         break;
 
                     case "near":
-                        DebugNearest(m => true);
+                        DebugNearest(_ => true);
                         break;
 
                     case "tnear":
@@ -191,7 +191,7 @@ namespace Pal.Client
 
             Service.CommandManager.RemoveHandler("/pal");
             Service.PluginInterface.UiBuilder.Draw -= Draw;
-            Service.PluginInterface.UiBuilder.OpenConfigUi -= OnOpenConfigUi;
+            Service.PluginInterface.UiBuilder.OpenConfigUi -= OpenConfigUi;
             Service.PluginInterface.LanguageChanged -= LanguageChanged;
             Service.Framework.Update -= OnFrameworkUpdate;
             Service.Chat.ChatMessage -= OnChatMessage;
@@ -246,14 +246,12 @@ namespace Pal.Client
             {
                 PomanderOfIntuition = PomanderState.FoundOnCurrentFloor;
             }
-            else
-                return;
         }
 
         private void LanguageChanged(string langcode)
         {
             Localization.Culture = new CultureInfo(langcode);
-            Service.WindowSystem?.Windows.OfType<ILanguageChanged>().Each(w => w.LanguageChanged());
+            Service.WindowSystem.Windows.OfType<ILanguageChanged>().Each(w => w.LanguageChanged());
         }
 
         private void OnFrameworkUpdate(Framework framework)
@@ -267,7 +265,7 @@ namespace Pal.Client
                 bool saveMarkers = false;
 
                 while (EarlyEventQueue.TryDequeue(out IQueueOnFrameworkThread? queued))
-                    queued?.Run(this, ref recreateLayout, ref saveMarkers);
+                    queued.Run(this, ref recreateLayout, ref saveMarkers);
 
                 if (LastTerritory != Service.ClientState.TerritoryType)
                 {
@@ -294,7 +292,7 @@ namespace Pal.Client
                 }
 
                 while (LateEventQueue.TryDequeue(out IQueueOnFrameworkThread? queued))
-                    queued?.Run(this, ref recreateLayout, ref saveMarkers);
+                    queued.Run(this, ref recreateLayout, ref saveMarkers);
 
                 var currentFloor = GetFloorMarkers(LastTerritory);
 
@@ -334,7 +332,7 @@ namespace Pal.Client
 
                     // This requires you to have seen a trap/hoard marker once per floor to synchronize this for older local states,
                     // markers discovered afterwards are automatically marked seen.
-                    if (partialAccountId != null && knownMarker.NetworkId != null && !knownMarker.RemoteSeenRequested && !knownMarker.RemoteSeenOn.Contains(partialAccountId))
+                    if (partialAccountId != null && knownMarker is { NetworkId: { }, RemoteSeenRequested: false } && !knownMarker.RemoteSeenOn.Contains(partialAccountId))
                         updateSeenMarkers = true;
 
                     continue;
@@ -372,7 +370,7 @@ namespace Pal.Client
 
             if (updateSeenMarkers && partialAccountId != null)
             {
-                var markersToUpdate = currentFloorMarkers.Where(x => x.Seen && x.NetworkId != null && !x.RemoteSeenRequested && !x.RemoteSeenOn.Contains(partialAccountId)).ToList();
+                var markersToUpdate = currentFloorMarkers.Where(x => x is { Seen: true, NetworkId: { }, RemoteSeenRequested: false } && !x.RemoteSeenOn.Contains(partialAccountId)).ToList();
                 foreach (var marker in markersToUpdate)
                     marker.RemoteSeenRequested = true;
                 Task.Run(async () => await SyncSeenMarkersForTerritory(LastTerritory, markersToUpdate));
@@ -401,7 +399,7 @@ namespace Pal.Client
                 List<IRenderElement> elements = new();
                 foreach (var marker in currentFloorMarkers)
                 {
-                    if (marker.Seen || config.Mode == Configuration.EMode.Online || (marker.WasImported && marker.Imports.Count > 0))
+                    if (marker.Seen || config.Mode == Configuration.EMode.Online || marker is { WasImported: true, Imports.Count: > 0 })
                     {
                         if (marker.Type == Marker.EType.Trap && config.ShowTraps)
                         {
@@ -583,12 +581,12 @@ namespace Pal.Client
             var nearbyMarkers = state.Markers
                 .Where(m => predicate(m))
                 .Where(m => m.RenderElement != null && m.RenderElement.Color != ColorInvisible)
-                .Select(m => new { m = m, distance = (playerPosition - m.Position)?.Length() ?? float.MaxValue })
+                .Select(m => new { m, distance = (playerPosition - m.Position)?.Length() ?? float.MaxValue })
                 .OrderBy(m => m.distance)
                 .Take(5)
                 .ToList();
             foreach (var nearbyMarker in nearbyMarkers)
-                Service.Chat.Print($"{nearbyMarker.distance:F2} - {nearbyMarker.m.Type} {nearbyMarker.m.NetworkId?.ToString()?.Substring(0, 8)} - {nearbyMarker.m.Position}");
+                Service.Chat.Print($"{nearbyMarker.distance:F2} - {nearbyMarker.m.Type} {nearbyMarker.m.NetworkId?.ToPartialId(length: 8)} - {nearbyMarker.m.Position}");
         }
         #endregion
 
@@ -690,12 +688,12 @@ namespace Pal.Client
 
         private class LocalizedChatMessages
         {
-            public string MapRevealed { get; set; } = "???"; //"The map for this floor has been revealed!";
-            public string AllTrapsRemoved { get; set; } = "???"; // "All the traps on this floor have disappeared!";
-            public string HoardOnCurrentFloor { get; set; } = "???"; // "You sense the Accursed Hoard calling you...";
-            public string HoardNotOnCurrentFloor { get; set; } = "???"; // "You do not sense the call of the Accursed Hoard on this floor...";
-            public string HoardCofferOpened { get; set; } = "???"; // "You discover a piece of the Accursed Hoard!";
-            public Regex FloorChanged { get; set; } = new Regex(@"This isn't a game message, but will be replaced"); // new Regex(@"^Floor (\d+)$");
+            public string MapRevealed { get; init; } = "???"; //"The map for this floor has been revealed!";
+            public string AllTrapsRemoved { get; init; } = "???"; // "All the traps on this floor have disappeared!";
+            public string HoardOnCurrentFloor { get; init; } = "???"; // "You sense the Accursed Hoard calling you...";
+            public string HoardNotOnCurrentFloor { get; init; } = "???"; // "You do not sense the call of the Accursed Hoard on this floor...";
+            public string HoardCofferOpened { get; init; } = "???"; // "You discover a piece of the Accursed Hoard!";
+            public Regex FloorChanged { get; init; } = new(@"This isn't a game message, but will be replaced"); // new Regex(@"^Floor (\d+)$");
         }
     }
 }

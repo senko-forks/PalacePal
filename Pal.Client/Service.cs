@@ -24,10 +24,10 @@ namespace Pal.Client
         [PluginService] public static DataManager DataManager { get; set; } = null!;
         [PluginService] public static GameGui GameGui { get; set; } = null!;
 
-        public static Plugin Plugin { get; set; } = null!;
-        public static WindowSystem WindowSystem { get; set; } = new(typeof(Service).AssemblyQualifiedName);
-        internal static RemoteApi RemoteApi { get; set; } = new RemoteApi();
-        public static Configuration Configuration { get; set; } = null!;
+        internal static Plugin Plugin { get; set; } = null!;
+        internal static WindowSystem WindowSystem { get; } = new(typeof(Service).AssemblyQualifiedName);
+        internal static RemoteApi RemoteApi { get; } = new();
+        internal static Configuration Configuration { get; set; } = null!;
         internal static Hooks Hooks { get; set; } = null!;
     }
 }

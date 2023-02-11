@@ -15,13 +15,13 @@ namespace Pal.Client.Scheduled
     {
         private readonly ExportRoot _export;
         private Guid _exportId;
-        private int importedTraps;
-        private int importedHoardCoffers;
+        private int _importedTraps;
+        private int _importedHoardCoffers;
 
         public QueuedImport(string sourcePath)
         {
-            using (var input = File.OpenRead(sourcePath))
-                _export = ExportRoot.Parser.ParseFrom(input);
+            using var input = File.OpenRead(sourcePath);
+            _export = ExportRoot.Parser.ParseFrom(input);
         }
 
         public void Run(Plugin plugin, ref bool recreateLayout, ref bool saveMarkers)
@@ -58,7 +58,7 @@ namespace Pal.Client.Scheduled
                 recreateLayout = true;
                 saveMarkers = true;
 
-                Service.Chat.Print(string.Format(Localization.ImportCompleteStatistics, importedTraps, importedHoardCoffers));
+                Service.Chat.Print(string.Format(Localization.ImportCompleteStatistics, _importedTraps, _importedHoardCoffers));
             }
             catch (Exception e)
             {
@@ -103,9 +103,9 @@ namespace Pal.Client.Scheduled
                     localMarker = remoteMarker;
 
                     if (localMarker.Type == Marker.EType.Trap)
-                        importedTraps++;
+                        _importedTraps++;
                     else if (localMarker.Type == Marker.EType.Hoard)
-                        importedHoardCoffers++;
+                        _importedHoardCoffers++;
                 }
 
                 remoteMarker.Imports.Add(_exportId);

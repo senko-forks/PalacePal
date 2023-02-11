@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using Pal.Client.Extensions;
 
 namespace Pal.Client
 {
@@ -72,7 +73,7 @@ namespace Pal.Client
             if (version <= 3)
             {
                 foreach (var marker in localState.Markers)
-                    marker.RemoteSeenOn = marker.RemoteSeenOn.Select(x => x.PadRight(14).Substring(0, 13)).ToList();
+                    marker.RemoteSeenOn = marker.RemoteSeenOn.Select(x => x.ToPartialId()).ToList();
             }
 
             if (version < CurrentVersion)

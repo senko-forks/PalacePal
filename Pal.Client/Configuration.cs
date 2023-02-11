@@ -38,15 +38,15 @@ namespace Pal.Client
         public List<ImportHistoryEntry> ImportHistory { get; set; } = new();
 
         public bool ShowTraps { get; set; } = true;
-        public Vector4 TrapColor { get; set; } = new Vector4(1, 0, 0, 0.4f);
+        public Vector4 TrapColor { get; set; } = new(1, 0, 0, 0.4f);
         public bool OnlyVisibleTrapsAfterPomander { get; set; } = true;
 
         public bool ShowHoard { get; set; } = true;
-        public Vector4 HoardColor { get; set; } = new Vector4(0, 1, 1, 0.4f);
+        public Vector4 HoardColor { get; set; } = new(0, 1, 1, 0.4f);
         public bool OnlyVisibleHoardAfterPomander { get; set; } = true;
 
-        public bool ShowSilverCoffers { get; set; } = false;
-        public Vector4 SilverCofferColor { get; set; } = new Vector4(1, 1, 1, 0.4f);
+        public bool ShowSilverCoffers { get; set; }
+        public Vector4 SilverCofferColor { get; set; } = new(1, 1, 1, 0.4f);
         public bool FillSilverCoffers { get; set; } = true;
 
         /// <summary>
@@ -120,7 +120,7 @@ namespace Pal.Client
                 // Only notify offline users - we can just re-download the backup markers from the server seamlessly.
                 if (Mode == EMode.Offline && changedAnyFile)
                 {
-                    new TickScheduler(delegate
+                    _ = new TickScheduler(delegate
                     {
                         Service.Chat.PalError("Due to a bug, some coffers were accidentally saved as traps. To fix the related display issue, locally cached data was cleaned up.");
                         Service.Chat.PrintError($"If you have any backup tools installed, please restore the contents of '{Service.PluginInterface.GetPluginConfigDirectory()}' to any backup from February 2, 2023 or before.");

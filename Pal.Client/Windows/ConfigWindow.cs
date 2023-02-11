@@ -22,7 +22,7 @@ using Pal.Client.Properties;
 
 namespace Pal.Client.Windows
 {
-    internal class ConfigWindow : Window
+    internal class ConfigWindow : Window, ILanguageChanged
     {
         private const string WindowId = "###PalPalaceConfig";
         private int _mode;
@@ -43,8 +43,8 @@ namespace Pal.Client.Windows
         private string _saveExportPath = string.Empty;
         private string? _openImportDialogStartPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         private string? _saveExportDialogStartPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        private FileDialogManager _importDialog;
-        private FileDialogManager _exportDialog;
+        private readonly FileDialogManager _importDialog;
+        private readonly FileDialogManager _exportDialog;
 
         public ConfigWindow() : base(WindowId)
         {
@@ -358,7 +358,7 @@ namespace Pal.Client.Windows
         /// <summary>
         /// None of the default BeginTabItem methods allow using flags without making the tab have a close button for some reason.
         /// </summary>
-        private unsafe static bool BeginTabItemEx(string label, ImGuiTabItemFlags flags)
+        private static unsafe bool BeginTabItemEx(string label, ImGuiTabItemFlags flags)
         {
             int labelLength = Encoding.UTF8.GetByteCount(label);
             byte* labelPtr = stackalloc byte[labelLength + 1];
@@ -392,17 +392,17 @@ namespace Pal.Client.Windows
             });
         }
 
-        internal void DoImport(string sourcePath)
+        private void DoImport(string sourcePath)
         {
             Service.Plugin.EarlyEventQueue.Enqueue(new QueuedImport(sourcePath));
         }
 
-        internal void UndoImport(Guid importId)
+        private void UndoImport(Guid importId)
         {
             Service.Plugin.EarlyEventQueue.Enqueue(new QueuedUndoImport(importId));
         }
 
-        internal void DoExport(string destinationPath)
+        private void DoExport(string destinationPath)
         {
             Task.Run(async () =>
             {
@@ -411,7 +411,7 @@ namespace Pal.Client.Windows
                     (bool success, ExportRoot export) = await Service.RemoteApi.DoExport();
                     if (success)
                     {
-                        using var output = File.Create(destinationPath);
+                        await using var output = File.Create(destinationPath);
                         export.WriteTo(output);
 
                         Service.Chat.Print($"Export saved as {destinationPath}.");
