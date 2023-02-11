@@ -34,16 +34,16 @@ namespace Pal.Client.Windows
         {
             if (ImGui.BeginTabBar("Tabs"))
             {
-                DrawDungeonStats(Localization.PalaceOfTheDead, ETerritoryType.Palace_1_10, ETerritoryType.Palace_191_200);
-                DrawDungeonStats(Localization.HeavenOnHigh, ETerritoryType.HeavenOnHigh_1_10, ETerritoryType.HeavenOnHigh_91_100);
+                DrawDungeonStats("Palace of the Dead", Localization.PalaceOfTheDead, ETerritoryType.Palace_1_10, ETerritoryType.Palace_191_200);
+                DrawDungeonStats("Heaven on High", Localization.HeavenOnHigh, ETerritoryType.HeavenOnHigh_1_10, ETerritoryType.HeavenOnHigh_91_100);
             }
         }
 
-        private void DrawDungeonStats(string name, ETerritoryType minTerritory, ETerritoryType maxTerritory)
+        private void DrawDungeonStats(string id, string name, ETerritoryType minTerritory, ETerritoryType maxTerritory)
         {
-            if (ImGui.BeginTabItem(name))
+            if (ImGui.BeginTabItem($"{name}###{id}"))
             {
-                if (ImGui.BeginTable($"TrapHoardStatistics{name}", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable))
+                if (ImGui.BeginTable($"TrapHoardStatistics{id}", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable))
                 {
                     ImGui.TableSetupColumn(Localization.Statistics_TerritoryId);
                     ImGui.TableSetupColumn(Localization.Statistics_InstanceName);
