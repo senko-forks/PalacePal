@@ -1,11 +1,13 @@
-name: Create docker image for Server
+name: docker build
 on:
   push:
     branches:
       - master
     paths:
+      - '.github/workflows/server.yml'
       - 'Pal.Common/**'
       - 'Pal.Server/**'
+      - 'Dockerfile'
 permissions:
   packages: write
 jobs:

@@ -1,6 +1,9 @@
-name: Build Client & Server
+name: dotnet build
 on:
-  push: {}
+  push:
+    paths:
+      - '**.md'
+      - 'Dockerfile'
 jobs:
   build:
     runs-on: windows-latest
