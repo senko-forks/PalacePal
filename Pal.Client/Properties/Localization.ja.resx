@@ -152,6 +152,10 @@
   <data name="Config_TestConnection" xml:space="preserve">
         <value>接続をテストする</value>
     </data>
+  <data name="Config_TestConnection_Connecting" xml:space="preserve">
+        <value>接続テスト中...</value>
+        <comment>When clicking on the 'Test Connection' button, this is shown until a success/error message is available.</comment>
+    </data>
   <data name="ConfigTab_Import" xml:space="preserve">
         <value>インポート</value>
     </data>
@@ -159,7 +163,7 @@
         <value>エクスポートを使用すると、サーバーに接続できない場合や、情報を共有したくない場合に便利です。</value>
     </data>
   <data name="Config_ImportExplanation2" xml:space="preserve">
-        <value>エクスポートは(現在)手動で生成され、トラップが含まれており、5人以上が遭遇した宝箱のみが含まれています。
+        <value>エクスポートは(現在)手動で生成され、5人以上が遭遇したトラップ/宝箱のみが含まれています。
 深層の情報は不安要素が多くなりますが、多くのプレイヤーが挑戦するフロア(死者の宮殿51F-60F、アメノミハシラ21F-30F)は完成に近付いています。</value>
     </data>
   <data name="Config_ImportExplanation3" xml:space="preserve">
