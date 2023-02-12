@@ -115,7 +115,7 @@ namespace Pal.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Open the configuration/debug window.
+        ///   Looks up a localized string similar to Open the configuration window.
         /// </summary>
         internal static string Command_pal_HelpText {
             get {
@@ -639,7 +639,7 @@ namespace Pal.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Please finish the first-time setup first..
+        ///   Looks up a localized string similar to Please finish the initial setup first..
         /// </summary>
         internal static string Error_FirstTimeSetupRequired {
             get {

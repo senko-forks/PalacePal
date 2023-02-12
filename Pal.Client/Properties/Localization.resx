@@ -43,8 +43,8 @@
     
     <!-- Generic Errors -->
     <data name="Error_FirstTimeSetupRequired" xml:space="preserve">
-        <value>Please finish the first-time setup first.</value>
-        <comment>Before using any /pal command, the first-time setup/agreeement needs to be completed.</comment>
+        <value>Please finish the initial setup first.</value>
+        <comment>Before using any /pal command, the initial setup/agreeement needs to be completed.</comment>
     </data>
     <data name="Error_WrongRepository" xml:space="preserve">
         <value>Please install this plugin from the official repository at {0} to continue using it.</value>
@@ -52,7 +52,7 @@
 
     <!-- /pal commands -->
     <data name="Command_pal_HelpText" xml:space="preserve">
-        <value>Open the configuration/debug window</value>
+        <value>Open the configuration window</value>
         <comment>Help text for the /pal command, shown in the Plugin Installer</comment>
     </data>
     <data name="Command_pal_UnknownSubcommand" xml:space="preserve">
@@ -107,7 +107,7 @@
         <value>Could not connect to server: {0}</value>
     </data>
     
-    <!-- Config Window -->
+    <!-- Config Window: Deep Dungeons -->
     <data name="ConfigTab_DeepDungeons" xml:space="preserve">
         <value>Deep Dungeons</value>
     </data>
@@ -153,6 +153,7 @@ This is not synchronized with other players and not saved between floors/runs.</
         <comment>Whether silver coffers should only be drawn with the circle outline or as filled circle.</comment>
     </data>
 
+	<!-- Config Window: Community -->
     <data name="ConfigTab_Community" xml:space="preserve">
         <value>Community</value>
     </data>
@@ -163,7 +164,8 @@ This is not synchronized with other players and not saved between floors/runs.</
         <value>Testing...</value>
         <comment>When clicking on the 'Test Connection' button, this is shown until a success/error message is available.</comment>
     </data>
-    
+
+	<!-- Config Window: Import -->
     <data name="ConfigTab_Import" xml:space="preserve">
         <value>Import</value>
     </data>
@@ -202,6 +204,7 @@ This is not synchronized with other players and not saved between floors/runs.</
         <value>Undo Import</value>
     </data>
 
+	<!-- Config Window: Export -->
     <data name="ConfigTab_Export" xml:space="preserve">
         <value>Export</value>
     </data>
@@ -215,6 +218,7 @@ This is not synchronized with other players and not saved between floors/runs.</
         <value>Start Export</value>
     </data>
 
+	<!-- Config Window: Renderer -->
     <data name="ConfigTab_Renderer" xml:space="preserve">
         <value>Renderer</value>
         <comment>Configuration tab to select Splatoon or Simple as rendering backend</comment>
@@ -243,6 +247,7 @@ This is not synchronized with other players and not saved between floors/runs.</
         <comment>To test the Splatoon integration, you can draw markers around yourself.</comment>
     </data>
 
+	<!-- Config Window: Debug -->
     <data name="ConfigTab_Debug" xml:space="preserve">
         <value>Debug</value>
     </data>
@@ -303,10 +308,10 @@ This is not synchronized with other players and not saved between floors/runs.</
     </data>
     <data name="Agreement_PickOneOption" xml:space="preserve">
         <value>Please chose one of the options above.</value>
-        <comment>Shown if neither of the two radio buttons in the first-time setup window are selected.</comment>
+        <comment>Shown if neither of the two radio buttons in the setup setup window are selected.</comment>
     </data>
 
-    <!-- Import -->
+    <!-- Import (chat messages) -->
     <data name="ImportCompleteStatistics" xml:space="preserve">
         <value>Imported {0} new trap locations and {1} new hoard coffer locations.</value>
         <comment>After the import of a *.pal file, the number of traps/hoard coffers is shown as a summary.</comment>
