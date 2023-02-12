@@ -5,7 +5,7 @@ COPY Pal.Server/Pal.Server.csproj Pal.Server/
 RUN dotnet restore Pal.Server/Pal.Server.csproj
 
 COPY . ./
-RUN dotnet publish Pal.Server/Pal.Server.csproj -c Release -o /dist
+RUN dotnet publish Pal.Server/Pal.Server.csproj --configuration Release --no-restore -o /dist
 
 FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS runtime
 EXPOSE 5415

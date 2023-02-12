@@ -1,0 +1,24 @@
+name: Build Client & Server
+on:
+  push:
+    paths:
+      - 'Pal.Client/**'
+      - 'Pal.Common/**'
+      - 'Pal.Server/**'
+      - 'vendor/**'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 7.0
+
+      - name: Install dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
