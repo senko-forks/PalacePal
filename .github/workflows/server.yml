@@ -1,4 +1,4 @@
-name: Server
+name: Create docker image for Server
 on:
   push:
     branches:

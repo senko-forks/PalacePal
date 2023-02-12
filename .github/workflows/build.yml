@@ -1,14 +1,9 @@
 name: Build Client & Server
 on:
-  push:
-    paths:
-      - 'Pal.Client/**'
-      - 'Pal.Common/**'
-      - 'Pal.Server/**'
-      - 'vendor/**'
+  push: {}
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
         with:
@@ -18,6 +13,11 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 7.0
+
+      - name: Download Dalamud
+        run: |
+          Invoke-WebRequest -Uri https://goatcorp.github.io/dalamud-distrib/latest.zip -OutFile latest.zip
+          Expand-Archive -Force latest.zip "$env:AppData\XIVLauncher\addon\Hooks\dev\"
 
       - name: Install dependencies
         run: dotnet restore
