@@ -1,16 +1,15 @@
 ﻿using Dalamud.Interface.Windowing;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets;
 using Pal.Common;
 using Palace;
 using System;
 using System.Collections.Generic;
-using System.Data.Common;
 using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 using Pal.Client.Properties;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.CompilerServices;
+using System.Reflection;
 
 namespace Pal.Client.Windows
 {
@@ -57,7 +56,7 @@ namespace Pal.Client.Windows
                     ImGui.TableSetupColumn(Localization.Statistics_HoardCoffers);
                     ImGui.TableHeadersRow();
 
-                    foreach (var (territoryType, stats) in _territoryStatistics.Where(x => x.Key >= minTerritory && x.Key <= maxTerritory))
+                    foreach (var (territoryType, stats) in _territoryStatistics.Where(x => x.Key >= minTerritory && x.Key <= maxTerritory).OrderBy(x => x.Key.GetOrder() ?? (int)x.Key))
                     {
                         ImGui.TableNextRow();
                         if (ImGui.TableNextColumn())

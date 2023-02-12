@@ -1,4 +1,6 @@
-﻿namespace Pal.Common
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Pal.Common
 {
     public enum ETerritoryType : ushort
     {
@@ -23,15 +25,25 @@
         Palace_181_190,
         Palace_191_200,
 
+        [Display(Order = 1)]
         HeavenOnHigh_1_10 = 770,
-        HeavenOnHigh_11_20,
-        HeavenOnHigh_21_30,
-        HeavenOnHigh_31_40,
-        HeavenOnHigh_41_50,
-        HeavenOnHigh_51_60,
-        HeavenOnHigh_61_70 = 782,
-        HeavenOnHigh_71_80,
-        HeavenOnHigh_81_90,
-        HeavenOnHigh_91_100
+        [Display(Order = 2)]
+        HeavenOnHigh_11_20 = 771,
+        [Display(Order = 3)]
+        HeavenOnHigh_21_30 = 772,
+        [Display(Order = 4)]
+        HeavenOnHigh_31_40 = 782,
+        [Display(Order = 5)]
+        HeavenOnHigh_41_50 = 773,
+        [Display(Order = 6)]
+        HeavenOnHigh_51_60 = 783,
+        [Display(Order = 7)]
+        HeavenOnHigh_61_70 = 774,
+        [Display(Order = 8)]
+        HeavenOnHigh_71_80 = 784,
+        [Display(Order = 9)]
+        HeavenOnHigh_81_90 = 775,
+        [Display(Order = 10)]
+        HeavenOnHigh_91_100 = 785
     }
 }
