@@ -46,6 +46,8 @@ namespace Pal.Client.Windows
         private readonly FileDialogManager _importDialog;
         private readonly FileDialogManager _exportDialog;
 
+        private CancellationTokenSource? _testConnectionCts;
+
         public ConfigWindow() : base(WindowId)
         {
             LanguageChanged();
@@ -86,6 +88,8 @@ namespace Pal.Client.Windows
         {
             _importDialog.Reset();
             _exportDialog.Reset();
+            _testConnectionCts?.Cancel();
+            _testConnectionCts = null;
         }
 
         public override void Draw()
@@ -377,8 +381,11 @@ namespace Pal.Client.Windows
                 _connectionText = Localization.Config_TestConnection_Connecting;
                 _switchToCommunityTab = true;
 
-                CancellationTokenSource cts = new CancellationTokenSource();
+                _testConnectionCts?.Cancel();
+
+                CancellationTokenSource cts = new();
                 cts.CancelAfter(TimeSpan.FromSeconds(60));
+                _testConnectionCts = cts;
 
                 try
                 {
@@ -386,8 +393,13 @@ namespace Pal.Client.Windows
                 }
                 catch (Exception e)
                 {
-                    PluginLog.Error(e, "Could not establish remote connection");
-                    _connectionText = e.ToString();
+                    if (cts == _testConnectionCts)
+                    {
+                        PluginLog.Error(e, "Could not establish remote connection");
+                        _connectionText = e.ToString();
+                    }
+                    else
+                        PluginLog.Warning(e, "Could not establish a remote connection, but user also clicked 'test connection' again so not updating UI");
                 }
             });
         }

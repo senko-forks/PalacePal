@@ -43,6 +43,8 @@ namespace Pal.Client.Net
                 await _channel.ConnectAsync(cancellationToken);
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
+
             var accountClient = new AccountService.AccountServiceClient(_channel);
             if (AccountId == null)
             {
@@ -69,6 +71,8 @@ namespace Pal.Client.Net
                     return (false, string.Format(Localization.ConnectionError_CreateAccountFailed, createAccountReply.Error));
                 }
             }
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (AccountId == null)
             {
@@ -123,6 +127,7 @@ namespace Pal.Client.Net
                 return (false, Localization.ConnectionError_LoginReturnedNoToken);
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             return (true, string.Empty);
         }
 
