@@ -9,6 +9,8 @@ namespace Pal.Client.Configuration
 {
     public class AccountConfigurationV7 : IAccountConfiguration
     {
+        private const int EntropyLength = 16;
+
         [JsonConstructor]
         public AccountConfigurationV7()
         {
@@ -30,11 +32,7 @@ namespace Pal.Client.Configuration
                 EncryptedId = accountId.Substring(2);
                 Entropy = ConfigurationData.FixedV1Entropy;
                 Format = EFormat.UseProtectedData;
-
-                // try to migrate away from v1 entropy if possible
-                Guid? decryptedId = DecryptAccountId();
-                if (decryptedId != null)
-                    (EncryptedId, Entropy, Format) = EncryptAccountId(decryptedId.Value);
+                EncryptIfNeeded();
             }
             else if (Guid.TryParse(accountId, out Guid guid))
                 (EncryptedId, Entropy, Format) = EncryptAccountId(guid);
@@ -65,7 +63,7 @@ namespace Pal.Client.Configuration
 
         private Guid? DecryptAccountId()
         {
-            if (Format == EFormat.UseProtectedData)
+            if (Format == EFormat.UseProtectedData && ConfigurationData.SupportsDpapi)
             {
                 try
                 {
@@ -80,24 +78,31 @@ namespace Pal.Client.Configuration
             }
             else if (Format == EFormat.Unencrypted)
                 return Guid.Parse(EncryptedId);
+            else if (Format == EFormat.ProtectedDataUnsupported && !ConfigurationData.SupportsDpapi)
+                return Guid.Parse(EncryptedId);
             else
                 return null;
         }
 
         private (string encryptedId, byte[]? entropy, EFormat format) EncryptAccountId(Guid g)
         {
-            try
+            if (!ConfigurationData.SupportsDpapi)
+                return (g.ToString(), null, EFormat.ProtectedDataUnsupported);
+            else
             {
-                byte[] entropy = RandomNumberGenerator.GetBytes(16);
-                byte[] guidBytes = ProtectedData.Protect(g.ToByteArray(), entropy, DataProtectionScope.CurrentUser);
-                return (Convert.ToBase64String(guidBytes), entropy, EFormat.UseProtectedData);
-            }
-            catch (Exception)
-            {
-                return (g.ToString(), null, EFormat.Unencrypted);
+                try
+                {
+                    byte[] entropy = RandomNumberGenerator.GetBytes(EntropyLength);
+                    byte[] guidBytes = ProtectedData.Protect(g.ToByteArray(), entropy, DataProtectionScope.CurrentUser);
+                    return (Convert.ToBase64String(guidBytes), entropy, EFormat.UseProtectedData);
+                }
+                catch (Exception)
+                {
+                    return (g.ToString(), null, EFormat.Unencrypted);
+                }
             }
         }
-        
+
         public bool EncryptIfNeeded()
         {
             if (Format == EFormat.Unencrypted)
@@ -111,9 +116,7 @@ namespace Pal.Client.Configuration
                     return true;
                 }
             }
-
-#pragma warning disable CS0618 // Type or member is obsolete
-            if (Format == EFormat.UseProtectedData && ConfigurationData.FixedV1Entropy.SequenceEqual(Entropy ?? Array.Empty<byte>()))
+            else if (Format == EFormat.UseProtectedData && Entropy is { Length: < EntropyLength })
             {
                 Guid? g = DecryptAccountId();
                 if (g != null)
@@ -122,7 +125,6 @@ namespace Pal.Client.Configuration
                     return true;
                 }
             }
-#pragma warning restore CS0618 // Type or member is obsolete
 
             return false;
         }
@@ -131,6 +133,12 @@ namespace Pal.Client.Configuration
         {
             Unencrypted = 1,
             UseProtectedData = 2,
+
+            /// <summary>
+            /// Used for filtering: We don't want to overwrite any entries of this value using DPAPI, ever.
+            /// This is mostly a wine fallback.
+            /// </summary>
+            ProtectedDataUnsupported = 3,
         }
     }
 }
