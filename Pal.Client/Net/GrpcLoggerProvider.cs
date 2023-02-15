@@ -3,7 +3,7 @@ using System;
 
 namespace Pal.Client.Net
 {
-    internal class GrpcLoggerProvider : ILoggerProvider
+    internal sealed class GrpcLoggerProvider : ILoggerProvider
     {
         public ILogger CreateLogger(string categoryName) => new GrpcLogger(categoryName);
 

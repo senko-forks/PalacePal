@@ -4,55 +4,56 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using Pal.Client.Net;
 
-namespace Pal.Client.Configuration;
-
-public class ConfigurationV7 : IPalacePalConfiguration, IConfigurationInConfigDirectory
+namespace Pal.Client.Configuration
 {
-    public int Version { get; set; } = 7;
-
-    public bool FirstUse { get; set; } = true;
-    public EMode Mode { get; set; }
-    public string BetaKey { get; init; } = "";
-
-    public DeepDungeonConfiguration DeepDungeons { get; set; } = new();
-    public RendererConfiguration Renderer { get; set; } = new();
-    public List<AccountConfigurationV7> Accounts { get; set; } = new();
-
-    [JsonIgnore]
-    [Obsolete]
-    public List<ConfigurationV1.ImportHistoryEntry> ImportHistory { get; set; } = new();
-
-    public IAccountConfiguration CreateAccount(string server, Guid accountId)
+    public sealed class ConfigurationV7 : IPalacePalConfiguration, IConfigurationInConfigDirectory
     {
-        var account = new AccountConfigurationV7(server, accountId);
-        Accounts.Add(account);
-        return account;
-    }
+        public int Version { get; set; } = 7;
 
-    [Obsolete("for V1 import")]
-    internal IAccountConfiguration CreateAccount(string server, string accountId)
-    {
-        var account = new AccountConfigurationV7(server, accountId);
-        Accounts.Add(account);
-        return account;
-    }
+        public bool FirstUse { get; set; } = true;
+        public EMode Mode { get; set; }
+        public string BetaKey { get; init; } = "";
 
-    public IAccountConfiguration? FindAccount(string server)
-    {
-        return Accounts.FirstOrDefault(a => a.Server == server && a.IsUsable);
-    }
+        public DeepDungeonConfiguration DeepDungeons { get; set; } = new();
+        public RendererConfiguration Renderer { get; set; } = new();
+        public List<AccountConfigurationV7> Accounts { get; set; } = new();
 
-    public void RemoveAccount(string server)
-    {
-        Accounts.RemoveAll(a => a.Server == server && a.IsUsable);
-    }
+        [JsonIgnore]
+        [Obsolete]
+        public List<ConfigurationV1.ImportHistoryEntry> ImportHistory { get; set; } = new();
 
-    public bool HasRoleOnCurrentServer(string role)
-    {
-        if (Mode != EMode.Online)
-            return false;
+        public IAccountConfiguration CreateAccount(string server, Guid accountId)
+        {
+            var account = new AccountConfigurationV7(server, accountId);
+            Accounts.Add(account);
+            return account;
+        }
 
-        var account = FindAccount(RemoteApi.RemoteUrl);
-        return account == null || account.CachedRoles.Contains(role);
+        [Obsolete("for V1 import")]
+        internal IAccountConfiguration CreateAccount(string server, string accountId)
+        {
+            var account = new AccountConfigurationV7(server, accountId);
+            Accounts.Add(account);
+            return account;
+        }
+
+        public IAccountConfiguration? FindAccount(string server)
+        {
+            return Accounts.FirstOrDefault(a => a.Server == server && a.IsUsable);
+        }
+
+        public void RemoveAccount(string server)
+        {
+            Accounts.RemoveAll(a => a.Server == server && a.IsUsable);
+        }
+
+        public bool HasRoleOnCurrentServer(string role)
+        {
+            if (Mode != EMode.Online)
+                return false;
+
+            var account = FindAccount(RemoteApi.RemoteUrl);
+            return account == null || account.CachedRoles.Contains(role);
+        }
     }
 }

@@ -2,7 +2,7 @@
 
 namespace Pal.Client.DependencyInjection
 {
-    internal class DebugState
+    internal sealed class DebugState
     {
         public string? DebugMessage { get; set; }
 

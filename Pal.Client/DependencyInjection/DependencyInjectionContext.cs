@@ -22,13 +22,14 @@ namespace Pal.Client.DependencyInjection
     /// <summary>
     /// DI-aware Plugin.
     /// </summary>
-    internal sealed class DIPlugin : IDalamudPlugin
+    // ReSharper disable once UnusedType.Global
+    internal sealed class DependencyInjectionContext : IDalamudPlugin
     {
         private ServiceProvider? _serviceProvider;
 
         public string Name => Localization.Palace_Pal;
 
-        public DIPlugin(DalamudPluginInterface pluginInterface,
+        public DependencyInjectionContext(DalamudPluginInterface pluginInterface,
             ClientState clientState,
             GameGui gameGui,
             ChatGui chatGui,
@@ -51,7 +52,7 @@ namespace Pal.Client.DependencyInjection
             services.AddSingleton(condition);
             services.AddSingleton(commandManager);
             services.AddSingleton(dataManager);
-            services.AddSingleton(new WindowSystem(typeof(DIPlugin).AssemblyQualifiedName));
+            services.AddSingleton(new WindowSystem(typeof(DependencyInjectionContext).AssemblyQualifiedName));
 
             // plugin-specific
             services.AddSingleton<Plugin>();

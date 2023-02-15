@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 using Dalamud.Logging;
 
 namespace Pal.Client.Configuration
 {
-    public class AccountConfigurationV7 : IAccountConfiguration
+    public sealed class AccountConfigurationV7 : IAccountConfiguration
     {
         private const int DefaultEntropyLength = 16;
 

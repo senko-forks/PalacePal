@@ -13,7 +13,7 @@ using System.Reflection;
 
 namespace Pal.Client.Windows
 {
-    internal class StatisticsWindow : Window, IDisposable, ILanguageChanged
+    internal sealed class StatisticsWindow : Window, IDisposable, ILanguageChanged
     {
         private const string WindowId = "###PalacePalStats";
         private readonly WindowSystem _windowSystem;
@@ -112,7 +112,7 @@ namespace Pal.Client.Windows
             }
         }
 
-        private class TerritoryStatistics
+        private sealed class TerritoryStatistics
         {
             public string TerritoryName { get; }
             public uint? TrapCount { get; set; }

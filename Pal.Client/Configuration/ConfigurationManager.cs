@@ -7,13 +7,11 @@ using System.Text.Json;
 using Dalamud.Logging;
 using Dalamud.Plugin;
 using ImGuiNET;
-using Pal.Client.DependencyInjection;
-using Pal.Client.Scheduled;
 using NJson = Newtonsoft.Json;
 
 namespace Pal.Client.Configuration
 {
-    internal class ConfigurationManager
+    internal sealed class ConfigurationManager
     {
         private readonly DalamudPluginInterface _pluginInterface;
 
@@ -56,13 +54,13 @@ namespace Pal.Client.Configuration
                 ConfigurationV1 configurationV1 =
                     NJson.JsonConvert.DeserializeObject<ConfigurationV1>(
                         File.ReadAllText(_pluginInterface.ConfigFile.FullName)) ?? new ConfigurationV1();
-                configurationV1.Migrate();
-                configurationV1.Save();
+                configurationV1.Migrate(_pluginInterface);
+                configurationV1.Save(_pluginInterface);
 
                 var v7 = MigrateToV7(configurationV1);
                 Save(v7, queue: false);
 
-                File.Move(_pluginInterface.ConfigFile.FullName, _pluginInterface.ConfigFile.FullName + ".old", true);
+                //File.Move(_pluginInterface.ConfigFile.FullName, _pluginInterface.ConfigFile.FullName + ".old", true);
             }
         }
 
@@ -81,18 +79,21 @@ namespace Pal.Client.Configuration
                     {
                         Show = v1.ShowTraps,
                         Color = ImGui.ColorConvertFloat4ToU32(v1.TrapColor),
+                        OnlyVisibleAfterPomander = v1.OnlyVisibleTrapsAfterPomander,
                         Fill = false
                     },
                     HoardCoffers = new MarkerConfiguration
                     {
                         Show = v1.ShowHoard,
                         Color = ImGui.ColorConvertFloat4ToU32(v1.HoardColor),
+                        OnlyVisibleAfterPomander = v1.OnlyVisibleHoardAfterPomander,
                         Fill = false
                     },
                     SilverCoffers = new MarkerConfiguration
                     {
                         Show = v1.ShowSilverCoffers,
                         Color = ImGui.ColorConvertFloat4ToU32(v1.SilverCofferColor),
+                        OnlyVisibleAfterPomander = false,
                         Fill = v1.FillSilverCoffers
                     }
                 }

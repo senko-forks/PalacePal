@@ -10,7 +10,7 @@ using Pal.Client.DependencyInjection;
 
 namespace Pal.Client
 {
-    internal unsafe class Hooks : IDisposable
+    internal sealed unsafe class Hooks : IDisposable
     {
         private readonly ObjectTable _objectTable;
         private readonly TerritoryState _territoryState;

@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace Pal.Client.Net
 {
-    internal class GrpcLogger : ILogger
+    internal sealed class GrpcLogger : ILogger
     {
         private readonly string _name;
 

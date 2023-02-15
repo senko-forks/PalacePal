@@ -12,7 +12,7 @@ namespace Pal.Client
     /// <summary>
     /// JSON for a single floor set (e.g. 51-60).
     /// </summary>
-    internal class LocalState
+    internal sealed class LocalState
     {
         private static readonly JsonSerializerOptions JsonSerializerOptions = new() { IncludeFields = true };
         private const int CurrentVersion = 4;
@@ -146,7 +146,7 @@ namespace Pal.Client
                 marker.Imports.RemoveAll(importIds.Contains);
         }
 
-        public class SaveFile
+        public sealed class SaveFile
         {
             public int Version { get; set; }
             public HashSet<Marker> Markers { get; set; } = new();

@@ -1,19 +1,17 @@
 ﻿using Dalamud.Logging;
-using ECommons.Schedulers;
 using Newtonsoft.Json;
-using Pal.Client.Scheduled;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using Pal.Client.Extensions;
+using Dalamud.Plugin;
 
 namespace Pal.Client.Configuration
 {
     [Obsolete]
-    public class ConfigurationV1
+    public sealed class ConfigurationV1
     {
         public int Version { get; set; } = 6;
 
@@ -52,7 +50,7 @@ namespace Pal.Client.Configuration
         public string BetaKey { get; set; } = "";
         #endregion
 
-        public void Migrate()
+        public void Migrate(DalamudPluginInterface pluginInterface)
         {
             if (Version == 1)
             {
@@ -65,7 +63,7 @@ namespace Pal.Client.Configuration
                     AccountIds["https://pal.μ.tv"] = accountId;
 
                 Version = 2;
-                Save();
+                Save(pluginInterface);
             }
 
             if (Version == 2)
@@ -77,13 +75,13 @@ namespace Pal.Client.Configuration
                     Id = x.Value.ToString() // encryption happens in V7 migration at latest
                 });
                 Version = 3;
-                Save();
+                Save(pluginInterface);
             }
 
             if (Version == 3)
             {
                 Version = 4;
-                Save();
+                Save(pluginInterface);
             }
 
             if (Version == 4)
@@ -127,7 +125,7 @@ namespace Pal.Client.Configuration
                 */
 
                 Version = 5;
-                Save();
+                Save(pluginInterface);
             }
 
             if (Version == 5)
@@ -135,26 +133,26 @@ namespace Pal.Client.Configuration
                 LocalState.UpdateAll();
 
                 Version = 6;
-                Save();
+                Save(pluginInterface);
             }
         }
 
-        public void Save()
+        public void Save(DalamudPluginInterface pluginInterface)
         {
-            File.WriteAllText(Service.PluginInterface.ConfigFile.FullName, JsonConvert.SerializeObject(this, Formatting.Indented, new JsonSerializerSettings
+            File.WriteAllText(pluginInterface.ConfigFile.FullName, JsonConvert.SerializeObject(this, Formatting.Indented, new JsonSerializerSettings
             {
                 TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
                 TypeNameHandling = TypeNameHandling.Objects
             }));
         }
 
-        public class AccountInfo
+        public sealed class AccountInfo
         {
             public string? Id { get; set; }
             public List<string> CachedRoles { get; set; } = new();
         }
 
-        public class ImportHistoryEntry
+        public sealed class ImportHistoryEntry
         {
             public Guid Id { get; set; }
             public string? RemoteUrl { get; set; }

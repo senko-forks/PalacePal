@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 
 namespace Pal.Client
 {
-    internal class Marker
+    internal sealed class Marker
     {
         public EType Type { get; set; } = EType.Unknown;
         public Vector3 Position { get; set; }

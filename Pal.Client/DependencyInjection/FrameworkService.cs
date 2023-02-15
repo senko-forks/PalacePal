@@ -18,7 +18,7 @@ using Pal.Client.Scheduled;
 
 namespace Pal.Client.DependencyInjection
 {
-    internal class FrameworkService : IDisposable
+    internal sealed class FrameworkService : IDisposable
     {
         private readonly Framework _framework;
         private readonly ConfigurationManager _configurationManager;
