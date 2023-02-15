@@ -90,7 +90,7 @@ namespace Pal.Client.Configuration
             {
                 // 2.2 had a bug that would mark chests as traps, there's no easy way to detect this -- or clean this up.
                 // Not a problem for online players, but offline players might be fucked.
-                bool changedAnyFile = false;
+                //bool changedAnyFile = false;
                 LocalState.ForEach(s =>
                 {
                     foreach (var marker in s.Markers)
@@ -104,7 +104,7 @@ namespace Pal.Client.Configuration
                         s.Markers = new ConcurrentBag<Marker>(s.Markers.Where(m => m.SinceVersion != "0.0" || m.Type == Marker.EType.Hoard || m.WasImported));
                         s.Save();
 
-                        changedAnyFile = true;
+                        //changedAnyFile = true;
                     }
                     else
                     {
@@ -113,6 +113,7 @@ namespace Pal.Client.Configuration
                     }
                 });
 
+                /*
                 // Only notify offline users - we can just re-download the backup markers from the server seamlessly.
                 if (Mode == EMode.Offline && changedAnyFile)
                 {
@@ -123,6 +124,7 @@ namespace Pal.Client.Configuration
                         Service.Chat.PrintError("You can also manually restore .json.bak files (by removing the '.bak') if you have not been in any deep dungeon since February 2, 2023.");
                     }, 2500);
                 }
+                */
 
                 Version = 5;
                 Save();
@@ -144,7 +146,6 @@ namespace Pal.Client.Configuration
                 TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
                 TypeNameHandling = TypeNameHandling.Objects
             }));
-            Service.Plugin.EarlyEventQueue.Enqueue(new QueuedConfigUpdate());
         }
 
         public class AccountInfo

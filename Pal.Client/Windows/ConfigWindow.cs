@@ -18,14 +18,28 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Dalamud.Game.Gui;
 using Pal.Client.Properties;
 using Pal.Client.Configuration;
+using Pal.Client.DependencyInjection;
 
 namespace Pal.Client.Windows
 {
-    internal class ConfigWindow : Window, ILanguageChanged, IDisposable
+    internal sealed class ConfigWindow : Window, ILanguageChanged, IDisposable
     {
         private const string WindowId = "###PalPalaceConfig";
+
+        private readonly WindowSystem _windowSystem;
+        private readonly ConfigurationManager _configurationManager;
+        private readonly IPalacePalConfiguration _configuration;
+        private readonly RenderAdapter _renderAdapter;
+        private readonly TerritoryState _territoryState;
+        private readonly FrameworkService _frameworkService;
+        private readonly FloorService _floorService;
+        private readonly DebugState _debugState;
+        private readonly ChatGui _chatGui;
+        private readonly RemoteApi _remoteApi;
+
         private int _mode;
         private int _renderer;
         private ConfigurableMarker _trapConfig = new();
@@ -43,8 +57,30 @@ namespace Pal.Client.Windows
 
         private CancellationTokenSource? _testConnectionCts;
 
-        public ConfigWindow() : base(WindowId)
+        public ConfigWindow(
+            WindowSystem windowSystem,
+            ConfigurationManager configurationManager,
+            IPalacePalConfiguration configuration,
+            RenderAdapter renderAdapter,
+            TerritoryState territoryState,
+            FrameworkService frameworkService,
+            FloorService floorService,
+            DebugState debugState,
+            ChatGui chatGui,
+            RemoteApi remoteApi)
+            : base(WindowId)
         {
+            _windowSystem = windowSystem;
+            _configurationManager = configurationManager;
+            _configuration = configuration;
+            _renderAdapter = renderAdapter;
+            _territoryState = territoryState;
+            _frameworkService = frameworkService;
+            _floorService = floorService;
+            _debugState = debugState;
+            _chatGui = chatGui;
+            _remoteApi = remoteApi;
+
             LanguageChanged();
 
             Size = new Vector2(500, 400);
@@ -52,8 +88,18 @@ namespace Pal.Client.Windows
             Position = new Vector2(300, 300);
             PositionCondition = ImGuiCond.FirstUseEver;
 
-            _importDialog = new FileDialogManager { AddedWindowFlags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking };
-            _exportDialog = new FileDialogManager { AddedWindowFlags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking };
+            _importDialog = new FileDialogManager
+            { AddedWindowFlags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking };
+            _exportDialog = new FileDialogManager
+            { AddedWindowFlags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoDocking };
+
+            _windowSystem.AddWindow(this);
+        }
+
+        public void Dispose()
+        {
+            _windowSystem.RemoveWindow(this);
+            _testConnectionCts?.Cancel();
         }
 
         public void LanguageChanged()
@@ -62,19 +108,13 @@ namespace Pal.Client.Windows
             WindowName = $"{Localization.Palace_Pal} v{version}{WindowId}";
         }
 
-        public void Dispose()
-        {
-            _testConnectionCts?.Cancel();
-        }
-
         public override void OnOpen()
         {
-            var config = Service.Configuration;
-            _mode = (int)config.Mode;
-            _renderer = (int)config.Renderer.SelectedRenderer;
-            _trapConfig = new ConfigurableMarker(config.DeepDungeons.Traps);
-            _hoardConfig = new ConfigurableMarker(config.DeepDungeons.HoardCoffers);
-            _silverConfig = new ConfigurableMarker(config.DeepDungeons.SilverCoffers);
+            _mode = (int)_configuration.Mode;
+            _renderer = (int)_configuration.Renderer.SelectedRenderer;
+            _trapConfig = new ConfigurableMarker(_configuration.DeepDungeons.Traps);
+            _hoardConfig = new ConfigurableMarker(_configuration.DeepDungeons.HoardCoffers);
+            _silverConfig = new ConfigurableMarker(_configuration.DeepDungeons.SilverCoffers);
             _connectionText = null;
         }
 
@@ -106,14 +146,13 @@ namespace Pal.Client.Windows
 
             if (save || saveAndClose)
             {
-                var config = Service.Configuration;
-                config.Mode = (EMode)_mode;
-                config.Renderer.SelectedRenderer = (ERenderer)_renderer;
-                config.DeepDungeons.Traps = _trapConfig.Build();
-                config.DeepDungeons.HoardCoffers = _hoardConfig.Build();
-                config.DeepDungeons.SilverCoffers = _silverConfig.Build();
+                _configuration.Mode = (EMode)_mode;
+                _configuration.Renderer.SelectedRenderer = (ERenderer)_renderer;
+                _configuration.DeepDungeons.Traps = _trapConfig.Build();
+                _configuration.DeepDungeons.HoardCoffers = _hoardConfig.Build();
+                _configuration.DeepDungeons.SilverCoffers = _silverConfig.Build();
 
-                Service.ConfigurationManager.Save(config);
+                _configurationManager.Save(_configuration);
 
                 if (saveAndClose)
                     IsOpen = false;
@@ -141,8 +180,10 @@ namespace Pal.Client.Windows
                 ImGui.Indent();
                 ImGui.BeginDisabled(!_hoardConfig.Show);
                 ImGui.Spacing();
-                ImGui.ColorEdit4(Localization.Config_HoardCoffers_Color, ref _hoardConfig.Color, ImGuiColorEditFlags.NoInputs);
-                ImGui.Checkbox(Localization.Config_HoardCoffers_HideImpossible, ref _hoardConfig.OnlyVisibleAfterPomander);
+                ImGui.ColorEdit4(Localization.Config_HoardCoffers_Color, ref _hoardConfig.Color,
+                    ImGuiColorEditFlags.NoInputs);
+                ImGui.Checkbox(Localization.Config_HoardCoffers_HideImpossible,
+                    ref _hoardConfig.OnlyVisibleAfterPomander);
                 ImGui.SameLine();
                 ImGuiComponents.HelpMarker(Localization.Config_HoardCoffers_HideImpossible_ToolTip);
                 ImGui.EndDisabled();
@@ -155,7 +196,8 @@ namespace Pal.Client.Windows
                 ImGui.Indent();
                 ImGui.BeginDisabled(!_silverConfig.Show);
                 ImGui.Spacing();
-                ImGui.ColorEdit4(Localization.Config_SilverCoffer_Color, ref _silverConfig.Color, ImGuiColorEditFlags.NoInputs);
+                ImGui.ColorEdit4(Localization.Config_SilverCoffer_Color, ref _silverConfig.Color,
+                    ImGuiColorEditFlags.NoInputs);
                 ImGui.Checkbox(Localization.Config_SilverCoffer_Filled, ref _silverConfig.Fill);
                 ImGui.EndDisabled();
                 ImGui.Unindent();
@@ -172,7 +214,8 @@ namespace Pal.Client.Windows
 
         private void DrawCommunityTab(ref bool saveAndClose)
         {
-            if (BeginTabItemEx($"{Localization.ConfigTab_Community}###TabCommunity", _switchToCommunityTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
+            if (BeginTabItemEx($"{Localization.ConfigTab_Community}###TabCommunity",
+                    _switchToCommunityTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
             {
                 _switchToCommunityTab = false;
 
@@ -180,12 +223,13 @@ namespace Pal.Client.Windows
                 ImGui.TextWrapped(Localization.Explanation_4);
 
                 ImGui.RadioButton(Localization.Config_UploadMyDiscoveries_ShowOtherTraps, ref _mode, (int)EMode.Online);
-                ImGui.RadioButton(Localization.Config_NeverUploadDiscoveries_ShowMyTraps, ref _mode, (int)EMode.Offline);
+                ImGui.RadioButton(Localization.Config_NeverUploadDiscoveries_ShowMyTraps, ref _mode,
+                    (int)EMode.Offline);
                 saveAndClose = ImGui.Button(Localization.SaveAndClose);
 
                 ImGui.Separator();
 
-                ImGui.BeginDisabled(Service.Configuration.Mode != EMode.Online);
+                ImGui.BeginDisabled(_configuration.Mode != EMode.Online);
                 if (ImGui.Button(Localization.Config_TestConnection))
                     TestConnection();
 
@@ -205,7 +249,8 @@ namespace Pal.Client.Windows
                 ImGui.TextWrapped(Localization.Config_ImportExplanation2);
                 ImGui.TextWrapped(Localization.Config_ImportExplanation3);
                 ImGui.Separator();
-                ImGui.TextWrapped(string.Format(Localization.Config_ImportDownloadLocation, "https://github.com/carvelli/PalacePal/releases/"));
+                ImGui.TextWrapped(string.Format(Localization.Config_ImportDownloadLocation,
+                    "https://github.com/carvelli/PalacePal/releases/"));
                 if (ImGui.Button(Localization.Config_Import_VisitGitHub))
                     GenericHelpers.ShellStart("https://github.com/carvelli/PalacePal/releases/latest");
                 ImGui.Separator();
@@ -215,14 +260,16 @@ namespace Pal.Client.Windows
                 ImGui.SameLine();
                 if (ImGuiComponents.IconButton(FontAwesomeIcon.Search))
                 {
-                    _importDialog.OpenFileDialog(Localization.Palace_Pal, $"{Localization.Palace_Pal} (*.pal) {{.pal}}", (success, paths) =>
-                    {
-                        if (success && paths.Count == 1)
+                    _importDialog.OpenFileDialog(Localization.Palace_Pal, $"{Localization.Palace_Pal} (*.pal) {{.pal}}",
+                        (success, paths) =>
                         {
-                            _openImportPath = paths.First();
-                        }
-                    }, selectionCountMax: 1, startPath: _openImportDialogStartPath, isModal: false);
-                    _openImportDialogStartPath = null; // only use this once, FileDialogManager will save path between calls
+                            if (success && paths.Count == 1)
+                            {
+                                _openImportPath = paths.First();
+                            }
+                        }, selectionCountMax: 1, startPath: _openImportDialogStartPath, isModal: false);
+                    _openImportDialogStartPath =
+                        null; // only use this once, FileDialogManager will save path between calls
                 }
 
                 ImGui.BeginDisabled(string.IsNullOrEmpty(_openImportPath) || !File.Exists(_openImportPath));
@@ -230,11 +277,13 @@ namespace Pal.Client.Windows
                     DoImport(_openImportPath);
                 ImGui.EndDisabled();
 
-                var importHistory = Service.Configuration.ImportHistory.OrderByDescending(x => x.ImportedAt).ThenBy(x => x.Id).FirstOrDefault();
+                var importHistory = _configuration.ImportHistory.OrderByDescending(x => x.ImportedAt)
+                    .ThenBy(x => x.Id).FirstOrDefault();
                 if (importHistory != null)
                 {
                     ImGui.Separator();
-                    ImGui.TextWrapped(string.Format(Localization.Config_UndoImportExplanation1, importHistory.ImportedAt, importHistory.RemoteUrl, importHistory.ExportedAt));
+                    ImGui.TextWrapped(string.Format(Localization.Config_UndoImportExplanation1,
+                        importHistory.ImportedAt, importHistory.RemoteUrl, importHistory.ExportedAt));
                     ImGui.TextWrapped(Localization.Config_UndoImportExplanation2);
                     if (ImGui.Button(Localization.Config_UndoImport))
                         UndoImport(importHistory.Id);
@@ -246,7 +295,8 @@ namespace Pal.Client.Windows
 
         private void DrawExportTab()
         {
-            if (Service.RemoteApi.HasRoleOnCurrentServer("export:run") && ImGui.BeginTabItem($"{Localization.ConfigTab_Export}###TabExport"))
+            if (_configuration.HasRoleOnCurrentServer("export:run") &&
+                ImGui.BeginTabItem($"{Localization.ConfigTab_Export}###TabExport"))
             {
                 string todaysFileName = $"export-{DateTime.Today:yyyy-MM-dd}.pal";
                 if (string.IsNullOrEmpty(_saveExportPath) && !string.IsNullOrEmpty(_saveExportDialogStartPath))
@@ -259,14 +309,16 @@ namespace Pal.Client.Windows
                 ImGui.SameLine();
                 if (ImGuiComponents.IconButton(FontAwesomeIcon.Search))
                 {
-                    _importDialog.SaveFileDialog(Localization.Palace_Pal, $"{Localization.Palace_Pal} (*.pal) {{.pal}}", todaysFileName, "pal", (success, path) =>
-                    {
-                        if (success && !string.IsNullOrEmpty(path))
+                    _importDialog.SaveFileDialog(Localization.Palace_Pal, $"{Localization.Palace_Pal} (*.pal) {{.pal}}",
+                        todaysFileName, "pal", (success, path) =>
                         {
-                            _saveExportPath = path;
-                        }
-                    }, startPath: _saveExportDialogStartPath, isModal: false);
-                    _saveExportDialogStartPath = null; // only use this once, FileDialogManager will save path between calls
+                            if (success && !string.IsNullOrEmpty(path))
+                            {
+                                _saveExportPath = path;
+                            }
+                        }, startPath: _saveExportDialogStartPath, isModal: false);
+                    _saveExportDialogStartPath =
+                        null; // only use this once, FileDialogManager will save path between calls
                 }
 
                 ImGui.BeginDisabled(string.IsNullOrEmpty(_saveExportPath) || File.Exists(_saveExportPath));
@@ -283,8 +335,11 @@ namespace Pal.Client.Windows
             if (ImGui.BeginTabItem($"{Localization.ConfigTab_Renderer}###TabRenderer"))
             {
                 ImGui.Text(Localization.Config_SelectRenderBackend);
-                ImGui.RadioButton($"{Localization.Config_Renderer_Splatoon} ({Localization.Config_Renderer_Splatoon_Hint})", ref _renderer, (int)ERenderer.Splatoon);
-                ImGui.RadioButton($"{Localization.Config_Renderer_Simple} ({Localization.Config_Renderer_Simple_Hint})", ref _renderer, (int)ERenderer.Simple);
+                ImGui.RadioButton(
+                    $"{Localization.Config_Renderer_Splatoon} ({Localization.Config_Renderer_Splatoon_Hint})",
+                    ref _renderer, (int)ERenderer.Splatoon);
+                ImGui.RadioButton($"{Localization.Config_Renderer_Simple} ({Localization.Config_Renderer_Simple_Hint})",
+                    ref _renderer, (int)ERenderer.Simple);
 
                 ImGui.Separator();
 
@@ -294,9 +349,9 @@ namespace Pal.Client.Windows
 
                 ImGui.Separator();
                 ImGui.Text(Localization.Config_Splatoon_Test);
-                ImGui.BeginDisabled(!(Service.Plugin.Renderer is IDrawDebugItems));
+                ImGui.BeginDisabled(!(_renderAdapter.Implementation is IDrawDebugItems));
                 if (ImGui.Button(Localization.Config_Splatoon_DrawCircles))
-                    (Service.Plugin.Renderer as IDrawDebugItems)?.DrawDebugItems(_trapConfig.Color, _hoardConfig.Color);
+                    (_renderAdapter.Implementation as IDrawDebugItems)?.DrawDebugItems(_trapConfig.Color, _hoardConfig.Color);
                 ImGui.EndDisabled();
 
                 ImGui.EndTabItem();
@@ -307,39 +362,43 @@ namespace Pal.Client.Windows
         {
             if (ImGui.BeginTabItem($"{Localization.ConfigTab_Debug}###TabDebug"))
             {
-                var plugin = Service.Plugin;
-                if (plugin.IsInDeepDungeon())
+                if (_territoryState.IsInDeepDungeon())
                 {
-                    ImGui.Text($"You are in a deep dungeon, territory type {plugin.LastTerritory}.");
-                    ImGui.Text($"Sync State = {plugin.TerritorySyncState}");
-                    ImGui.Text($"{plugin.DebugMessage}");
+                    ImGui.Text($"You are in a deep dungeon, territory type {_territoryState.LastTerritory}.");
+                    ImGui.Text($"Sync State = {_territoryState.TerritorySyncState}");
+                    ImGui.Text($"{_debugState.DebugMessage}");
 
                     ImGui.Indent();
-                    if (plugin.FloorMarkers.TryGetValue(plugin.LastTerritory, out var currentFloor))
+                    if (_floorService.FloorMarkers.TryGetValue(_territoryState.LastTerritory, out var currentFloor))
                     {
                         if (_trapConfig.Show)
                         {
                             int traps = currentFloor.Markers.Count(x => x.Type == Marker.EType.Trap);
                             ImGui.Text($"{traps} known trap{(traps == 1 ? "" : "s")}");
                         }
+
                         if (_hoardConfig.Show)
                         {
                             int hoardCoffers = currentFloor.Markers.Count(x => x.Type == Marker.EType.Hoard);
                             ImGui.Text($"{hoardCoffers} known hoard coffer{(hoardCoffers == 1 ? "" : "s")}");
                         }
+
                         if (_silverConfig.Show)
                         {
-                            int silverCoffers = plugin.EphemeralMarkers.Count(x => x.Type == Marker.EType.SilverCoffer);
-                            ImGui.Text($"{silverCoffers} silver coffer{(silverCoffers == 1 ? "" : "s")} visible on current floor");
+                            int silverCoffers = _floorService.EphemeralMarkers.Count(x => x.Type == Marker.EType.SilverCoffer);
+                            ImGui.Text(
+                                $"{silverCoffers} silver coffer{(silverCoffers == 1 ? "" : "s")} visible on current floor");
                         }
 
-                        ImGui.Text($"Pomander of Sight: {plugin.PomanderOfSight}");
-                        ImGui.Text($"Pomander of Intuition: {plugin.PomanderOfIntuition}");
+                        ImGui.Text($"Pomander of Sight: {_territoryState.PomanderOfSight}");
+                        ImGui.Text($"Pomander of Intuition: {_territoryState.PomanderOfIntuition}");
                     }
                     else
                         ImGui.Text("Could not query current trap/coffer count.");
+
                     ImGui.Unindent();
-                    ImGui.TextWrapped("Traps and coffers may not be discovered even after using a pomander if they're far away (around 1,5-2 rooms).");
+                    ImGui.TextWrapped(
+                        "Traps and coffers may not be discovered even after using a pomander if they're far away (around 1,5-2 rooms).");
                 }
                 else
                     ImGui.Text(Localization.Config_Debug_NotInADeepDungeon);
@@ -378,7 +437,7 @@ namespace Pal.Client.Windows
 
                 try
                 {
-                    _connectionText = await Service.RemoteApi.VerifyConnection(cts.Token);
+                    _connectionText = await _remoteApi.VerifyConnection(cts.Token);
                 }
                 catch (Exception e)
                 {
@@ -388,19 +447,20 @@ namespace Pal.Client.Windows
                         _connectionText = e.ToString();
                     }
                     else
-                        PluginLog.Warning(e, "Could not establish a remote connection, but user also clicked 'test connection' again so not updating UI");
+                        PluginLog.Warning(e,
+                            "Could not establish a remote connection, but user also clicked 'test connection' again so not updating UI");
                 }
             });
         }
 
         private void DoImport(string sourcePath)
         {
-            Service.Plugin.EarlyEventQueue.Enqueue(new QueuedImport(sourcePath));
+            _frameworkService.EarlyEventQueue.Enqueue(new QueuedImport(sourcePath));
         }
 
         private void UndoImport(Guid importId)
         {
-            Service.Plugin.EarlyEventQueue.Enqueue(new QueuedUndoImport(importId));
+            _frameworkService.EarlyEventQueue.Enqueue(new QueuedUndoImport(importId));
         }
 
         private void DoExport(string destinationPath)
@@ -409,28 +469,28 @@ namespace Pal.Client.Windows
             {
                 try
                 {
-                    (bool success, ExportRoot export) = await Service.RemoteApi.DoExport();
+                    (bool success, ExportRoot export) = await _remoteApi.DoExport();
                     if (success)
                     {
                         await using var output = File.Create(destinationPath);
                         export.WriteTo(output);
 
-                        Service.Chat.Print($"Export saved as {destinationPath}.");
+                        _chatGui.Print($"Export saved as {destinationPath}.");
                     }
                     else
                     {
-                        Service.Chat.PrintError("Export failed due to server error.");
+                        _chatGui.PrintError("Export failed due to server error.");
                     }
                 }
                 catch (Exception e)
                 {
                     PluginLog.Error(e, "Export failed");
-                    Service.Chat.PrintError($"Export failed: {e}");
+                    _chatGui.PrintError($"Export failed: {e}");
                 }
             });
         }
 
-        private class ConfigurableMarker
+        private sealed class ConfigurableMarker
         {
             public bool Show;
             public Vector4 Color;

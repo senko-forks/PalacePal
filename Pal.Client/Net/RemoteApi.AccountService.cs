@@ -19,7 +19,7 @@ namespace Pal.Client.Net
     {
         private async Task<(bool Success, string Error)> TryConnect(CancellationToken cancellationToken, ILoggerFactory? loggerFactory = null, bool retry = true)
         {
-            if (Service.Configuration.Mode != EMode.Online)
+            if (_configuration.Mode != EMode.Online)
             {
                 PluginLog.Debug("TryConnect: Not Online, not attempting to establish a connection");
                 return (false, Localization.ConnectionError_NotOnline);
@@ -47,7 +47,7 @@ namespace Pal.Client.Net
             cancellationToken.ThrowIfCancellationRequested();
 
             var accountClient = new AccountService.AccountServiceClient(_channel);
-            IAccountConfiguration? configuredAccount = Service.Configuration.FindAccount(RemoteUrl);
+            IAccountConfiguration? configuredAccount = _configuration.FindAccount(RemoteUrl);
             if (configuredAccount == null)
             {
                 PluginLog.Information($"TryConnect: No account information saved for {RemoteUrl}, creating new account");
@@ -57,17 +57,17 @@ namespace Pal.Client.Net
                     if (!Guid.TryParse(createAccountReply.AccountId, out Guid accountId))
                         throw new InvalidOperationException("invalid account id returned");
 
-                    configuredAccount = Service.Configuration.CreateAccount(RemoteUrl, accountId);
+                    configuredAccount = _configuration.CreateAccount(RemoteUrl, accountId);
                     PluginLog.Information($"TryConnect: Account created with id {accountId.ToPartialId()}");
 
-                    Service.ConfigurationManager.Save(Service.Configuration);
+                    _configurationManager.Save(_configuration);
                 }
                 else
                 {
                     PluginLog.Error($"TryConnect: Account creation failed with error {createAccountReply.Error}");
                     if (createAccountReply.Error == CreateAccountError.UpgradeRequired && !_warnedAboutUpgrade)
                     {
-                        Service.Chat.PalError(Localization.ConnectionError_OldVersion);
+                        _chatGui.PalError(Localization.ConnectionError_OldVersion);
                         _warnedAboutUpgrade = true;
                     }
                     return (false, string.Format(Localization.ConnectionError_CreateAccountFailed, createAccountReply.Error));
@@ -102,7 +102,7 @@ namespace Pal.Client.Net
                     }
 
                     if (save)
-                        Service.ConfigurationManager.Save(Service.Configuration);
+                        _configurationManager.Save(_configuration);
                 }
                 else
                 {
@@ -110,8 +110,8 @@ namespace Pal.Client.Net
                     _loginInfo = new LoginInfo(null);
                     if (loginReply.Error == LoginError.InvalidAccountId)
                     {
-                        Service.Configuration.RemoveAccount(RemoteUrl);
-                        Service.ConfigurationManager.Save(Service.Configuration);
+                        _configuration.RemoveAccount(RemoteUrl);
+                        _configurationManager.Save(_configuration);
                         if (retry)
                         {
                             PluginLog.Information("TryConnect: Attempting connection retry without account id");
@@ -122,7 +122,7 @@ namespace Pal.Client.Net
                     }
                     if (loginReply.Error == LoginError.UpgradeRequired && !_warnedAboutUpgrade)
                     {
-                        Service.Chat.PalError(Localization.ConnectionError_OldVersion);
+                        _chatGui.PalError(Localization.ConnectionError_OldVersion);
                         _warnedAboutUpgrade = true;
                     }
                     return (false, string.Format(Localization.ConnectionError_LoginFailed, loginReply.Error));
@@ -161,7 +161,7 @@ namespace Pal.Client.Net
             return Localization.ConnectionSuccessful;
         }
 
-        internal class LoginInfo
+        internal sealed class LoginInfo
         {
             public LoginInfo(string? authToken)
             {

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
+using Pal.Client.Net;
 
 namespace Pal.Client.Configuration;
 
@@ -44,5 +45,14 @@ public class ConfigurationV7 : IPalacePalConfiguration, IConfigurationInConfigDi
     public void RemoveAccount(string server)
     {
         Accounts.RemoveAll(a => a.Server == server && a.IsUsable);
+    }
+
+    public bool HasRoleOnCurrentServer(string role)
+    {
+        if (Mode != EMode.Online)
+            return false;
+
+        var account = FindAccount(RemoteApi.RemoteUrl);
+        return account == null || account.CachedRoles.Contains(role);
     }
 }

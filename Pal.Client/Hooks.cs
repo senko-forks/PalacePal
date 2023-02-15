@@ -5,11 +5,17 @@ using Dalamud.Memory;
 using Dalamud.Utility.Signatures;
 using System;
 using System.Text;
+using Dalamud.Game.ClientState.Objects;
+using Pal.Client.DependencyInjection;
 
 namespace Pal.Client
 {
-    internal unsafe class Hooks
+    internal unsafe class Hooks : IDisposable
     {
+        private readonly ObjectTable _objectTable;
+        private readonly TerritoryState _territoryState;
+        private readonly FrameworkService _frameworkService;
+
 #pragma warning disable CS0649
         private delegate nint ActorVfxCreateDelegate(char* a1, nint a2, nint a3, float a4, char a5, ushort a6, char a7);
 
@@ -17,8 +23,12 @@ namespace Pal.Client
         private Hook<ActorVfxCreateDelegate> ActorVfxCreateHook { get; init; } = null!;
 #pragma warning restore CS0649
 
-        public Hooks()
+        public Hooks(ObjectTable objectTable, TerritoryState territoryState, FrameworkService frameworkService)
         {
+            _objectTable = objectTable;
+            _territoryState = territoryState;
+            _frameworkService = frameworkService;
+
             SignatureHelper.Initialise(this);
             ActorVfxCreateHook.Enable();
         }
@@ -55,10 +65,10 @@ namespace Pal.Client
         {
             try
             {
-                if (Service.Plugin.IsInDeepDungeon())
+                if (_territoryState.IsInDeepDungeon())
                 {
                     var vfxPath = MemoryHelper.ReadString(new nint(a1), Encoding.ASCII, 256);
-                    var obj = Service.ObjectTable.CreateObjectReference(a2);
+                    var obj = _objectTable.CreateObjectReference(a2);
 
                     /*
                     if (Service.Configuration.BetaKey == "VFX")
@@ -69,7 +79,7 @@ namespace Pal.Client
                     {
                         if (vfxPath == "vfx/common/eff/dk05th_stdn0t.avfx" || vfxPath == "vfx/common/eff/dk05ht_ipws0t.avfx")
                         {
-                            Service.Plugin.NextUpdateObjects.Enqueue(obj.Address);
+                            _frameworkService.NextUpdateObjects.Enqueue(obj.Address);
                         }
                     }
                 }
@@ -83,7 +93,7 @@ namespace Pal.Client
 
         public void Dispose()
         {
-            ActorVfxCreateHook?.Dispose();
+            ActorVfxCreateHook.Dispose();
         }
     }
 }

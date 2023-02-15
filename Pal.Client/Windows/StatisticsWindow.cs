@@ -13,13 +13,17 @@ using System.Reflection;
 
 namespace Pal.Client.Windows
 {
-    internal class StatisticsWindow : Window, ILanguageChanged
+    internal class StatisticsWindow : Window, IDisposable, ILanguageChanged
     {
         private const string WindowId = "###PalacePalStats";
+        private readonly WindowSystem _windowSystem;
         private readonly SortedDictionary<ETerritoryType, TerritoryStatistics> _territoryStatistics = new();
 
-        public StatisticsWindow() : base(WindowId)
+        public StatisticsWindow(WindowSystem windowSystem)
+            : base(WindowId)
         {
+            _windowSystem = windowSystem;
+
             LanguageChanged();
 
             Size = new Vector2(500, 500);
@@ -30,7 +34,12 @@ namespace Pal.Client.Windows
             {
                 _territoryStatistics[territory] = new TerritoryStatistics(territory.ToString());
             }
+
+            _windowSystem.AddWindow(this);
         }
+
+        public void Dispose()
+            => _windowSystem.RemoveWindow(this);
 
         public void LanguageChanged()
             => WindowName = $"{Localization.Palace_Pal} - {Localization.Statistics}{WindowId}";
@@ -39,8 +48,10 @@ namespace Pal.Client.Windows
         {
             if (ImGui.BeginTabBar("Tabs"))
             {
-                DrawDungeonStats("Palace of the Dead", Localization.PalaceOfTheDead, ETerritoryType.Palace_1_10, ETerritoryType.Palace_191_200);
-                DrawDungeonStats("Heaven on High", Localization.HeavenOnHigh, ETerritoryType.HeavenOnHigh_1_10, ETerritoryType.HeavenOnHigh_91_100);
+                DrawDungeonStats("Palace of the Dead", Localization.PalaceOfTheDead, ETerritoryType.Palace_1_10,
+                    ETerritoryType.Palace_191_200);
+                DrawDungeonStats("Heaven on High", Localization.HeavenOnHigh, ETerritoryType.HeavenOnHigh_1_10,
+                    ETerritoryType.HeavenOnHigh_91_100);
             }
         }
 
@@ -48,7 +59,8 @@ namespace Pal.Client.Windows
         {
             if (ImGui.BeginTabItem($"{name}###{id}"))
             {
-                if (ImGui.BeginTable($"TrapHoardStatistics{id}", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable))
+                if (ImGui.BeginTable($"TrapHoardStatistics{id}", 4,
+                        ImGuiTableFlags.Borders | ImGuiTableFlags.Resizable))
                 {
                     ImGui.TableSetupColumn(Localization.Statistics_TerritoryId);
                     ImGui.TableSetupColumn(Localization.Statistics_InstanceName);
@@ -56,7 +68,9 @@ namespace Pal.Client.Windows
                     ImGui.TableSetupColumn(Localization.Statistics_HoardCoffers);
                     ImGui.TableHeadersRow();
 
-                    foreach (var (territoryType, stats) in _territoryStatistics.Where(x => x.Key >= minTerritory && x.Key <= maxTerritory).OrderBy(x => x.Key.GetOrder() ?? (int)x.Key))
+                    foreach (var (territoryType, stats) in _territoryStatistics
+                                 .Where(x => x.Key >= minTerritory && x.Key <= maxTerritory)
+                                 .OrderBy(x => x.Key.GetOrder() ?? (int)x.Key))
                     {
                         ImGui.TableNextRow();
                         if (ImGui.TableNextColumn())
@@ -71,8 +85,10 @@ namespace Pal.Client.Windows
                         if (ImGui.TableNextColumn())
                             ImGui.Text(stats.HoardCofferCount?.ToString() ?? "-");
                     }
+
                     ImGui.EndTable();
                 }
+
                 ImGui.EndTabItem();
             }
         }
@@ -87,7 +103,8 @@ namespace Pal.Client.Windows
 
             foreach (var floor in floorStatistics)
             {
-                if (_territoryStatistics.TryGetValue((ETerritoryType)floor.TerritoryType, out TerritoryStatistics? territoryStatistics))
+                if (_territoryStatistics.TryGetValue((ETerritoryType)floor.TerritoryType,
+                        out TerritoryStatistics? territoryStatistics))
                 {
                     territoryStatistics.TrapCount = floor.TrapCount;
                     territoryStatistics.HoardCofferCount = floor.HoardCount;
@@ -97,7 +114,7 @@ namespace Pal.Client.Windows
 
         private class TerritoryStatistics
         {
-            public string TerritoryName { get; set; }
+            public string TerritoryName { get; }
             public uint? TrapCount { get; set; }
             public uint? HoardCofferCount { get; set; }
 

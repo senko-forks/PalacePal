@@ -1,98 +1,54 @@
 ﻿using Account;
-using Dalamud.Logging;
 using Pal.Common;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using Pal.Client.Extensions;
+using Dalamud.Game.Gui;
 using Pal.Client.Properties;
-using Pal.Client.Configuration;
 
 namespace Pal.Client.Scheduled
 {
-    internal class QueuedImport : IQueueOnFrameworkThread
+    internal sealed class QueuedImport : IQueueOnFrameworkThread
     {
-        private readonly ExportRoot _export;
-        private Guid _exportId;
-        private int _importedTraps;
-        private int _importedHoardCoffers;
+        public ExportRoot Export { get; }
+        public Guid ExportId { get; private set; }
+        public int ImportedTraps { get; private set; }
+        public int ImportedHoardCoffers { get; private set; }
 
         public QueuedImport(string sourcePath)
         {
             using var input = File.OpenRead(sourcePath);
-            _export = ExportRoot.Parser.ParseFrom(input);
+            Export = ExportRoot.Parser.ParseFrom(input);
         }
 
-        public void Run(Plugin plugin, ref bool recreateLayout, ref bool saveMarkers)
+        public bool Validate(ChatGui chatGui)
         {
-            try
+            if (Export.ExportVersion != ExportConfig.ExportVersion)
             {
-                if (!Validate())
-                    return;
-
-                var config = Service.Configuration;
-                var oldExportIds = string.IsNullOrEmpty(_export.ServerUrl) ? config.ImportHistory.Where(x => x.RemoteUrl == _export.ServerUrl).Select(x => x.Id).Where(x => x != Guid.Empty).ToList() : new List<Guid>();
-
-                foreach (var remoteFloor in _export.Floors)
-                {
-                    ushort territoryType = (ushort)remoteFloor.TerritoryType;
-                    var localState = plugin.GetFloorMarkers(territoryType);
-
-                    localState.UndoImport(oldExportIds);
-                    ImportFloor(remoteFloor, localState);
-
-                    localState.Save();
-                }
-
-                config.ImportHistory.RemoveAll(hist => oldExportIds.Contains(hist.Id) || hist.Id == _exportId);
-                config.ImportHistory.Add(new ConfigurationV1.ImportHistoryEntry
-                {
-                    Id = _exportId,
-                    RemoteUrl = _export.ServerUrl,
-                    ExportedAt = _export.CreatedAt.ToDateTime(),
-                    ImportedAt = DateTime.UtcNow,
-                });
-                Service.ConfigurationManager.Save(config);
-
-                recreateLayout = true;
-                saveMarkers = true;
-
-                Service.Chat.Print(string.Format(Localization.ImportCompleteStatistics, _importedTraps, _importedHoardCoffers));
-            }
-            catch (Exception e)
-            {
-                PluginLog.Error(e, "Import failed");
-                Service.Chat.PalError(string.Format(Localization.Error_ImportFailed, e));
-            }
-        }
-
-        private bool Validate()
-        {
-            if (_export.ExportVersion != ExportConfig.ExportVersion)
-            {
-                Service.Chat.PrintError(Localization.Error_ImportFailed_IncompatibleVersion);
+                chatGui.PrintError(Localization.Error_ImportFailed_IncompatibleVersion);
                 return false;
             }
 
-            if (!Guid.TryParse(_export.ExportId, out _exportId) || _exportId == Guid.Empty)
+            if (!Guid.TryParse(Export.ExportId, out Guid exportId) || ExportId == Guid.Empty)
             {
-                Service.Chat.PrintError(Localization.Error_ImportFailed_InvalidFile);
+                chatGui.PrintError(Localization.Error_ImportFailed_InvalidFile);
                 return false;
             }
 
-            if (string.IsNullOrEmpty(_export.ServerUrl))
+            ExportId = exportId;
+
+            if (string.IsNullOrEmpty(Export.ServerUrl))
             {
                 // If we allow for backups as import/export, this should be removed
-                Service.Chat.PrintError(Localization.Error_ImportFailed_InvalidFile);
+                chatGui.PrintError(Localization.Error_ImportFailed_InvalidFile);
                 return false;
             }
 
             return true;
         }
 
-        private void ImportFloor(ExportFloor remoteFloor, LocalState localState)
+        public void ImportFloor(ExportFloor remoteFloor, LocalState localState)
         {
             var remoteMarkers = remoteFloor.Objects.Select(m => new Marker((Marker.EType)m.Type, new Vector3(m.X, m.Y, m.Z)) { WasImported = true });
             foreach (var remoteMarker in remoteMarkers)
@@ -104,12 +60,12 @@ namespace Pal.Client.Scheduled
                     localMarker = remoteMarker;
 
                     if (localMarker.Type == Marker.EType.Trap)
-                        _importedTraps++;
+                        ImportedTraps++;
                     else if (localMarker.Type == Marker.EType.Hoard)
-                        _importedHoardCoffers++;
+                        ImportedHoardCoffers++;
                 }
 
-                remoteMarker.Imports.Add(_exportId);
+                remoteMarker.Imports.Add(ExportId);
             }
         }
     }

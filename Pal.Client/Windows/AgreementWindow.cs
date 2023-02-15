@@ -1,19 +1,32 @@
-﻿using Dalamud.Interface.Colors;
+﻿using System;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.Windowing;
 using ECommons;
 using ImGuiNET;
 using System.Numerics;
+using Pal.Client.Configuration;
 using Pal.Client.Properties;
 
 namespace Pal.Client.Windows
 {
-    internal class AgreementWindow : Window, ILanguageChanged
+    internal sealed class AgreementWindow : Window, IDisposable, ILanguageChanged
     {
         private const string WindowId = "###PalPalaceAgreement";
+        private readonly WindowSystem _windowSystem;
+        private readonly ConfigurationManager _configurationManager;
+        private readonly IPalacePalConfiguration _configuration;
         private int _choice;
 
-        public AgreementWindow() : base(WindowId)
+        public AgreementWindow(
+            WindowSystem windowSystem,
+            ConfigurationManager configurationManager,
+            IPalacePalConfiguration configuration)
+            : base(WindowId)
         {
+            _windowSystem = windowSystem;
+            _configurationManager = configurationManager;
+            _configuration = configuration;
+
             LanguageChanged();
 
             Flags = ImGuiWindowFlags.NoCollapse;
@@ -27,7 +40,13 @@ namespace Pal.Client.Windows
                 MinimumSize = new Vector2(500, 500),
                 MaximumSize = new Vector2(2000, 2000),
             };
+
+            IsOpen = configuration.FirstUse;
+            _windowSystem.AddWindow(this);
         }
+
+        public void Dispose()
+            => _windowSystem.RemoveWindow(this);
 
         public void LanguageChanged()
             => WindowName = $"{Localization.Palace_Pal}{WindowId}";
@@ -39,8 +58,6 @@ namespace Pal.Client.Windows
 
         public override void Draw()
         {
-            var config = Service.Configuration;
-
             ImGui.TextWrapped(Localization.Explanation_1);
             ImGui.TextWrapped(Localization.Explanation_2);
 
@@ -49,8 +66,8 @@ namespace Pal.Client.Windows
             ImGui.TextWrapped(Localization.Explanation_3);
             ImGui.TextWrapped(Localization.Explanation_4);
 
-            ImGui.RadioButton(Localization.Config_UploadMyDiscoveries_ShowOtherTraps, ref _choice, (int)Configuration.EMode.Online);
-            ImGui.RadioButton(Localization.Config_NeverUploadDiscoveries_ShowMyTraps, ref _choice, (int)Configuration.EMode.Offline);
+            ImGui.RadioButton(Localization.Config_UploadMyDiscoveries_ShowOtherTraps, ref _choice, (int)EMode.Online);
+            ImGui.RadioButton(Localization.Config_NeverUploadDiscoveries_ShowMyTraps, ref _choice, (int)EMode.Offline);
 
             ImGui.Separator();
 
@@ -67,12 +84,13 @@ namespace Pal.Client.Windows
             ImGui.BeginDisabled(_choice == -1);
             if (ImGui.Button(Localization.Agreement_UsingThisOnMyOwnRisk))
             {
-                config.Mode = (Configuration.EMode)_choice;
-                config.FirstUse = false;
-                Service.ConfigurationManager.Save(config);
+                _configuration.Mode = (EMode)_choice;
+                _configuration.FirstUse = false;
+                _configurationManager.Save(_configuration);
 
                 IsOpen = false;
             }
+
             ImGui.EndDisabled();
 
             ImGui.Separator();

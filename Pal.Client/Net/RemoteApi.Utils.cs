@@ -53,14 +53,5 @@ namespace Pal.Client.Net
             return null;
 #endif
         }
-
-        public bool HasRoleOnCurrentServer(string role)
-        {
-            if (Service.Configuration.Mode != Configuration.EMode.Online)
-                return false;
-
-            var account = Service.Configuration.FindAccount(RemoteUrl);
-            return account == null || account.CachedRoles.Contains(role);
-        }
     }
 }

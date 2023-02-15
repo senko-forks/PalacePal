@@ -29,6 +29,8 @@ namespace Pal.Client.Configuration
         IAccountConfiguration CreateAccount(string server, Guid accountId);
         IAccountConfiguration? FindAccount(string server);
         void RemoveAccount(string server);
+
+        bool HasRoleOnCurrentServer(string role);
     }
 
     public class DeepDungeonConfiguration

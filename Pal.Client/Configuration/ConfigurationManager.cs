@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -6,6 +7,8 @@ using System.Text.Json;
 using Dalamud.Logging;
 using Dalamud.Plugin;
 using ImGuiNET;
+using Pal.Client.DependencyInjection;
+using Pal.Client.Scheduled;
 using NJson = Newtonsoft.Json;
 
 namespace Pal.Client.Configuration
@@ -14,12 +17,16 @@ namespace Pal.Client.Configuration
     {
         private readonly DalamudPluginInterface _pluginInterface;
 
+        public event EventHandler<IPalacePalConfiguration>? Saved;
+
         public ConfigurationManager(DalamudPluginInterface pluginInterface)
         {
             _pluginInterface = pluginInterface;
+
+            Migrate();
         }
 
-        public string ConfigPath => Path.Join(_pluginInterface.GetPluginConfigDirectory(), "palace-pal.config.json");
+        private string ConfigPath => Path.Join(_pluginInterface.GetPluginConfigDirectory(), "palace-pal.config.json");
 
         public IPalacePalConfiguration Load()
         {
@@ -27,16 +34,20 @@ namespace Pal.Client.Configuration
                    new ConfigurationV7();
         }
 
-        public void Save(IConfigurationInConfigDirectory config)
+        public void Save(IConfigurationInConfigDirectory config, bool queue = true)
         {
             File.WriteAllText(ConfigPath,
-                JsonSerializer.Serialize(config, config.GetType(), new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }),
+                JsonSerializer.Serialize(config, config.GetType(),
+                    new JsonSerializerOptions
+                    { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }),
                 Encoding.UTF8);
+            if (queue && config is ConfigurationV7 v7)
+                Saved?.Invoke(this, v7);
         }
 
 #pragma warning disable CS0612
 #pragma warning disable CS0618
-        public void Migrate()
+        private void Migrate()
         {
             if (_pluginInterface.ConfigFile.Exists)
             {
@@ -49,7 +60,7 @@ namespace Pal.Client.Configuration
                 configurationV1.Save();
 
                 var v7 = MigrateToV7(configurationV1);
-                Save(v7);
+                Save(v7, queue: false);
 
                 File.Move(_pluginInterface.ConfigFile.FullName, _pluginInterface.ConfigFile.FullName + ".old", true);
             }

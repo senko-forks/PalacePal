@@ -2,7 +2,7 @@
 
 namespace Pal.Client.Rendering
 {
-    internal class MarkerConfig
+    internal sealed class MarkerConfig
     {
         private static readonly MarkerConfig EmptyConfig = new();
         private static readonly Dictionary<Marker.EType, MarkerConfig> MarkerConfigs = new()
@@ -12,8 +12,8 @@ namespace Pal.Client.Rendering
             { Marker.EType.SilverCoffer, new MarkerConfig { Radius = 1f } },
         };
 
-        public float OffsetY { get; set; }
-        public float Radius { get; set; } = 0.25f;
+        public float OffsetY { get; private init; }
+        public float Radius { get; private init; } = 0.25f;
 
         public static MarkerConfig ForType(Marker.EType type) => MarkerConfigs.GetValueOrDefault(type, EmptyConfig);
     }
