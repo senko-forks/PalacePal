@@ -72,9 +72,9 @@ namespace Pal.Client.Configuration
 
     public interface IAccountConfiguration
     {
-        public bool IsUsable { get; }
-        public string Server { get; }
-        public Guid AccountId { get; }
+        bool IsUsable { get; }
+        string Server { get; }
+        Guid AccountId { get; }
 
         /// <summary>
         /// This is taken from the JWT, and is only refreshed on a successful login.
@@ -84,6 +84,8 @@ namespace Pal.Client.Configuration
         /// This has no impact on what roles the JWT actually contains, but is just to make it
         /// easier to draw a consistent UI. The server will still reject unauthorized calls.
         /// </summary>
-        public List<string> CachedRoles { get; set; }
+        List<string> CachedRoles { get; set; }
+
+        bool EncryptIfNeeded();
     }
 }

@@ -54,7 +54,7 @@ namespace Pal.Client.Net
                 var createAccountReply = await accountClient.CreateAccountAsync(new CreateAccountRequest(), headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
                 if (createAccountReply.Success)
                 {
-                    if (Guid.TryParse(createAccountReply.AccountId, out Guid accountId))
+                    if (!Guid.TryParse(createAccountReply.AccountId, out Guid accountId))
                         throw new InvalidOperationException("invalid account id returned");
 
                     configuredAccount = Service.Configuration.CreateAccount(RemoteUrl, accountId);
@@ -92,8 +92,17 @@ namespace Pal.Client.Net
                     PluginLog.Information($"TryConnect: Login successful with account id: {configuredAccount.AccountId.ToPartialId()}");
                     _loginInfo = new LoginInfo(loginReply.AuthToken);
 
-                    configuredAccount.CachedRoles = _loginInfo.Claims?.Roles.ToList() ?? new List<string>();
-                    Service.ConfigurationManager.Save(Service.Configuration);
+                    bool save = configuredAccount.EncryptIfNeeded();
+
+                    List<string> newRoles = _loginInfo.Claims?.Roles.ToList() ?? new();
+                    if (!newRoles.SequenceEqual(configuredAccount.CachedRoles))
+                    {
+                        configuredAccount.CachedRoles = newRoles;
+                        save = true;
+                    }
+
+                    if (save)
+                        Service.ConfigurationManager.Save(Service.Configuration);
                 }
                 else
                 {

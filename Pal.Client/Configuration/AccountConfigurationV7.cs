@@ -32,9 +32,11 @@ namespace Pal.Client.Configuration
                 throw new InvalidOperationException("invalid account id format");
         }
 
-        public string EncryptedId { get; init; } = null!;
+        [JsonPropertyName("Id")]
+        [JsonInclude]
+        public string EncryptedId { get; private set; } = null!;
 
-        public string Server { get; set; } = null!;
+        public string Server { get; init; } = null!;
 
         [JsonIgnore] public bool IsUsable => DecryptAccountId(EncryptedId) != null;
 
@@ -56,7 +58,7 @@ namespace Pal.Client.Configuration
                     ConfigurationData.Entropy, DataProtectionScope.CurrentUser);
                 return new Guid(guidBytes);
             }
-            catch (CryptographicException e)
+            catch (Exception e)
             {
                 PluginLog.Verbose(e, $"Could not load account id {id}");
                 return null;
@@ -71,10 +73,21 @@ namespace Pal.Client.Configuration
                     DataProtectionScope.CurrentUser);
                 return $"s:{Convert.ToBase64String(guidBytes)}";
             }
-            catch (CryptographicException)
+            catch (Exception)
             {
                 return g.ToString();
             }
+        }
+
+        public bool EncryptIfNeeded()
+        {
+            if (Guid.TryParse(EncryptedId, out Guid g))
+            {
+                string oldId = EncryptedId;
+                EncryptedId = EncryptAccountId(g);
+                return oldId != EncryptedId;
+            }
+            return false;
         }
     }
 }

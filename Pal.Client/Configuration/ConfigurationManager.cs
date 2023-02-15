@@ -1,13 +1,12 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Dalamud.Logging;
 using Dalamud.Plugin;
 using ImGuiNET;
-using Newtonsoft.Json;
-using JsonSerializer = System.Text.Json.JsonSerializer;
+using NJson = Newtonsoft.Json;
 
 namespace Pal.Client.Configuration
 {
@@ -31,7 +30,7 @@ namespace Pal.Client.Configuration
                 PluginLog.Information("Migrating config file from v1-v6 format");
 
                 ConfigurationV1 configurationV1 =
-                    JsonConvert.DeserializeObject<ConfigurationV1>(
+                    NJson.JsonConvert.DeserializeObject<ConfigurationV1>(
                         File.ReadAllText(_pluginInterface.ConfigFile.FullName)) ?? new ConfigurationV1();
                 configurationV1.Migrate();
                 configurationV1.Save();
@@ -52,7 +51,7 @@ namespace Pal.Client.Configuration
         public void Save(IConfigurationInConfigDirectory config)
         {
             File.WriteAllText(ConfigPath,
-                JsonSerializer.Serialize(config, config.GetType(), new JsonSerializerOptions { WriteIndented = true }),
+                JsonSerializer.Serialize(config, config.GetType(), new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }),
                 Encoding.UTF8);
         }
 
@@ -94,7 +93,8 @@ namespace Pal.Client.Configuration
                 if (string.IsNullOrEmpty(accountId))
                     continue;
 
-                IAccountConfiguration newAccount = v7.CreateAccount(server, accountId);
+                string serverName = server.Replace(".μ.tv", ".liza.sh");
+                IAccountConfiguration newAccount = v7.CreateAccount(serverName, accountId);
                 newAccount.CachedRoles = oldAccount.CachedRoles.ToList();
             }
 
