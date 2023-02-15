@@ -41,6 +41,7 @@ namespace Pal.Client.Configuration
         }
 
         [JsonInclude]
+        [JsonRequired]
         public EFormat Format { get; private set; } = EFormat.Unencrypted;
 
         /// <summary>
@@ -48,11 +49,13 @@ namespace Pal.Client.Configuration
         /// </summary>
         [JsonPropertyName("Id")]
         [JsonInclude]
+        [JsonRequired]
         public string EncryptedId { get; private set; } = null!;
 
         [JsonInclude]
         public byte[]? Entropy { get; private set; }
 
+        [JsonRequired]
         public string Server { get; init; } = null!;
 
         [JsonIgnore] public bool IsUsable => DecryptAccountId() != null;

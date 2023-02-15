@@ -33,9 +33,10 @@ using Pal.Client.Net;
 
 namespace Pal.Client
 {
-    public class Plugin : IDalamudPlugin
+    public class Plugin : IDisposable
     {
         internal const uint ColorInvisible = 0;
+        private readonly IDalamudPlugin _dalamudPlugin;
 
         private LocalizedChatMessages _localizedChatMessages = new();
 
@@ -51,10 +52,10 @@ namespace Pal.Client
         internal ConcurrentQueue<nint> NextUpdateObjects { get; } = new();
         internal IRenderer Renderer { get; private set; } = null!;
 
-        public string Name => Localization.Palace_Pal;
-
-        public Plugin(DalamudPluginInterface pluginInterface, ChatGui chat)
+        public Plugin(DalamudPluginInterface pluginInterface, ChatGui chat, IDalamudPlugin dalamudPlugin)
         {
+            _dalamudPlugin = dalamudPlugin;
+
             LanguageChanged(pluginInterface.UiLanguage);
 
             PluginLog.Information($"Install source: {pluginInterface.SourceRepository}");
@@ -669,7 +670,7 @@ namespace Pal.Client
                 disposable.Dispose();
 
             if (Service.Configuration.Renderer.SelectedRenderer == ERenderer.Splatoon)
-                Renderer = new SplatoonRenderer(Service.PluginInterface, this);
+                Renderer = new SplatoonRenderer(Service.PluginInterface, _dalamudPlugin);
             else
                 Renderer = new SimpleRenderer();
         }

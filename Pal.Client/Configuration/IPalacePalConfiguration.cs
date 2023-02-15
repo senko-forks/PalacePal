@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Numerics;
 using ImGuiNET;
+using Newtonsoft.Json;
 
 namespace Pal.Client.Configuration
 {
@@ -59,8 +60,12 @@ namespace Pal.Client.Configuration
 
     public class MarkerConfiguration
     {
+        [JsonRequired]
         public bool Show { get; set; }
+
+        [JsonRequired]
         public uint Color { get; set; }
+
         public bool OnlyVisibleAfterPomander { get; set; }
         public bool Fill { get; set; }
     }
