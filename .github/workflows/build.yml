@@ -1,7 +1,7 @@
 name: dotnet build
 on:
   push:
-    paths:
+    paths-ignore:
       - '**.md'
       - 'Dockerfile'
 jobs:
