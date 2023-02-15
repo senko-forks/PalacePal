@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 using Dalamud.Logging;
@@ -16,7 +17,7 @@ namespace Pal.Client.Configuration
         public AccountConfigurationV7(string server, Guid accountId)
         {
             Server = server;
-            EncryptedId = EncryptAccountId(accountId);
+            (EncryptedId, Entropy, Format) = EncryptAccountId(accountId);
         }
 
         [Obsolete("for V1 import")]
@@ -25,69 +26,111 @@ namespace Pal.Client.Configuration
             Server = server;
 
             if (accountId.StartsWith("s:"))
-                EncryptedId = accountId;
+            {
+                EncryptedId = accountId.Substring(2);
+                Entropy = ConfigurationData.FixedV1Entropy;
+                Format = EFormat.UseProtectedData;
+
+                // try to migrate away from v1 entropy if possible
+                Guid? decryptedId = DecryptAccountId();
+                if (decryptedId != null)
+                    (EncryptedId, Entropy, Format) = EncryptAccountId(decryptedId.Value);
+            }
             else if (Guid.TryParse(accountId, out Guid guid))
-                EncryptedId = EncryptAccountId(guid);
+                (EncryptedId, Entropy, Format) = EncryptAccountId(guid);
             else
-                throw new InvalidOperationException("invalid account id format");
+                throw new InvalidOperationException($"Invalid account id format, can't migrate account for server {server}");
         }
 
+        [JsonInclude]
+        public EFormat Format { get; private set; } = EFormat.Unencrypted;
+
+        /// <summary>
+        /// Depending on <see cref="Format"/>, this is either a Guid as string or a base64 encoded byte array.
+        /// </summary>
         [JsonPropertyName("Id")]
         [JsonInclude]
         public string EncryptedId { get; private set; } = null!;
 
+        [JsonInclude]
+        public byte[]? Entropy { get; private set; }
+
         public string Server { get; init; } = null!;
 
-        [JsonIgnore] public bool IsUsable => DecryptAccountId(EncryptedId) != null;
+        [JsonIgnore] public bool IsUsable => DecryptAccountId() != null;
 
-        [JsonIgnore] public Guid AccountId => DecryptAccountId(EncryptedId) ?? throw new InvalidOperationException();
+        [JsonIgnore] public Guid AccountId => DecryptAccountId() ?? throw new InvalidOperationException("Account id can't be read");
 
         public List<string> CachedRoles { get; set; } = new();
 
-        private Guid? DecryptAccountId(string id)
+        private Guid? DecryptAccountId()
         {
-            if (Guid.TryParse(id, out Guid guid) && guid != Guid.Empty)
-                return guid;
-
-            if (!id.StartsWith("s:"))
-                throw new InvalidOperationException("invalid prefix");
-
-            try
+            if (Format == EFormat.UseProtectedData)
             {
-                byte[] guidBytes = ProtectedData.Unprotect(Convert.FromBase64String(id.Substring(2)),
-                    ConfigurationData.Entropy, DataProtectionScope.CurrentUser);
-                return new Guid(guidBytes);
+                try
+                {
+                    byte[] guidBytes = ProtectedData.Unprotect(Convert.FromBase64String(EncryptedId), Entropy, DataProtectionScope.CurrentUser);
+                    return new Guid(guidBytes);
+                }
+                catch (Exception e)
+                {
+                    PluginLog.Verbose(e, $"Could not load account id {EncryptedId}");
+                    return null;
+                }
             }
-            catch (Exception e)
-            {
-                PluginLog.Verbose(e, $"Could not load account id {id}");
+            else if (Format == EFormat.Unencrypted)
+                return Guid.Parse(EncryptedId);
+            else
                 return null;
-            }
         }
 
-        private string EncryptAccountId(Guid g)
+        private (string encryptedId, byte[]? entropy, EFormat format) EncryptAccountId(Guid g)
         {
             try
             {
-                byte[] guidBytes = ProtectedData.Protect(g.ToByteArray(), ConfigurationData.Entropy,
-                    DataProtectionScope.CurrentUser);
-                return $"s:{Convert.ToBase64String(guidBytes)}";
+                byte[] entropy = RandomNumberGenerator.GetBytes(16);
+                byte[] guidBytes = ProtectedData.Protect(g.ToByteArray(), entropy, DataProtectionScope.CurrentUser);
+                return (Convert.ToBase64String(guidBytes), entropy, EFormat.UseProtectedData);
             }
             catch (Exception)
             {
-                return g.ToString();
+                return (g.ToString(), null, EFormat.Unencrypted);
             }
         }
-
+        
         public bool EncryptIfNeeded()
         {
-            if (Guid.TryParse(EncryptedId, out Guid g))
+            if (Format == EFormat.Unencrypted)
             {
-                string oldId = EncryptedId;
-                EncryptedId = EncryptAccountId(g);
-                return oldId != EncryptedId;
+                var (newId, newEntropy, newFormat) = EncryptAccountId(Guid.Parse(EncryptedId));
+                if (newFormat != EFormat.Unencrypted)
+                {
+                    EncryptedId = newId;
+                    Entropy = newEntropy;
+                    Format = newFormat;
+                    return true;
+                }
             }
+
+#pragma warning disable CS0618 // Type or member is obsolete
+            if (Format == EFormat.UseProtectedData && ConfigurationData.FixedV1Entropy.SequenceEqual(Entropy ?? Array.Empty<byte>()))
+            {
+                Guid? g = DecryptAccountId();
+                if (g != null)
+                {
+                    (EncryptedId, Entropy, Format) = EncryptAccountId(g.Value);
+                    return true;
+                }
+            }
+#pragma warning restore CS0618 // Type or member is obsolete
+
             return false;
+        }
+
+        public enum EFormat
+        {
+            Unencrypted = 1,
+            UseProtectedData = 2,
         }
     }
 }

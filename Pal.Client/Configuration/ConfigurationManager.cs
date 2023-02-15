@@ -21,6 +21,19 @@ namespace Pal.Client.Configuration
 
         public string ConfigPath => Path.Join(_pluginInterface.GetPluginConfigDirectory(), "palace-pal.config.json");
 
+        public IPalacePalConfiguration Load()
+        {
+            return JsonSerializer.Deserialize<ConfigurationV7>(File.ReadAllText(ConfigPath, Encoding.UTF8)) ??
+                   new ConfigurationV7();
+        }
+
+        public void Save(IConfigurationInConfigDirectory config)
+        {
+            File.WriteAllText(ConfigPath,
+                JsonSerializer.Serialize(config, config.GetType(), new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }),
+                Encoding.UTF8);
+        }
+
 #pragma warning disable CS0612
 #pragma warning disable CS0618
         public void Migrate()
@@ -40,19 +53,6 @@ namespace Pal.Client.Configuration
 
                 File.Move(_pluginInterface.ConfigFile.FullName, _pluginInterface.ConfigFile.FullName + ".old", true);
             }
-        }
-
-        public IPalacePalConfiguration Load()
-        {
-            return JsonSerializer.Deserialize<ConfigurationV7>(File.ReadAllText(ConfigPath, Encoding.UTF8)) ??
-                   new ConfigurationV7();
-        }
-
-        public void Save(IConfigurationInConfigDirectory config)
-        {
-            File.WriteAllText(ConfigPath,
-                JsonSerializer.Serialize(config, config.GetType(), new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }),
-                Encoding.UTF8);
         }
 
         private ConfigurationV7 MigrateToV7(ConfigurationV1 v1)
