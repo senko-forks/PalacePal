@@ -69,7 +69,7 @@ namespace Pal.Client.Windows
             {
                 config.Mode = (Configuration.EMode)_choice;
                 config.FirstUse = false;
-                config.Save();
+                Service.ConfigurationManager.Save(config);
 
                 IsOpen = false;
             }

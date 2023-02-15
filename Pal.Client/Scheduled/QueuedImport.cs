@@ -8,6 +8,7 @@ using System.Linq;
 using System.Numerics;
 using Pal.Client.Extensions;
 using Pal.Client.Properties;
+using Pal.Client.Configuration;
 
 namespace Pal.Client.Scheduled
 {
@@ -46,14 +47,14 @@ namespace Pal.Client.Scheduled
                 }
 
                 config.ImportHistory.RemoveAll(hist => oldExportIds.Contains(hist.Id) || hist.Id == _exportId);
-                config.ImportHistory.Add(new Configuration.ImportHistoryEntry
+                config.ImportHistory.Add(new ConfigurationV1.ImportHistoryEntry
                 {
                     Id = _exportId,
                     RemoteUrl = _export.ServerUrl,
                     ExportedAt = _export.CreatedAt.ToDateTime(),
                     ImportedAt = DateTime.UtcNow,
                 });
-                config.Save();
+                Service.ConfigurationManager.Save(config);
 
                 recreateLayout = true;
                 saveMarkers = true;

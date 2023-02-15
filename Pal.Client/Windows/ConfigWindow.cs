@@ -19,23 +19,18 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Pal.Client.Properties;
+using Pal.Client.Configuration;
 
 namespace Pal.Client.Windows
 {
-    internal class ConfigWindow : Window, ILanguageChanged
+    internal class ConfigWindow : Window, ILanguageChanged, IDisposable
     {
         private const string WindowId = "###PalPalaceConfig";
         private int _mode;
         private int _renderer;
-        private bool _showTraps;
-        private Vector4 _trapColor;
-        private bool _onlyVisibleTrapsAfterPomander;
-        private bool _showHoard;
-        private Vector4 _hoardColor;
-        private bool _onlyVisibleHoardAfterPomander;
-        private bool _showSilverCoffers;
-        private Vector4 _silverCofferColor;
-        private bool _fillSilverCoffers;
+        private ConfigurableMarker _trapConfig = new();
+        private ConfigurableMarker _hoardConfig = new();
+        private ConfigurableMarker _silverConfig = new();
 
         private string? _connectionText;
         private bool _switchToCommunityTab;
@@ -67,20 +62,19 @@ namespace Pal.Client.Windows
             WindowName = $"{Localization.Palace_Pal} v{version}{WindowId}";
         }
 
+        public void Dispose()
+        {
+            _testConnectionCts?.Cancel();
+        }
+
         public override void OnOpen()
         {
             var config = Service.Configuration;
             _mode = (int)config.Mode;
-            _renderer = (int)config.Renderer;
-            _showTraps = config.ShowTraps;
-            _trapColor = config.TrapColor;
-            _onlyVisibleTrapsAfterPomander = config.OnlyVisibleTrapsAfterPomander;
-            _showHoard = config.ShowHoard;
-            _hoardColor = config.HoardColor;
-            _onlyVisibleHoardAfterPomander = config.OnlyVisibleHoardAfterPomander;
-            _showSilverCoffers = config.ShowSilverCoffers;
-            _silverCofferColor = config.SilverCofferColor;
-            _fillSilverCoffers = config.FillSilverCoffers;
+            _renderer = (int)config.Renderer.SelectedRenderer;
+            _trapConfig = new ConfigurableMarker(config.DeepDungeons.Traps);
+            _hoardConfig = new ConfigurableMarker(config.DeepDungeons.HoardCoffers);
+            _silverConfig = new ConfigurableMarker(config.DeepDungeons.SilverCoffers);
             _connectionText = null;
         }
 
@@ -113,18 +107,13 @@ namespace Pal.Client.Windows
             if (save || saveAndClose)
             {
                 var config = Service.Configuration;
-                config.Mode = (Configuration.EMode)_mode;
-                config.Renderer = (Configuration.ERenderer)_renderer;
-                config.ShowTraps = _showTraps;
-                config.TrapColor = _trapColor;
-                config.OnlyVisibleTrapsAfterPomander = _onlyVisibleTrapsAfterPomander;
-                config.ShowHoard = _showHoard;
-                config.HoardColor = _hoardColor;
-                config.OnlyVisibleHoardAfterPomander = _onlyVisibleHoardAfterPomander;
-                config.ShowSilverCoffers = _showSilverCoffers;
-                config.SilverCofferColor = _silverCofferColor;
-                config.FillSilverCoffers = _fillSilverCoffers;
-                config.Save();
+                config.Mode = (EMode)_mode;
+                config.Renderer.SelectedRenderer = (ERenderer)_renderer;
+                config.DeepDungeons.Traps = _trapConfig.Build();
+                config.DeepDungeons.HoardCoffers = _hoardConfig.Build();
+                config.DeepDungeons.SilverCoffers = _silverConfig.Build();
+
+                Service.ConfigurationManager.Save(config);
 
                 if (saveAndClose)
                     IsOpen = false;
@@ -135,12 +124,12 @@ namespace Pal.Client.Windows
         {
             if (ImGui.BeginTabItem($"{Localization.ConfigTab_DeepDungeons}###TabDeepDungeons"))
             {
-                ImGui.Checkbox(Localization.Config_Traps_Show, ref _showTraps);
+                ImGui.Checkbox(Localization.Config_Traps_Show, ref _trapConfig.Show);
                 ImGui.Indent();
-                ImGui.BeginDisabled(!_showTraps);
+                ImGui.BeginDisabled(!_trapConfig.Show);
                 ImGui.Spacing();
-                ImGui.ColorEdit4(Localization.Config_Traps_Color, ref _trapColor, ImGuiColorEditFlags.NoInputs);
-                ImGui.Checkbox(Localization.Config_Traps_HideImpossible, ref _onlyVisibleTrapsAfterPomander);
+                ImGui.ColorEdit4(Localization.Config_Traps_Color, ref _trapConfig.Color, ImGuiColorEditFlags.NoInputs);
+                ImGui.Checkbox(Localization.Config_Traps_HideImpossible, ref _trapConfig.OnlyVisibleAfterPomander);
                 ImGui.SameLine();
                 ImGuiComponents.HelpMarker(Localization.Config_Traps_HideImpossible_ToolTip);
                 ImGui.EndDisabled();
@@ -148,12 +137,12 @@ namespace Pal.Client.Windows
 
                 ImGui.Separator();
 
-                ImGui.Checkbox(Localization.Config_HoardCoffers_Show, ref _showHoard);
+                ImGui.Checkbox(Localization.Config_HoardCoffers_Show, ref _hoardConfig.Show);
                 ImGui.Indent();
-                ImGui.BeginDisabled(!_showHoard);
+                ImGui.BeginDisabled(!_hoardConfig.Show);
                 ImGui.Spacing();
-                ImGui.ColorEdit4(Localization.Config_HoardCoffers_Color, ref _hoardColor, ImGuiColorEditFlags.NoInputs);
-                ImGui.Checkbox(Localization.Config_HoardCoffers_HideImpossible, ref _onlyVisibleHoardAfterPomander);
+                ImGui.ColorEdit4(Localization.Config_HoardCoffers_Color, ref _hoardConfig.Color, ImGuiColorEditFlags.NoInputs);
+                ImGui.Checkbox(Localization.Config_HoardCoffers_HideImpossible, ref _hoardConfig.OnlyVisibleAfterPomander);
                 ImGui.SameLine();
                 ImGuiComponents.HelpMarker(Localization.Config_HoardCoffers_HideImpossible_ToolTip);
                 ImGui.EndDisabled();
@@ -161,13 +150,13 @@ namespace Pal.Client.Windows
 
                 ImGui.Separator();
 
-                ImGui.Checkbox(Localization.Config_SilverCoffer_Show, ref _showSilverCoffers);
+                ImGui.Checkbox(Localization.Config_SilverCoffer_Show, ref _silverConfig.Show);
                 ImGuiComponents.HelpMarker(Localization.Config_SilverCoffers_ToolTip);
                 ImGui.Indent();
-                ImGui.BeginDisabled(!_showSilverCoffers);
+                ImGui.BeginDisabled(!_silverConfig.Show);
                 ImGui.Spacing();
-                ImGui.ColorEdit4(Localization.Config_SilverCoffer_Color, ref _silverCofferColor, ImGuiColorEditFlags.NoInputs);
-                ImGui.Checkbox(Localization.Config_SilverCoffer_Filled, ref _fillSilverCoffers);
+                ImGui.ColorEdit4(Localization.Config_SilverCoffer_Color, ref _silverConfig.Color, ImGuiColorEditFlags.NoInputs);
+                ImGui.Checkbox(Localization.Config_SilverCoffer_Filled, ref _silverConfig.Fill);
                 ImGui.EndDisabled();
                 ImGui.Unindent();
 
@@ -190,13 +179,13 @@ namespace Pal.Client.Windows
                 ImGui.TextWrapped(Localization.Explanation_3);
                 ImGui.TextWrapped(Localization.Explanation_4);
 
-                ImGui.RadioButton(Localization.Config_UploadMyDiscoveries_ShowOtherTraps, ref _mode, (int)Configuration.EMode.Online);
-                ImGui.RadioButton(Localization.Config_NeverUploadDiscoveries_ShowMyTraps, ref _mode, (int)Configuration.EMode.Offline);
+                ImGui.RadioButton(Localization.Config_UploadMyDiscoveries_ShowOtherTraps, ref _mode, (int)EMode.Online);
+                ImGui.RadioButton(Localization.Config_NeverUploadDiscoveries_ShowMyTraps, ref _mode, (int)EMode.Offline);
                 saveAndClose = ImGui.Button(Localization.SaveAndClose);
 
                 ImGui.Separator();
 
-                ImGui.BeginDisabled(Service.Configuration.Mode != Configuration.EMode.Online);
+                ImGui.BeginDisabled(Service.Configuration.Mode != EMode.Online);
                 if (ImGui.Button(Localization.Config_TestConnection))
                     TestConnection();
 
@@ -294,8 +283,8 @@ namespace Pal.Client.Windows
             if (ImGui.BeginTabItem($"{Localization.ConfigTab_Renderer}###TabRenderer"))
             {
                 ImGui.Text(Localization.Config_SelectRenderBackend);
-                ImGui.RadioButton($"{Localization.Config_Renderer_Splatoon} ({Localization.Config_Renderer_Splatoon_Hint})", ref _renderer, (int)Configuration.ERenderer.Splatoon);
-                ImGui.RadioButton($"{Localization.Config_Renderer_Simple} ({Localization.Config_Renderer_Simple_Hint})", ref _renderer, (int)Configuration.ERenderer.Simple);
+                ImGui.RadioButton($"{Localization.Config_Renderer_Splatoon} ({Localization.Config_Renderer_Splatoon_Hint})", ref _renderer, (int)ERenderer.Splatoon);
+                ImGui.RadioButton($"{Localization.Config_Renderer_Simple} ({Localization.Config_Renderer_Simple_Hint})", ref _renderer, (int)ERenderer.Simple);
 
                 ImGui.Separator();
 
@@ -307,7 +296,7 @@ namespace Pal.Client.Windows
                 ImGui.Text(Localization.Config_Splatoon_Test);
                 ImGui.BeginDisabled(!(Service.Plugin.Renderer is IDrawDebugItems));
                 if (ImGui.Button(Localization.Config_Splatoon_DrawCircles))
-                    (Service.Plugin.Renderer as IDrawDebugItems)?.DrawDebugItems(_trapColor, _hoardColor);
+                    (Service.Plugin.Renderer as IDrawDebugItems)?.DrawDebugItems(_trapConfig.Color, _hoardConfig.Color);
                 ImGui.EndDisabled();
 
                 ImGui.EndTabItem();
@@ -328,17 +317,17 @@ namespace Pal.Client.Windows
                     ImGui.Indent();
                     if (plugin.FloorMarkers.TryGetValue(plugin.LastTerritory, out var currentFloor))
                     {
-                        if (_showTraps)
+                        if (_trapConfig.Show)
                         {
                             int traps = currentFloor.Markers.Count(x => x.Type == Marker.EType.Trap);
                             ImGui.Text($"{traps} known trap{(traps == 1 ? "" : "s")}");
                         }
-                        if (_showHoard)
+                        if (_hoardConfig.Show)
                         {
                             int hoardCoffers = currentFloor.Markers.Count(x => x.Type == Marker.EType.Hoard);
                             ImGui.Text($"{hoardCoffers} known hoard coffer{(hoardCoffers == 1 ? "" : "s")}");
                         }
-                        if (_showSilverCoffers)
+                        if (_silverConfig.Show)
                         {
                             int silverCoffers = plugin.EphemeralMarkers.Count(x => x.Type == Marker.EType.SilverCoffer);
                             ImGui.Text($"{silverCoffers} silver coffer{(silverCoffers == 1 ? "" : "s")} visible on current floor");
@@ -439,6 +428,37 @@ namespace Pal.Client.Windows
                     Service.Chat.PrintError($"Export failed: {e}");
                 }
             });
+        }
+
+        private class ConfigurableMarker
+        {
+            public bool Show;
+            public Vector4 Color;
+            public bool OnlyVisibleAfterPomander;
+            public bool Fill;
+
+            public ConfigurableMarker()
+            {
+            }
+
+            public ConfigurableMarker(MarkerConfiguration config)
+            {
+                Show = config.Show;
+                Color = ImGui.ColorConvertU32ToFloat4(config.Color);
+                OnlyVisibleAfterPomander = config.OnlyVisibleAfterPomander;
+                Fill = config.Fill;
+            }
+
+            public MarkerConfiguration Build()
+            {
+                return new MarkerConfiguration
+                {
+                    Show = Show,
+                    Color = ImGui.ColorConvertFloat4ToU32(Color),
+                    OnlyVisibleAfterPomander = OnlyVisibleAfterPomander,
+                    Fill = Fill
+                };
+            }
         }
     }
 }

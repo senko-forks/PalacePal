@@ -27,6 +27,9 @@ using System.Threading.Tasks;
 using Pal.Client.Extensions;
 using Pal.Client.Properties;
 using ECommons;
+using ECommons.Schedulers;
+using Pal.Client.Configuration;
+using Pal.Client.Net;
 
 namespace Pal.Client
 {
@@ -71,8 +74,10 @@ namespace Pal.Client
 
             pluginInterface.Create<Service>();
             Service.Plugin = this;
-            Service.Configuration = (Configuration?)pluginInterface.GetPluginConfig() ?? pluginInterface.Create<Configuration>()!;
-            Service.Configuration.Migrate();
+
+            Service.ConfigurationManager = new(pluginInterface);
+            Service.ConfigurationManager.Migrate();
+            Service.Configuration = Service.ConfigurationManager.Load();
 
             ResetRenderer();
 
@@ -146,7 +151,7 @@ namespace Pal.Client
                             return;
 
                         configWindow.IsOpen = true;
-                        configWindow.TestConnection();
+                        var _ = new TickScheduler(() => configWindow.TestConnection());
                         break;
 
 #if DEBUG
@@ -196,6 +201,7 @@ namespace Pal.Client
             Service.Framework.Update -= OnFrameworkUpdate;
             Service.Chat.ChatMessage -= OnChatMessage;
 
+            Service.WindowSystem.GetWindow<ConfigWindow>()?.Dispose();
             Service.WindowSystem.RemoveAllWindows();
 
             Service.RemoteApi.Dispose();
@@ -318,7 +324,7 @@ namespace Pal.Client
             var currentFloorMarkers = currentFloor.Markers;
 
             bool updateSeenMarkers = false;
-            var partialAccountId = Service.RemoteApi.PartialAccountId;
+            var partialAccountId = Service.Configuration.FindAccount(RemoteApi.RemoteUrl)?.AccountId.ToPartialId();
             foreach (var visibleMarker in visibleMarkers)
             {
                 Marker? knownMarker = currentFloorMarkers.SingleOrDefault(x => x == visibleMarker);
@@ -343,7 +349,7 @@ namespace Pal.Client
                 saveMarkers = true;
             }
 
-            if (!recreateLayout && currentFloorMarkers.Count > 0 && (config.OnlyVisibleTrapsAfterPomander || config.OnlyVisibleHoardAfterPomander))
+            if (!recreateLayout && currentFloorMarkers.Count > 0 && (config.DeepDungeons.Traps.OnlyVisibleAfterPomander || config.DeepDungeons.HoardCoffers.OnlyVisibleAfterPomander))
             {
 
                 try
@@ -399,15 +405,15 @@ namespace Pal.Client
                 List<IRenderElement> elements = new();
                 foreach (var marker in currentFloorMarkers)
                 {
-                    if (marker.Seen || config.Mode == Configuration.EMode.Online || marker is { WasImported: true, Imports.Count: > 0 })
+                    if (marker.Seen || config.Mode == EMode.Online || marker is { WasImported: true, Imports.Count: > 0 })
                     {
-                        if (marker.Type == Marker.EType.Trap && config.ShowTraps)
+                        if (marker.Type == Marker.EType.Trap)
                         {
-                            CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers));
+                            CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers), config.DeepDungeons.Traps);
                         }
-                        else if (marker.Type == Marker.EType.Hoard && config.ShowHoard)
+                        else if (marker.Type == Marker.EType.Hoard)
                         {
-                            CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers));
+                            CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers), config.DeepDungeons.HoardCoffers);
                         }
                     }
                 }
@@ -436,9 +442,9 @@ namespace Pal.Client
                 {
                     EphemeralMarkers.Add(marker);
 
-                    if (marker.Type == Marker.EType.SilverCoffer && config.ShowSilverCoffers)
+                    if (marker.Type == Marker.EType.SilverCoffer && config.DeepDungeons.SilverCoffers.Show)
                     {
-                        CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers), config.FillSilverCoffers);
+                        CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers), config.DeepDungeons.SilverCoffers);
                     }
                 }
 
@@ -453,12 +459,12 @@ namespace Pal.Client
         {
             switch (marker.Type)
             {
-                case Marker.EType.Trap when PomanderOfSight == PomanderState.Inactive || !Service.Configuration.OnlyVisibleTrapsAfterPomander || visibleMarkers.Any(x => x == marker):
-                    return ImGui.ColorConvertFloat4ToU32(Service.Configuration.TrapColor);
-                case Marker.EType.Hoard when PomanderOfIntuition == PomanderState.Inactive || !Service.Configuration.OnlyVisibleHoardAfterPomander || visibleMarkers.Any(x => x == marker):
-                    return ImGui.ColorConvertFloat4ToU32(Service.Configuration.HoardColor);
+                case Marker.EType.Trap when PomanderOfSight == PomanderState.Inactive || !Service.Configuration.DeepDungeons.Traps.OnlyVisibleAfterPomander || visibleMarkers.Any(x => x == marker):
+                    return Service.Configuration.DeepDungeons.Traps.Color;
+                case Marker.EType.Hoard when PomanderOfIntuition == PomanderState.Inactive || !Service.Configuration.DeepDungeons.HoardCoffers.OnlyVisibleAfterPomander || visibleMarkers.Any(x => x == marker):
+                    return Service.Configuration.DeepDungeons.HoardCoffers.Color;
                 case Marker.EType.SilverCoffer:
-                    return ImGui.ColorConvertFloat4ToU32(Service.Configuration.SilverCofferColor);
+                    return Service.Configuration.DeepDungeons.SilverCoffers.Color;
                 case Marker.EType.Trap:
                 case Marker.EType.Hoard:
                     return ColorInvisible;
@@ -467,9 +473,12 @@ namespace Pal.Client
             }
         }
 
-        private void CreateRenderElement(Marker marker, List<IRenderElement> elements, uint color, bool fill = false)
+        private void CreateRenderElement(Marker marker, List<IRenderElement> elements, uint color, MarkerConfiguration config)
         {
-            var element = Renderer.CreateElement(marker.Type, marker.Position, color, fill);
+            if (!config.Show)
+                return;
+
+            var element = Renderer.CreateElement(marker.Type, marker.Position, color, config.Fill);
             marker.RenderElement = element;
             elements.Add(element);
         }
@@ -651,15 +660,15 @@ namespace Pal.Client
 
         internal void ResetRenderer()
         {
-            if (Renderer is SplatoonRenderer && Service.Configuration.Renderer == Configuration.ERenderer.Splatoon)
+            if (Renderer is SplatoonRenderer && Service.Configuration.Renderer.SelectedRenderer == ERenderer.Splatoon)
                 return;
-            else if (Renderer is SimpleRenderer && Service.Configuration.Renderer == Configuration.ERenderer.Simple)
+            else if (Renderer is SimpleRenderer && Service.Configuration.Renderer.SelectedRenderer == ERenderer.Simple)
                 return;
 
             if (Renderer is IDisposable disposable)
                 disposable.Dispose();
 
-            if (Service.Configuration.Renderer == Configuration.ERenderer.Splatoon)
+            if (Service.Configuration.Renderer.SelectedRenderer == ERenderer.Splatoon)
                 Renderer = new SplatoonRenderer(Service.PluginInterface, this);
             else
                 Renderer = new SimpleRenderer();

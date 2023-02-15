@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Pal.Client.Extensions;
 using Pal.Client.Properties;
+using Pal.Client.Configuration;
 
 namespace Pal.Client.Net
 {
@@ -18,7 +19,7 @@ namespace Pal.Client.Net
     {
         private async Task<(bool Success, string Error)> TryConnect(CancellationToken cancellationToken, ILoggerFactory? loggerFactory = null, bool retry = true)
         {
-            if (Service.Configuration.Mode != Configuration.EMode.Online)
+            if (Service.Configuration.Mode != EMode.Online)
             {
                 PluginLog.Debug("TryConnect: Not Online, not attempting to establish a connection");
                 return (false, Localization.ConnectionError_NotOnline);
@@ -46,19 +47,20 @@ namespace Pal.Client.Net
             cancellationToken.ThrowIfCancellationRequested();
 
             var accountClient = new AccountService.AccountServiceClient(_channel);
-            if (AccountId == null)
+            IAccountConfiguration? configuredAccount = Service.Configuration.FindAccount(RemoteUrl);
+            if (configuredAccount == null)
             {
                 PluginLog.Information($"TryConnect: No account information saved for {RemoteUrl}, creating new account");
                 var createAccountReply = await accountClient.CreateAccountAsync(new CreateAccountRequest(), headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
                 if (createAccountReply.Success)
                 {
-                    Account = new Configuration.AccountInfo
-                    {
-                        Id = Guid.Parse(createAccountReply.AccountId),
-                    };
-                    PluginLog.Information($"TryConnect: Account created with id {FormattedPartialAccountId}");
+                    if (Guid.TryParse(createAccountReply.AccountId, out Guid accountId))
+                        throw new InvalidOperationException("invalid account id returned");
 
-                    Service.Configuration.Save();
+                    configuredAccount = Service.Configuration.CreateAccount(RemoteUrl, accountId);
+                    PluginLog.Information($"TryConnect: Account created with id {accountId.ToPartialId()}");
+
+                    Service.ConfigurationManager.Save(Service.Configuration);
                 }
                 else
                 {
@@ -74,27 +76,24 @@ namespace Pal.Client.Net
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (AccountId == null)
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+            if (configuredAccount == null)
             {
-                PluginLog.Warning("TryConnect: No account id to login with");
+                PluginLog.Warning("TryConnect: No account to login with");
                 return (false, Localization.ConnectionError_CreateAccountReturnedNoId);
             }
 
             if (!_loginInfo.IsValid)
             {
-                PluginLog.Information($"TryConnect: Logging in with account id {FormattedPartialAccountId}");
-                LoginReply loginReply = await accountClient.LoginAsync(new LoginRequest { AccountId = AccountId?.ToString() }, headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
+                PluginLog.Information($"TryConnect: Logging in with account id {configuredAccount.AccountId.ToPartialId()}");
+                LoginReply loginReply = await accountClient.LoginAsync(new LoginRequest { AccountId = configuredAccount.AccountId.ToString() }, headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
                 if (loginReply.Success)
                 {
-                    PluginLog.Information($"TryConnect: Login successful with account id: {FormattedPartialAccountId}");
+                    PluginLog.Information($"TryConnect: Login successful with account id: {configuredAccount.AccountId.ToPartialId()}");
                     _loginInfo = new LoginInfo(loginReply.AuthToken);
 
-                    var account = Account;
-                    if (account != null)
-                    {
-                        account.CachedRoles = _loginInfo.Claims?.Roles.ToList() ?? new List<string>();
-                        Service.Configuration.Save();
-                    }
+                    configuredAccount.CachedRoles = _loginInfo.Claims?.Roles.ToList() ?? new List<string>();
+                    Service.ConfigurationManager.Save(Service.Configuration);
                 }
                 else
                 {
@@ -102,8 +101,8 @@ namespace Pal.Client.Net
                     _loginInfo = new LoginInfo(null);
                     if (loginReply.Error == LoginError.InvalidAccountId)
                     {
-                        Account = null;
-                        Service.Configuration.Save();
+                        Service.Configuration.RemoveAccount(RemoteUrl);
+                        Service.ConfigurationManager.Save(Service.Configuration);
                         if (retry)
                         {
                             PluginLog.Information("TryConnect: Attempting connection retry without account id");

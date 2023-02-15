@@ -120,7 +120,7 @@ namespace Pal.Client.Rendering
                 {
                     case Marker.EType.Hoard:
                         // ignore distance if this is a found hoard coffer
-                        if (Service.Plugin.PomanderOfIntuition == Plugin.PomanderState.Active && Service.Configuration.OnlyVisibleHoardAfterPomander)
+                        if (Service.Plugin.PomanderOfIntuition == Plugin.PomanderState.Active && Service.Configuration.DeepDungeons.HoardCoffers.OnlyVisibleAfterPomander)
                             break;
 
                         goto case Marker.EType.Trap;

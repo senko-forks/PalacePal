@@ -59,7 +59,7 @@ namespace Pal.Client.Net
             if (Service.Configuration.Mode != Configuration.EMode.Online)
                 return false;
 
-            var account = Account;
+            var account = Service.Configuration.FindAccount(RemoteUrl);
             return account == null || account.CachedRoles.Contains(role);
         }
     }

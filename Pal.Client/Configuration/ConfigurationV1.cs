@@ -1,5 +1,4 @@
-﻿using Dalamud.Configuration;
-using Dalamud.Logging;
+﻿using Dalamud.Logging;
 using ECommons.Schedulers;
 using Newtonsoft.Json;
 using Pal.Client.Scheduled;
@@ -9,15 +8,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Security.Cryptography;
 using Pal.Client.Extensions;
 
-namespace Pal.Client
+namespace Pal.Client.Configuration
 {
-    public class Configuration : IPluginConfiguration
+    [Obsolete]
+    public class ConfigurationV1
     {
-        private static readonly byte[] Entropy = { 0x22, 0x4b, 0xe7, 0x21, 0x44, 0x83, 0x69, 0x55, 0x80, 0x38 };
-
         public int Version { get; set; } = 6;
 
         #region Saved configuration values
@@ -55,7 +52,6 @@ namespace Pal.Client
         public string BetaKey { get; set; } = "";
         #endregion
 
-#pragma warning disable CS0612 // Type or member is obsolete
         public void Migrate()
         {
             if (Version == 1)
@@ -78,7 +74,7 @@ namespace Pal.Client
 
                 Accounts = AccountIds.ToDictionary(x => x.Key, x => new AccountInfo
                 {
-                    Id = x.Value
+                    Id = x.Value.ToString() // encryption happens in V7 migration at latest
                 });
                 Version = 3;
                 Save();
@@ -140,106 +136,21 @@ namespace Pal.Client
                 Save();
             }
         }
-#pragma warning restore CS0612 // Type or member is obsolete
 
         public void Save()
         {
-            Service.PluginInterface.SavePluginConfig(this);
+            File.WriteAllText(Service.PluginInterface.ConfigFile.FullName, JsonConvert.SerializeObject(this, Formatting.Indented, new JsonSerializerSettings
+            {
+                TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
+                TypeNameHandling = TypeNameHandling.Objects
+            }));
             Service.Plugin.EarlyEventQueue.Enqueue(new QueuedConfigUpdate());
-        }
-
-        public enum EMode
-        {
-            /// <summary>
-            /// Fetches trap locations from remote server.
-            /// </summary>
-            Online = 1,
-
-            /// <summary>
-            /// Only shows traps found by yourself uisng a pomander of sight.
-            /// </summary>
-            Offline = 2,
-        }
-
-        public enum ERenderer
-        {
-            /// <see cref="Rendering.SimpleRenderer"/>
-            Simple = 0,
-
-            /// <see cref="Rendering.SplatoonRenderer"/>
-            Splatoon = 1,
         }
 
         public class AccountInfo
         {
-            [JsonConverter(typeof(AccountIdConverter))]
-            public Guid? Id { get; set; }
-
-            /// <summary>
-            /// This is taken from the JWT, and is only refreshed on a successful login.
-            /// 
-            /// If you simply reload the plugin without any server interaction, this doesn't change.
-            /// 
-            /// This has no impact on what roles the JWT actually contains, but is just to make it 
-            /// easier to draw a consistent UI. The server will still reject unauthorized calls.
-            /// </summary>
+            public string? Id { get; set; }
             public List<string> CachedRoles { get; set; } = new();
-        }
-
-        public class AccountIdConverter : JsonConverter
-        {
-            public override bool CanConvert(Type objectType) => true;
-
-            public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
-            {
-                if (reader.TokenType == JsonToken.String)
-                {
-                    string? text = reader.Value?.ToString();
-                    if (string.IsNullOrEmpty(text))
-                        return null;
-
-                    if (Guid.TryParse(text, out Guid guid) && guid != Guid.Empty)
-                        return guid;
-
-                    if (text.StartsWith("s:"))
-                    {
-                        try
-                        {
-                            byte[] guidBytes = ProtectedData.Unprotect(Convert.FromBase64String(text.Substring(2)), Entropy, DataProtectionScope.CurrentUser);
-                            return new Guid(guidBytes);
-                        }
-                        catch (CryptographicException e)
-                        {
-                            PluginLog.Error(e, "Could not load account id");
-                            return null;
-                        }
-                    }
-                }
-                throw new JsonSerializationException();
-            }
-
-            public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
-            {
-                if (value == null)
-                {
-                    writer.WriteNull();
-                    return;
-                }
-
-                Guid g = (Guid)value;
-                string text;
-                try
-                {
-                    byte[] guidBytes = ProtectedData.Protect(g.ToByteArray(), Entropy, DataProtectionScope.CurrentUser);
-                    text = $"s:{Convert.ToBase64String(guidBytes)}";
-                }
-                catch (CryptographicException)
-                {
-                    text = g.ToString();
-                }
-
-                writer.WriteValue(text);
-            }
         }
 
         public class ImportHistoryEntry

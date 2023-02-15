@@ -8,6 +8,7 @@ using Dalamud.Game.Gui;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using Dalamud.Plugin;
+using Pal.Client.Configuration;
 using Pal.Client.Net;
 
 namespace Pal.Client
@@ -27,7 +28,8 @@ namespace Pal.Client
         internal static Plugin Plugin { get; set; } = null!;
         internal static WindowSystem WindowSystem { get; } = new(typeof(Service).AssemblyQualifiedName);
         internal static RemoteApi RemoteApi { get; } = new();
-        internal static Configuration Configuration { get; set; } = null!;
+        internal static ConfigurationManager ConfigurationManager { get; set; } = null!;
+        internal static IPalacePalConfiguration Configuration { get; set; } = null!;
         internal static Hooks Hooks { get; set; } = null!;
     }
 }

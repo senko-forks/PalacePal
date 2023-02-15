@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Pal.Client.Extensions;
+using Pal.Client.Net;
 using static Pal.Client.Plugin;
 
 namespace Pal.Client.Scheduled
@@ -45,7 +47,7 @@ namespace Pal.Client.Scheduled
                             break;
 
                         case SyncType.MarkSeen:
-                            var partialAccountId = Service.RemoteApi.PartialAccountId;
+                            var partialAccountId = Service.Configuration.FindAccount(RemoteApi.RemoteUrl)?.AccountId.ToPartialId();
                             if (partialAccountId == null)
                                 break;
                             foreach (var remoteMarker in remoteMarkers)
