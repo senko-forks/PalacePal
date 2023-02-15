@@ -9,7 +9,7 @@ namespace Pal.Client.Configuration
 {
     public class AccountConfigurationV7 : IAccountConfiguration
     {
-        private const int EntropyLength = 16;
+        private const int DefaultEntropyLength = 16;
 
         [JsonConstructor]
         public AccountConfigurationV7()
@@ -92,7 +92,7 @@ namespace Pal.Client.Configuration
             {
                 try
                 {
-                    byte[] entropy = RandomNumberGenerator.GetBytes(EntropyLength);
+                    byte[] entropy = RandomNumberGenerator.GetBytes(DefaultEntropyLength);
                     byte[] guidBytes = ProtectedData.Protect(g.ToByteArray(), entropy, DataProtectionScope.CurrentUser);
                     return (Convert.ToBase64String(guidBytes), entropy, EFormat.UseProtectedData);
                 }
@@ -116,7 +116,7 @@ namespace Pal.Client.Configuration
                     return true;
                 }
             }
-            else if (Format == EFormat.UseProtectedData && Entropy is { Length: < EntropyLength })
+            else if (Format == EFormat.UseProtectedData && Entropy is { Length: < DefaultEntropyLength })
             {
                 Guid? g = DecryptAccountId();
                 if (g != null)
