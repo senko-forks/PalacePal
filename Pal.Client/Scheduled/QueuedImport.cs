@@ -81,7 +81,7 @@ namespace Pal.Client.Scheduled
                     });
                     _configurationManager.Save(_configuration);
 
-                    _chatGui.Print(string.Format(Localization.ImportCompleteStatistics, import.ImportedTraps,
+                    _chatGui.PalMessage(string.Format(Localization.ImportCompleteStatistics, import.ImportedTraps,
                         import.ImportedHoardCoffers));
                 }
                 catch (Exception e)
@@ -95,13 +95,13 @@ namespace Pal.Client.Scheduled
             {
                 if (import.Export.ExportVersion != ExportConfig.ExportVersion)
                 {
-                    _chatGui.PrintError(Localization.Error_ImportFailed_IncompatibleVersion);
+                    _chatGui.PalError(Localization.Error_ImportFailed_IncompatibleVersion);
                     return false;
                 }
 
                 if (!Guid.TryParse(import.Export.ExportId, out Guid exportId) || import.ExportId == Guid.Empty)
                 {
-                    _chatGui.PrintError(Localization.Error_ImportFailed_InvalidFile);
+                    _chatGui.PalError(Localization.Error_ImportFailed_InvalidFile);
                     return false;
                 }
 
@@ -110,7 +110,7 @@ namespace Pal.Client.Scheduled
                 if (string.IsNullOrEmpty(import.Export.ServerUrl))
                 {
                     // If we allow for backups as import/export, this should be removed
-                    _chatGui.PrintError(Localization.Error_ImportFailed_InvalidFile);
+                    _chatGui.PalError(Localization.Error_ImportFailed_InvalidFile);
                     return false;
                 }
 

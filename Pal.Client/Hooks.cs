@@ -72,7 +72,7 @@ namespace Pal.Client
 
                     /*
                     if (Service.Configuration.BetaKey == "VFX")
-                        Service.Chat.Print($"{vfxPath} on {obj}");
+                        _chatGui.PalPrint($"{vfxPath} on {obj}");
                     */
 
                     if (obj is BattleChara bc && (bc.NameId == /* potd */ 5042 || bc.NameId == /* hoh */ 7395))

@@ -82,7 +82,7 @@ namespace Pal.Client.Commands
 #if DEBUG
                     case "update-saves":
                         LocalState.UpdateAll();
-                        Service.Chat.Print(Localization.Command_pal_updatesaves);
+                        _chatGui.PalMessage(Localization.Command_pal_updatesaves);
                         break;
 #endif
 
@@ -124,7 +124,7 @@ namespace Pal.Client.Commands
             var playerPosition = _clientState.LocalPlayer?.Position;
             if (playerPosition == null)
                 return;
-            _chatGui.Print($"[Palace Pal] {playerPosition}");
+            _chatGui.PalMessage($"{playerPosition}");
 
             var nearbyMarkers = state.Markers
                 .Where(m => predicate(m))

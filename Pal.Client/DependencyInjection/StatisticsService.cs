@@ -54,7 +54,7 @@ namespace Pal.Client.DependencyInjection
             }
             catch (RpcException e) when (e.StatusCode == StatusCode.PermissionDenied)
             {
-                _chatGui.Print(Localization.Command_pal_stats_CurrentFloor);
+                _chatGui.PalError(Localization.Command_pal_stats_CurrentFloor);
             }
             catch (Exception e)
             {

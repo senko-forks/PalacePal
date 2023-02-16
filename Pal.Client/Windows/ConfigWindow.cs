@@ -22,6 +22,7 @@ using Dalamud.Game.Gui;
 using Pal.Client.Properties;
 using Pal.Client.Configuration;
 using Pal.Client.DependencyInjection;
+using Pal.Client.Extensions;
 
 namespace Pal.Client.Windows
 {
@@ -351,7 +352,8 @@ namespace Pal.Client.Windows
                 ImGui.Text(Localization.Config_Splatoon_Test);
                 ImGui.BeginDisabled(!(_renderAdapter.Implementation is IDrawDebugItems));
                 if (ImGui.Button(Localization.Config_Splatoon_DrawCircles))
-                    (_renderAdapter.Implementation as IDrawDebugItems)?.DrawDebugItems(_trapConfig.Color, _hoardConfig.Color);
+                    (_renderAdapter.Implementation as IDrawDebugItems)?.DrawDebugItems(_trapConfig.Color,
+                        _hoardConfig.Color);
                 ImGui.EndDisabled();
 
                 ImGui.EndTabItem();
@@ -385,7 +387,8 @@ namespace Pal.Client.Windows
 
                         if (_silverConfig.Show)
                         {
-                            int silverCoffers = _floorService.EphemeralMarkers.Count(x => x.Type == Marker.EType.SilverCoffer);
+                            int silverCoffers =
+                                _floorService.EphemeralMarkers.Count(x => x.Type == Marker.EType.SilverCoffer);
                             ImGui.Text(
                                 $"{silverCoffers} silver coffer{(silverCoffers == 1 ? "" : "s")} visible on current floor");
                         }
@@ -475,17 +478,17 @@ namespace Pal.Client.Windows
                         await using var output = File.Create(destinationPath);
                         export.WriteTo(output);
 
-                        _chatGui.Print($"Export saved as {destinationPath}.");
+                        _chatGui.PalMessage($"Export saved as {destinationPath}.");
                     }
                     else
                     {
-                        _chatGui.PrintError("Export failed due to server error.");
+                        _chatGui.PalError("Export failed due to server error.");
                     }
                 }
                 catch (Exception e)
                 {
                     PluginLog.Error(e, "Export failed");
-                    _chatGui.PrintError($"Export failed: {e}");
+                    _chatGui.PalError($"Export failed: {e}");
                 }
             });
         }

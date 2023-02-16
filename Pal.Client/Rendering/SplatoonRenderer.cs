@@ -14,6 +14,7 @@ using System.Reflection;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.Gui;
 using Pal.Client.DependencyInjection;
+using Pal.Client.Extensions;
 
 namespace Pal.Client.Rendering
 {
@@ -25,7 +26,8 @@ namespace Pal.Client.Rendering
         private readonly ClientState _clientState;
         private readonly ChatGui _chatGui;
 
-        public SplatoonRenderer(DalamudPluginInterface pluginInterface, IDalamudPlugin dalamudPlugin, DebugState debugState,
+        public SplatoonRenderer(DalamudPluginInterface pluginInterface, IDalamudPlugin dalamudPlugin,
+            DebugState debugState,
             ClientState clientState, ChatGui chatGui)
         {
             _debugState = debugState;
@@ -109,7 +111,7 @@ namespace Pal.Client.Rendering
                             elements.Cast<SplatoonElement>().Select(x => x.Delegate).ToArray(),
                             new[] { Environment.TickCount64 + 10000 }))
                     {
-                        _chatGui.PrintError("Could not draw markers :(");
+                        _chatGui.PalMessage("Could not draw markers :(");
                     }
                 }
             }
@@ -129,10 +131,10 @@ namespace Pal.Client.Rendering
                         string? pluginName = (string?)t.GetType().GetProperty("Name")?.GetValue(t);
                         if (assemblyName?.Name == "Splatoon" && pluginName != "Splatoon")
                         {
-                            _chatGui.PrintError(
-                                $"[Palace Pal] Splatoon is installed under the plugin name '{pluginName}', which is incompatible with the Splatoon API.");
-                            _chatGui.Print(
-                                "[Palace Pal] You need to install Splatoon from the official repository at https://github.com/NightmareXIV/MyDalamudPlugins.");
+                            _chatGui.PalError(
+                                $"Splatoon is installed under the plugin name '{pluginName}', which is incompatible with the Splatoon API.");
+                            _chatGui.PalMessage(
+                                "You need to install Splatoon from the official repository at https://github.com/NightmareXIV/MyDalamudPlugins.");
                             return;
                         }
                     }
@@ -142,7 +144,7 @@ namespace Pal.Client.Rendering
                     // not relevant
                 }
 
-                _chatGui.PrintError("Could not draw markers, is Splatoon installed and enabled?");
+                _chatGui.PalError("Could not draw markers, is Splatoon installed and enabled?");
             }
         }
 
