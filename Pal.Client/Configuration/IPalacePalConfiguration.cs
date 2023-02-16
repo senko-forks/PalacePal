@@ -30,7 +30,7 @@ namespace Pal.Client.Configuration
         IAccountConfiguration? FindAccount(string server);
         void RemoveAccount(string server);
 
-        bool HasRoleOnCurrentServer(string role);
+        bool HasRoleOnCurrentServer(string server, string role);
     }
 
     public class DeepDungeonConfiguration

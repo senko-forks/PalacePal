@@ -33,7 +33,7 @@ namespace Pal.Client.DependencyInjection
 
         private async Task FetchFloorStatistics()
         {
-            if (!_configuration.HasRoleOnCurrentServer("statistics:view"))
+            if (!_configuration.HasRoleOnCurrentServer(RemoteApi.RemoteUrl, "statistics:view"))
             {
                 _chatGui.PalError(Localization.Command_pal_stats_CurrentFloor);
                 return;

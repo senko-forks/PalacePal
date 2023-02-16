@@ -296,7 +296,7 @@ namespace Pal.Client.Windows
 
         private void DrawExportTab()
         {
-            if (_configuration.HasRoleOnCurrentServer("export:run") &&
+            if (_configuration.HasRoleOnCurrentServer(RemoteApi.RemoteUrl, "export:run") &&
                 ImGui.BeginTabItem($"{Localization.ConfigTab_Export}###TabExport"))
             {
                 string todaysFileName = $"export-{DateTime.Today:yyyy-MM-dd}.pal";
