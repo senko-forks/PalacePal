@@ -9,7 +9,7 @@ using Pal.Server;
 
 namespace Pal.Server.Migrations
 {
-    [DbContext(typeof(PalContext))]
+    [DbContext(typeof(PalServerContext))]
     partial class PalContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)

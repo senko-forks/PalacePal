@@ -10,7 +10,7 @@ using Pal.Server;
 
 namespace Pal.Server.Migrations
 {
-    [DbContext(typeof(PalContext))]
+    [DbContext(typeof(PalServerContext))]
     [Migration("20221023010252_AddPalaceLocation")]
     partial class AddPalaceLocation
     {

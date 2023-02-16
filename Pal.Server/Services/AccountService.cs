@@ -15,7 +15,7 @@ namespace Pal.Server.Services
     internal class AccountService : AccountServiceBase
     {
         private readonly ILogger<AccountService> _logger;
-        private readonly PalContext _dbContext;
+        private readonly PalServerContext _dbContext;
         private readonly string _tokenIssuer;
         private readonly string _tokenAudience;
         private readonly bool _useForwardedIp;
@@ -23,7 +23,7 @@ namespace Pal.Server.Services
 
         private byte[]? _salt;
 
-        public AccountService(ILogger<AccountService> logger, IConfiguration configuration, PalContext dbContext)
+        public AccountService(ILogger<AccountService> logger, IConfiguration configuration, PalServerContext dbContext)
         {
             _logger = logger;
             _dbContext = dbContext;

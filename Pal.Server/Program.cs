@@ -14,7 +14,7 @@ namespace Pal.Server
 
             builder.Configuration.AddCustomConfiguration();
             builder.Services.AddGrpc(o => o.EnableDetailedErrors = true);
-            builder.Services.AddDbContext<PalContext>(o =>
+            builder.Services.AddDbContext<PalServerContext>(o =>
             {
                 if (builder.Configuration["DataDirectory"] is string dbPath)
                 {
@@ -69,7 +69,7 @@ namespace Pal.Server
 
             using (var scope = app.Services.CreateScope())
             {
-                var dbContext = scope.ServiceProvider.GetRequiredService<PalContext>();
+                var dbContext = scope.ServiceProvider.GetRequiredService<PalServerContext>();
                 await dbContext.Database.MigrateAsync();
             }
 

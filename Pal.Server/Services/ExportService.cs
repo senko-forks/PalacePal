@@ -12,9 +12,9 @@ namespace Pal.Server.Services
     internal class ExportService : ExportServiceBase
     {
         private readonly ILogger<ExportService> _logger;
-        private readonly PalContext _dbContext;
+        private readonly PalServerContext _dbContext;
 
-        public ExportService(ILogger<ExportService> logger, PalContext dbContext)
+        public ExportService(ILogger<ExportService> logger, PalServerContext dbContext)
         {
             _logger = logger;
             _dbContext = dbContext;

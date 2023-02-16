@@ -13,11 +13,11 @@ namespace Pal.Server.Services
     internal class PalaceService : PalaceServiceBase
     {
         private readonly ILogger<PalaceService> _logger;
-        private readonly PalContext _dbContext;
+        private readonly PalServerContext _dbContext;
         private readonly PalaceLocationCache _cache;
         private readonly IEqualityComparer<PalaceObject> _objEqualityComparer = new TypeAndLocationEqualityComparer();
 
-        public PalaceService(ILogger<PalaceService> logger, PalContext dbContext, PalaceLocationCache cache)
+        public PalaceService(ILogger<PalaceService> logger, PalServerContext dbContext, PalaceLocationCache cache)
         {
             _logger = logger;
             _dbContext = dbContext;

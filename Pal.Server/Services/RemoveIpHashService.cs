@@ -24,7 +24,7 @@
         private void DoWork(object? state)
         {
             using var scope = _serviceProvider.CreateScope();
-            using var dbContext = scope.ServiceProvider.GetRequiredService<PalContext>();
+            using var dbContext = scope.ServiceProvider.GetRequiredService<PalServerContext>();
 
             DateTime expiry = DateTime.Now - _removeAfter;
             var accounts = dbContext.Accounts.Where(a => a.IpHash != null && a.CreatedAt < expiry).ToList();
