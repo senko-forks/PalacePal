@@ -16,12 +16,12 @@
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<DebugType>portable</DebugType>
+		<PathMap>$(SolutionDir)=X:\</PathMap>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
 		<OutputPath>dist</OutputPath>
-		<DebugType>none</DebugType>
-		<DebugSymbols>false</DebugSymbols>
 	</PropertyGroup>
 
 	<ItemGroup Condition="'$(Configuration)' == 'Release' And Exists('Certificate.pfx')">
