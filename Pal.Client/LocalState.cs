@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using Dalamud.Plugin;
+using Pal.Client.Configuration;
 using Pal.Client.Extensions;
 
 namespace Pal.Client
@@ -17,6 +19,9 @@ namespace Pal.Client
         private static readonly JsonSerializerOptions JsonSerializerOptions = new() { IncludeFields = true };
         private const int CurrentVersion = 4;
 
+        internal static DalamudPluginInterface PluginInterface { get; set; }
+        internal static EMode Mode { get; set; }
+
         public uint TerritoryType { get; set; }
         public ConcurrentBag<Marker> Markers { get; set; } = new();
 
@@ -27,7 +32,7 @@ namespace Pal.Client
 
         private void ApplyFilters()
         {
-            if (Service.Configuration.Mode == Configuration.EMode.Offline)
+            if (Mode == EMode.Offline)
                 Markers = new ConcurrentBag<Marker>(Markers.Where(x => x.Seen || (x.WasImported && x.Imports.Count > 0)));
             else
                 // ensure old import markers are removed if they are no longer part of a "current" import
@@ -121,7 +126,7 @@ namespace Pal.Client
 
         public string GetSaveLocation() => GetSaveLocation(TerritoryType);
 
-        private static string GetSaveLocation(uint territoryType) => Path.Join(Service.PluginInterface.GetPluginConfigDirectory(), $"{territoryType}.json");
+        private static string GetSaveLocation(uint territoryType) => Path.Join(PluginInterface.GetPluginConfigDirectory(), $"{territoryType}.json");
 
         public static void ForEach(Action<LocalState> action)
         {

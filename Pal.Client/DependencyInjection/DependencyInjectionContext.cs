@@ -108,10 +108,15 @@ namespace Pal.Client.DependencyInjection
             _serviceProvider.GetService<RepoVerification>();
 #endif
 
-            _serviceProvider.GetRequiredService<Hooks>();
+            // set up legacy services
+            LocalState.PluginInterface = pluginInterface;
+            LocalState.Mode = _serviceProvider.GetRequiredService<IPalacePalConfiguration>().Mode;
+
+            // windows that have logic to open on startup
             _serviceProvider.GetRequiredService<AgreementWindow>();
-            _serviceProvider.GetRequiredService<ConfigWindow>();
-            _serviceProvider.GetRequiredService<StatisticsWindow>();
+
+            // initialize components that are mostly self-contained/self-registered
+            _serviceProvider.GetRequiredService<Hooks>();
             _serviceProvider.GetRequiredService<PalCommand>();
             _serviceProvider.GetRequiredService<FrameworkService>();
             _serviceProvider.GetRequiredService<ChatService>();

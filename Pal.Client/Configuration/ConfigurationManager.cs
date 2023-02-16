@@ -39,6 +39,7 @@ namespace Pal.Client.Configuration
                     new JsonSerializerOptions
                     { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }),
                 Encoding.UTF8);
+
             if (queue && config is ConfigurationV7 v7)
                 Saved?.Invoke(this, v7);
         }
@@ -60,7 +61,7 @@ namespace Pal.Client.Configuration
                 var v7 = MigrateToV7(configurationV1);
                 Save(v7, queue: false);
 
-                //File.Move(_pluginInterface.ConfigFile.FullName, _pluginInterface.ConfigFile.FullName + ".old", true);
+                File.Move(_pluginInterface.ConfigFile.FullName, _pluginInterface.ConfigFile.FullName + ".old", true);
             }
         }
 

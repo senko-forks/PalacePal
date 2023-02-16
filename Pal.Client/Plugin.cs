@@ -13,6 +13,11 @@ using Pal.Client.Configuration;
 
 namespace Pal.Client
 {
+    /// <summary>
+    /// With all DI logic elsewhere, this plugin shell really only takes care of a few things around events that
+    /// need to be sent to different receivers depending on priority or configuration .
+    /// </summary>
+    /// <see cref="DependencyInjection.DependencyInjectionContext"/>
     internal sealed class Plugin : IDisposable
     {
         private readonly IServiceProvider _serviceProvider;
@@ -33,10 +38,6 @@ namespace Pal.Client
             _configuration = configuration;
             _renderAdapter = renderAdapter;
 
-            // initialize legacy services
-            pluginInterface.Create<Service>();
-            Service.Configuration = configuration;
-
             LanguageChanged(pluginInterface.UiLanguage);
 
             pluginInterface.UiBuilder.Draw += Draw;
@@ -55,26 +56,23 @@ namespace Pal.Client
             configWindow.IsOpen = true;
         }
 
-        #region IDisposable Support
         public void Dispose()
         {
             _pluginInterface.UiBuilder.Draw -= Draw;
             _pluginInterface.UiBuilder.OpenConfigUi -= OpenConfigUi;
             _pluginInterface.LanguageChanged -= LanguageChanged;
         }
-        #endregion
 
         private void LanguageChanged(string languageCode)
         {
             Localization.Culture = new CultureInfo(languageCode);
-            _serviceProvider.GetRequiredService<WindowSystem>().Windows.OfType<ILanguageChanged>().Each(w => w.LanguageChanged());
+            _serviceProvider.GetRequiredService<WindowSystem>().Windows.OfType<ILanguageChanged>()
+                .Each(w => w.LanguageChanged());
         }
 
         private void Draw()
         {
-            if (_renderAdapter.Implementation is SimpleRenderer sr)
-                sr.DrawLayers();
-
+            _renderAdapter.DrawLayers();
             _serviceProvider.GetRequiredService<WindowSystem>().Draw();
         }
     }

@@ -29,5 +29,11 @@ namespace Pal.Client.Rendering
 
         public IRenderElement CreateElement(Marker.EType type, Vector3 pos, uint color, bool fill = false)
             => Implementation.CreateElement(type, pos, color, fill);
+
+        public void DrawLayers()
+        {
+            if (Implementation is SimpleRenderer sr)
+                sr.DrawLayers();
+        }
     }
 }
