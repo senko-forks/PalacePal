@@ -69,7 +69,6 @@ namespace Pal.Client.DependencyInjection
             services.AddSingleton<FrameworkService>();
             services.AddSingleton<ChatService>();
             services.AddSingleton<FloorService>();
-            services.AddSingleton<QueueHandler>();
 
             // windows & related services
             services.AddSingleton<AgreementWindow>();
@@ -81,6 +80,12 @@ namespace Pal.Client.DependencyInjection
             services.AddSingleton<SimpleRenderer>();
             services.AddSingleton<SplatoonRenderer>();
             services.AddSingleton<RenderAdapter>();
+
+            // queue handling
+            services.AddTransient<IQueueOnFrameworkThread.Handler<QueuedImport>, QueuedImport.Handler>();
+            services.AddTransient<IQueueOnFrameworkThread.Handler<QueuedUndoImport>, QueuedUndoImport.Handler>();
+            services.AddTransient<IQueueOnFrameworkThread.Handler<QueuedConfigUpdate>, QueuedConfigUpdate.Handler>();
+            services.AddTransient<IQueueOnFrameworkThread.Handler<QueuedSyncResponse>, QueuedSyncResponse.Handler>();
 
             // set up the current UI language before creating anything
             Localization.Culture = new CultureInfo(pluginInterface.UiLanguage);

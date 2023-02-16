@@ -9,7 +9,9 @@ using Dalamud.Game;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Logging;
 using ImGuiNET;
+using Microsoft.Extensions.DependencyInjection;
 using Pal.Client.Configuration;
 using Pal.Client.Extensions;
 using Pal.Client.Net;
@@ -20,6 +22,7 @@ namespace Pal.Client.DependencyInjection
 {
     internal sealed class FrameworkService : IDisposable
     {
+        private readonly IServiceProvider _serviceProvider;
         private readonly Framework _framework;
         private readonly ConfigurationManager _configurationManager;
         private readonly IPalacePalConfiguration _configuration;
@@ -28,7 +31,6 @@ namespace Pal.Client.DependencyInjection
         private readonly FloorService _floorService;
         private readonly DebugState _debugState;
         private readonly RenderAdapter _renderAdapter;
-        private readonly QueueHandler _queueHandler;
         private readonly ObjectTable _objectTable;
         private readonly RemoteApi _remoteApi;
 
@@ -36,7 +38,9 @@ namespace Pal.Client.DependencyInjection
         internal Queue<IQueueOnFrameworkThread> LateEventQueue { get; } = new();
         internal ConcurrentQueue<nint> NextUpdateObjects { get; } = new();
 
-        public FrameworkService(Framework framework,
+        public FrameworkService(
+            IServiceProvider serviceProvider,
+            Framework framework,
             ConfigurationManager configurationManager,
             IPalacePalConfiguration configuration,
             ClientState clientState,
@@ -44,10 +48,10 @@ namespace Pal.Client.DependencyInjection
             FloorService floorService,
             DebugState debugState,
             RenderAdapter renderAdapter,
-            QueueHandler queueHandler,
             ObjectTable objectTable,
             RemoteApi remoteApi)
         {
+            _serviceProvider = serviceProvider;
             _framework = framework;
             _configurationManager = configurationManager;
             _configuration = configuration;
@@ -56,7 +60,6 @@ namespace Pal.Client.DependencyInjection
             _floorService = floorService;
             _debugState = debugState;
             _renderAdapter = renderAdapter;
-            _queueHandler = queueHandler;
             _objectTable = objectTable;
             _remoteApi = remoteApi;
 
@@ -84,7 +87,7 @@ namespace Pal.Client.DependencyInjection
                 bool saveMarkers = false;
 
                 while (EarlyEventQueue.TryDequeue(out IQueueOnFrameworkThread? queued))
-                    _queueHandler.Handle(queued, ref recreateLayout, ref saveMarkers);
+                    HandleQueued(queued, ref recreateLayout, ref saveMarkers);
 
                 if (_territoryState.LastTerritory != _clientState.TerritoryType)
                 {
@@ -111,12 +114,13 @@ namespace Pal.Client.DependencyInjection
                 }
 
                 while (LateEventQueue.TryDequeue(out IQueueOnFrameworkThread? queued))
-                    _queueHandler.Handle(queued, ref recreateLayout, ref saveMarkers);
+                    HandleQueued(queued, ref recreateLayout, ref saveMarkers);
 
                 var currentFloor = _floorService.GetFloorMarkers(_territoryState.LastTerritory);
 
                 IList<Marker> visibleMarkers = GetRelevantGameObjects();
-                HandlePersistentMarkers(currentFloor, visibleMarkers.Where(x => x.IsPermanent()).ToList(), saveMarkers, recreateLayout);
+                HandlePersistentMarkers(currentFloor, visibleMarkers.Where(x => x.IsPermanent()).ToList(), saveMarkers,
+                    recreateLayout);
                 HandleEphemeralMarkers(visibleMarkers.Where(x => !x.IsPermanent()).ToList(), recreateLayout);
             }
             catch (Exception e)
@@ -126,7 +130,9 @@ namespace Pal.Client.DependencyInjection
         }
 
         #region Render Markers
-        private void HandlePersistentMarkers(LocalState currentFloor, IList<Marker> visibleMarkers, bool saveMarkers, bool recreateLayout)
+
+        private void HandlePersistentMarkers(LocalState currentFloor, IList<Marker> visibleMarkers, bool saveMarkers,
+            bool recreateLayout)
         {
             var currentFloorMarkers = currentFloor.Markers;
 
@@ -145,7 +151,8 @@ namespace Pal.Client.DependencyInjection
 
                     // This requires you to have seen a trap/hoard marker once per floor to synchronize this for older local states,
                     // markers discovered afterwards are automatically marked seen.
-                    if (partialAccountId != null && knownMarker is { NetworkId: { }, RemoteSeenRequested: false } && !knownMarker.RemoteSeenOn.Contains(partialAccountId))
+                    if (partialAccountId != null && knownMarker is { NetworkId: { }, RemoteSeenRequested: false } &&
+                        !knownMarker.RemoteSeenOn.Contains(partialAccountId))
                         updateSeenMarkers = true;
 
                     continue;
@@ -156,9 +163,10 @@ namespace Pal.Client.DependencyInjection
                 saveMarkers = true;
             }
 
-            if (!recreateLayout && currentFloorMarkers.Count > 0 && (_configuration.DeepDungeons.Traps.OnlyVisibleAfterPomander || _configuration.DeepDungeons.HoardCoffers.OnlyVisibleAfterPomander))
+            if (!recreateLayout && currentFloorMarkers.Count > 0 &&
+                (_configuration.DeepDungeons.Traps.OnlyVisibleAfterPomander ||
+                 _configuration.DeepDungeons.HoardCoffers.OnlyVisibleAfterPomander))
             {
-
                 try
                 {
                     foreach (var marker in currentFloorMarkers)
@@ -183,7 +191,9 @@ namespace Pal.Client.DependencyInjection
 
             if (updateSeenMarkers && partialAccountId != null)
             {
-                var markersToUpdate = currentFloorMarkers.Where(x => x is { Seen: true, NetworkId: { }, RemoteSeenRequested: false } && !x.RemoteSeenOn.Contains(partialAccountId)).ToList();
+                var markersToUpdate = currentFloorMarkers.Where(x =>
+                    x is { Seen: true, NetworkId: { }, RemoteSeenRequested: false } &&
+                    !x.RemoteSeenOn.Contains(partialAccountId)).ToList();
                 foreach (var marker in markersToUpdate)
                     marker.RemoteSeenRequested = true;
                 Task.Run(async () => await SyncSeenMarkersForTerritory(_territoryState.LastTerritory, markersToUpdate));
@@ -195,12 +205,14 @@ namespace Pal.Client.DependencyInjection
 
                 if (_territoryState.TerritorySyncState == SyncState.Complete)
                 {
-                    var markersToUpload = currentFloorMarkers.Where(x => x.IsPermanent() && x.NetworkId == null && !x.UploadRequested).ToList();
+                    var markersToUpload = currentFloorMarkers
+                        .Where(x => x.IsPermanent() && x.NetworkId == null && !x.UploadRequested).ToList();
                     if (markersToUpload.Count > 0)
                     {
                         foreach (var marker in markersToUpload)
                             marker.UploadRequested = true;
-                        Task.Run(async () => await UploadMarkersForTerritory(_territoryState.LastTerritory, markersToUpload));
+                        Task.Run(async () =>
+                            await UploadMarkersForTerritory(_territoryState.LastTerritory, markersToUpload));
                     }
                 }
             }
@@ -212,15 +224,18 @@ namespace Pal.Client.DependencyInjection
                 List<IRenderElement> elements = new();
                 foreach (var marker in currentFloorMarkers)
                 {
-                    if (marker.Seen || _configuration.Mode == EMode.Online || marker is { WasImported: true, Imports.Count: > 0 })
+                    if (marker.Seen || _configuration.Mode == EMode.Online ||
+                        marker is { WasImported: true, Imports.Count: > 0 })
                     {
                         if (marker.Type == Marker.EType.Trap)
                         {
-                            CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers), _configuration.DeepDungeons.Traps);
+                            CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers),
+                                _configuration.DeepDungeons.Traps);
                         }
                         else if (marker.Type == Marker.EType.Hoard)
                         {
-                            CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers), _configuration.DeepDungeons.HoardCoffers);
+                            CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers),
+                                _configuration.DeepDungeons.HoardCoffers);
                         }
                     }
                 }
@@ -234,8 +249,10 @@ namespace Pal.Client.DependencyInjection
 
         private void HandleEphemeralMarkers(IList<Marker> visibleMarkers, bool recreateLayout)
         {
-            recreateLayout |= _floorService.EphemeralMarkers.Any(existingMarker => visibleMarkers.All(x => x != existingMarker));
-            recreateLayout |= visibleMarkers.Any(visibleMarker => _floorService.EphemeralMarkers.All(x => x != visibleMarker));
+            recreateLayout |=
+                _floorService.EphemeralMarkers.Any(existingMarker => visibleMarkers.All(x => x != existingMarker));
+            recreateLayout |=
+                visibleMarkers.Any(visibleMarker => _floorService.EphemeralMarkers.All(x => x != visibleMarker));
 
             if (recreateLayout)
             {
@@ -249,7 +266,8 @@ namespace Pal.Client.DependencyInjection
 
                     if (marker.Type == Marker.EType.SilverCoffer && _configuration.DeepDungeons.SilverCoffers.Show)
                     {
-                        CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers), _configuration.DeepDungeons.SilverCoffers);
+                        CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers),
+                            _configuration.DeepDungeons.SilverCoffers);
                     }
                 }
 
@@ -264,9 +282,13 @@ namespace Pal.Client.DependencyInjection
         {
             switch (marker.Type)
             {
-                case Marker.EType.Trap when _territoryState.PomanderOfSight == PomanderState.Inactive || !_configuration.DeepDungeons.Traps.OnlyVisibleAfterPomander || visibleMarkers.Any(x => x == marker):
+                case Marker.EType.Trap when _territoryState.PomanderOfSight == PomanderState.Inactive ||
+                                            !_configuration.DeepDungeons.Traps.OnlyVisibleAfterPomander ||
+                                            visibleMarkers.Any(x => x == marker):
                     return _configuration.DeepDungeons.Traps.Color;
-                case Marker.EType.Hoard when _territoryState.PomanderOfIntuition == PomanderState.Inactive || !_configuration.DeepDungeons.HoardCoffers.OnlyVisibleAfterPomander || visibleMarkers.Any(x => x == marker):
+                case Marker.EType.Hoard when _territoryState.PomanderOfIntuition == PomanderState.Inactive ||
+                                             !_configuration.DeepDungeons.HoardCoffers.OnlyVisibleAfterPomander ||
+                                             visibleMarkers.Any(x => x == marker):
                     return _configuration.DeepDungeons.HoardCoffers.Color;
                 case Marker.EType.SilverCoffer:
                     return _configuration.DeepDungeons.SilverCoffers.Color;
@@ -278,7 +300,8 @@ namespace Pal.Client.DependencyInjection
             }
         }
 
-        private void CreateRenderElement(Marker marker, List<IRenderElement> elements, uint color, MarkerConfiguration config)
+        private void CreateRenderElement(Marker marker, List<IRenderElement> elements, uint color,
+            MarkerConfiguration config)
         {
             if (!config.Show)
                 return;
@@ -287,9 +310,11 @@ namespace Pal.Client.DependencyInjection
             marker.RenderElement = element;
             elements.Add(element);
         }
+
         #endregion
 
         #region Up-/Download
+
         private async Task DownloadMarkersForTerritory(ushort territoryId)
         {
             try
@@ -346,6 +371,7 @@ namespace Pal.Client.DependencyInjection
                 _debugState.SetFromException(e);
             }
         }
+
         #endregion
 
         private IList<Marker> GetRelevantGameObjects()
@@ -387,6 +413,14 @@ namespace Pal.Client.DependencyInjection
             }
 
             return result;
+        }
+
+        private void HandleQueued(IQueueOnFrameworkThread queued, ref bool recreateLayout, ref bool saveMarkers)
+        {
+            Type handlerType = typeof(IQueueOnFrameworkThread.Handler<>).MakeGenericType(queued.GetType());
+            var handler = (IQueueOnFrameworkThread.IHandler)_serviceProvider.GetRequiredService(handlerType);
+
+            handler.RunIfCompatible(queued, ref recreateLayout, ref saveMarkers);
         }
     }
 }
