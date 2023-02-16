@@ -23,17 +23,20 @@ namespace Pal.Client
         private readonly DalamudPluginInterface _pluginInterface;
         private readonly IPalacePalConfiguration _configuration;
         private readonly RenderAdapter _renderAdapter;
+        private readonly WindowSystem _windowSystem;
 
         public Plugin(
             IServiceProvider serviceProvider,
             DalamudPluginInterface pluginInterface,
             IPalacePalConfiguration configuration,
-            RenderAdapter renderAdapter)
+            RenderAdapter renderAdapter,
+            WindowSystem windowSystem)
         {
             _serviceProvider = serviceProvider;
             _pluginInterface = pluginInterface;
             _configuration = configuration;
             _renderAdapter = renderAdapter;
+            _windowSystem = windowSystem;
 
             LanguageChanged(pluginInterface.UiLanguage);
 
@@ -63,14 +66,14 @@ namespace Pal.Client
         private void LanguageChanged(string languageCode)
         {
             Localization.Culture = new CultureInfo(languageCode);
-            _serviceProvider.GetRequiredService<WindowSystem>().Windows.OfType<ILanguageChanged>()
+            _windowSystem.Windows.OfType<ILanguageChanged>()
                 .Each(w => w.LanguageChanged());
         }
 
         private void Draw()
         {
             _renderAdapter.DrawLayers();
-            _serviceProvider.GetRequiredService<WindowSystem>().Draw();
+            _windowSystem.Draw();
         }
     }
 }

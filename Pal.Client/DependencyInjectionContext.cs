@@ -171,10 +171,13 @@ namespace Pal.Client
 
                     PluginLog.Information("Async init complete");
                 }
+                catch (ObjectDisposedException)
+                {
+                }
                 catch (Exception e)
                 {
                     PluginLog.Error(e, "Async load failed");
-                    chatGui.PrintError($"Async loading failed: {e}");
+                    chatGui.PrintError($"Async loading failed: {e.GetType()}: {e.Message}");
                 }
             });
         }
