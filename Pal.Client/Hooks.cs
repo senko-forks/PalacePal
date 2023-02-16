@@ -6,12 +6,14 @@ using Dalamud.Utility.Signatures;
 using System;
 using System.Text;
 using Dalamud.Game.ClientState.Objects;
+using Microsoft.Extensions.Logging;
 using Pal.Client.DependencyInjection;
 
 namespace Pal.Client
 {
     internal sealed unsafe class Hooks : IDisposable
     {
+        private readonly ILogger<Hooks> _logger;
         private readonly ObjectTable _objectTable;
         private readonly TerritoryState _territoryState;
         private readonly FrameworkService _frameworkService;
@@ -23,8 +25,9 @@ namespace Pal.Client
         private Hook<ActorVfxCreateDelegate> ActorVfxCreateHook { get; init; } = null!;
 #pragma warning restore CS0649
 
-        public Hooks(ObjectTable objectTable, TerritoryState territoryState, FrameworkService frameworkService)
+        public Hooks(ILogger<Hooks> logger, ObjectTable objectTable, TerritoryState territoryState, FrameworkService frameworkService)
         {
+            _logger = logger;
             _objectTable = objectTable;
             _territoryState = territoryState;
             _frameworkService = frameworkService;
@@ -86,7 +89,7 @@ namespace Pal.Client
             }
             catch (Exception e)
             {
-                PluginLog.Error(e, "VFX Create Hook failed");
+                _logger.LogError(e, "VFX Create Hook failed");
             }
             return ActorVfxCreateHook.Original(a1, a2, a3, a4, a5, a6, a7);
         }

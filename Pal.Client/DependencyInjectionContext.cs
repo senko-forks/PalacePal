@@ -16,10 +16,12 @@ using Dalamud.Plugin;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Pal.Client.Commands;
 using Pal.Client.Configuration;
 using Pal.Client.Database;
 using Pal.Client.DependencyInjection;
+using Pal.Client.DependencyInjection.Logging;
 using Pal.Client.Net;
 using Pal.Client.Properties;
 using Pal.Client.Rendering;
@@ -34,6 +36,9 @@ namespace Pal.Client
     // ReSharper disable once UnusedType.Global
     internal sealed class DependencyInjectionContext : IDalamudPlugin
     {
+        public static DalamudLoggerProvider LoggerProvider { get; } = new();
+
+        private readonly ILogger _logger = LoggerProvider.CreateLogger<DependencyInjectionContext>();
         private readonly string _sqliteConnectionString;
         private readonly CancellationTokenSource _initCts = new();
         private ServiceProvider? _serviceProvider;
@@ -50,11 +55,16 @@ namespace Pal.Client
             CommandManager commandManager,
             DataManager dataManager)
         {
-            PluginLog.Information("Building service container");
+            // Temporary logger, will be overriden later
+            _logger.LogInformation("Building service container");
 
             CancellationToken token = _initCts.Token;
             IServiceCollection services = new ServiceCollection();
-
+            services.AddLogging(builder =>
+                builder.AddFilter("Microsoft.EntityFrameworkCore.Database", LogLevel.Warning)
+                    .AddFilter("Grpc", LogLevel.Debug)
+                    .ClearProviders()
+                    .AddProvider(LoggerProvider));
             // dalamud
             services.AddSingleton<IDalamudPlugin>(this);
             services.AddSingleton(pluginInterface);
@@ -134,21 +144,24 @@ namespace Pal.Client
             //
             // There's 2-3 seconds of slowdown primarily caused by the sqlite init, but that needs to happen for
             // config stuff.
-            PluginLog.Information("Service container built, triggering async init");
+            _logger = _serviceProvider.GetRequiredService<ILogger<DependencyInjectionContext>>();
+            _logger.LogInformation("Service container built, triggering async init");
             Task.Run(async () =>
             {
+                using IDisposable? logScope = _logger.BeginScope("AsyncInit");
+
                 try
                 {
-                    PluginLog.Information("Starting async init");
+                    _logger.LogInformation("Starting async init");
 
                     // initialize database
                     await using (var scope = _serviceProvider.CreateAsyncScope())
                     {
-                        PluginLog.Log("Loading database & running migrations");
+                        _logger.LogInformation("Loading database & running migrations");
                         await using var dbContext = scope.ServiceProvider.GetRequiredService<PalClientContext>();
                         await dbContext.Database.MigrateAsync();
 
-                        PluginLog.Log("Completed database migrations");
+                        _logger.LogInformation("Completed database migrations");
                     }
 
                     token.ThrowIfCancellationRequested();
@@ -169,14 +182,14 @@ namespace Pal.Client
                     token.ThrowIfCancellationRequested();
                     _serviceProvider.GetRequiredService<Plugin>();
 
-                    PluginLog.Information("Async init complete");
+                    _logger.LogInformation("Async init complete");
                 }
                 catch (ObjectDisposedException)
                 {
                 }
                 catch (Exception e)
                 {
-                    PluginLog.Error(e, "Async load failed");
+                    _logger.LogError(e, "Async load failed");
                     chatGui.PrintError($"Async loading failed: {e.GetType()}: {e.Message}");
                 }
             });

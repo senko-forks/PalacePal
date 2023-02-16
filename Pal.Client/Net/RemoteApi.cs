@@ -17,9 +17,8 @@ namespace Pal.Client.Net
         private readonly string _userAgent =
             $"{typeof(RemoteApi).Assembly.GetName().Name?.Replace(" ", "")}/{typeof(RemoteApi).Assembly.GetName().Version?.ToString(2)}";
 
-        private readonly ILoggerFactory _grpcToPluginLogLoggerFactory = LoggerFactory.Create(builder =>
-            builder.AddProvider(new GrpcLoggerProvider()).AddFilter("Grpc", LogLevel.Trace));
-
+        private readonly ILoggerFactory _loggerFactory;
+        private readonly ILogger<RemoteApi> _logger;
         private readonly ChatGui _chatGui;
         private readonly ConfigurationManager _configurationManager;
         private readonly IPalacePalConfiguration _configuration;
@@ -28,9 +27,15 @@ namespace Pal.Client.Net
         private LoginInfo _loginInfo = new(null);
         private bool _warnedAboutUpgrade;
 
-        public RemoteApi(ChatGui chatGui, ConfigurationManager configurationManager,
+        public RemoteApi(
+            ILoggerFactory loggerFactory,
+            ILogger<RemoteApi> logger,
+            ChatGui chatGui,
+            ConfigurationManager configurationManager,
             IPalacePalConfiguration configuration)
         {
+            _loggerFactory = loggerFactory;
+            _logger = logger;
             _chatGui = chatGui;
             _configurationManager = configurationManager;
             _configuration = configuration;
@@ -38,7 +43,7 @@ namespace Pal.Client.Net
 
         public void Dispose()
         {
-            PluginLog.Debug("Disposing gRPC channel");
+            _logger.LogDebug("Disposing gRPC channel");
             _channel?.Dispose();
             _channel = null;
         }

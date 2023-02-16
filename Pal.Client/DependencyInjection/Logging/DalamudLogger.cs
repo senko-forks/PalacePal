@@ -1,27 +1,33 @@
 ﻿using Dalamud.Logging;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Text;
 
-namespace Pal.Client.Net
+namespace Pal.Client.DependencyInjection.Logging
 {
-    internal sealed class GrpcLogger : ILogger
+    internal sealed class DalamudLogger : ILogger
     {
         private readonly string _name;
+        private readonly IExternalScopeProvider? _scopeProvider;
 
-        public GrpcLogger(string name)
+        public DalamudLogger(string name, IExternalScopeProvider? scopeProvider)
         {
             _name = name;
+            _scopeProvider = scopeProvider;
         }
 
         public IDisposable BeginScope<TState>(TState state)
             where TState : notnull
-            => NullScope.Instance;
+            => _scopeProvider?.Push(state) ?? NullScope.Instance;
 
         public bool IsEnabled(LogLevel logLevel) => logLevel != LogLevel.None;
 
-        [MethodImpl(MethodImplOptions.NoInlining)] // PluginLog detects the plugin name as `Microsoft.Extensions.Logging` if inlined
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        // PluginLog detects the plugin name as `Microsoft.Extensions.Logging` if inlined
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter)
         {
             if (!IsEnabled(logLevel))
                 return;
@@ -29,9 +35,23 @@ namespace Pal.Client.Net
             if (formatter == null)
                 throw new ArgumentNullException(nameof(formatter));
 
-            string message = $"gRPC[{_name}] {formatter(state, null)}";
-            if (string.IsNullOrEmpty(message))
-                return;
+            StringBuilder sb = new StringBuilder();
+            _scopeProvider?.ForEachScope((scope, builder) =>
+                {
+                    if (scope is IEnumerable<KeyValuePair<string, object>> properties)
+                    {
+                        foreach (KeyValuePair<string, object> pair in properties)
+                        {
+                            builder.Append('<').Append(pair.Key).Append('=').Append(pair.Value)
+                                .Append("> ");
+                        }
+                    }
+                    else if (scope != null)
+                        builder.Append('<').Append(scope).Append("> ");
+                },
+                sb);
+            sb.Append('[').Append(_name).Append("] ").Append(formatter(state, null));
+            string message = sb.ToString();
 
 #pragma warning disable CS8604 // the nullability on PluginLog methods is wrong and allows nulls for exceptions, WriteLog even declares the parameter as `Exception? exception = null`
             switch (logLevel)
@@ -63,7 +83,7 @@ namespace Pal.Client.Net
 #pragma warning restore CS8604
         }
 
-        private class NullScope : IDisposable
+        private sealed class NullScope : IDisposable
         {
             public static NullScope Instance { get; } = new();
 

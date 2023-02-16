@@ -147,7 +147,7 @@ namespace Pal.Server.Services
             }
             catch (Exception e)
             {
-                _logger.LogError("Could not mark objects seen for territory {TerritoryType}: {e}", request.TerritoryType, e);
+                _logger.LogError(e, "Could not mark objects seen for territory {TerritoryType}: {e}", request.TerritoryType, e);
                 return new MarkObjectsSeenReply { Success = false };
             }
         }
@@ -172,7 +172,7 @@ namespace Pal.Server.Services
             }
             catch (Exception e)
             {
-                _logger.LogError("Could not fetch statistics: {e}", e);
+                _logger.LogError(e, "Could not fetch statistics: {e}", e);
                 return new StatisticsReply { Success = false };
             }
         }

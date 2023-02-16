@@ -61,7 +61,7 @@ namespace Pal.Server.Services
             }
             catch (Exception e)
             {
-                _logger.LogError("Could not create export: {e}", e);
+                _logger.LogError(e, "Could not create export: {e}", e);
                 return new ExportReply { Success = false, Error = ExportError.Unknown };
             }
         }

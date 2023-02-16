@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 using Pal.Client.Configuration;
 using Pal.Client.DependencyInjection;
 using Pal.Client.Windows;
@@ -22,7 +23,8 @@ namespace Pal.Client.Scheduled
             private readonly FloorService _floorService;
             private readonly ConfigWindow _configWindow;
 
-            public Handler(ImportService importService, FloorService floorService, ConfigWindow configWindow)
+            public Handler(ILogger<Handler> logger, ImportService importService, FloorService floorService, ConfigWindow configWindow)
+                : base(logger)
             {
                 _importService = importService;
                 _floorService = floorService;

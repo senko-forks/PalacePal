@@ -1,4 +1,5 @@
-﻿using Pal.Client.Configuration;
+﻿using Microsoft.Extensions.Logging;
+using Pal.Client.Configuration;
 using Pal.Client.DependencyInjection;
 
 namespace Pal.Client.Scheduled
@@ -11,8 +12,9 @@ namespace Pal.Client.Scheduled
             private readonly FloorService _floorService;
             private readonly TerritoryState _territoryState;
 
-            public Handler(IPalacePalConfiguration configuration, FloorService floorService,
+            public Handler(ILogger<Handler> logger, IPalacePalConfiguration configuration, FloorService floorService,
                 TerritoryState territoryState)
+                : base(logger)
             {
                 _configuration = configuration;
                 _floorService = floorService;

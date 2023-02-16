@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Plugin;
+using Microsoft.Extensions.Logging;
 
 namespace Pal.Client.Configuration
 {
@@ -50,11 +51,11 @@ namespace Pal.Client.Configuration
         public string BetaKey { get; set; } = "";
         #endregion
 
-        public void Migrate(DalamudPluginInterface pluginInterface)
+        public void Migrate(DalamudPluginInterface pluginInterface, ILogger<ConfigurationV1> logger)
         {
             if (Version == 1)
             {
-                PluginLog.Information("Updating config to version 2");
+                logger.LogInformation("Updating config to version 2");
 
                 if (DebugAccountId != null && Guid.TryParse(DebugAccountId, out Guid debugAccountId))
                     AccountIds["http://localhost:5145"] = debugAccountId;
@@ -68,7 +69,7 @@ namespace Pal.Client.Configuration
 
             if (Version == 2)
             {
-                PluginLog.Information("Updating config to version 3");
+                logger.LogInformation("Updating config to version 3");
 
                 Accounts = AccountIds.ToDictionary(x => x.Key, x => new AccountInfo
                 {

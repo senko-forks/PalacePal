@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Pal.Client.Database;
 
@@ -24,12 +27,12 @@ namespace Pal.Client.DependencyInjection
             dbContext.SaveChanges();
         }
 
-        public ImportHistory? FindLast()
+        public async Task<ImportHistory?> FindLast(CancellationToken token = default)
         {
-            using var scope = _serviceProvider.CreateScope();
-            using var dbContext = scope.ServiceProvider.GetRequiredService<PalClientContext>();
+            await using var scope = _serviceProvider.CreateAsyncScope();
+            await using var dbContext = scope.ServiceProvider.GetRequiredService<PalClientContext>();
 
-            return dbContext.Imports.OrderByDescending(x => x.ImportedAt).ThenBy(x => x.Id).FirstOrDefault();
+            return await dbContext.Imports.OrderByDescending(x => x.ImportedAt).ThenBy(x => x.Id).FirstOrDefaultAsync(cancellationToken: token);
         }
 
         public List<ImportHistory> FindForServer(string server)

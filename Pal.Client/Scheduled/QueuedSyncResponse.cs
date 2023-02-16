@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using Pal.Client.Configuration;
 using Pal.Client.DependencyInjection;
 using Pal.Client.Extensions;
@@ -22,7 +23,13 @@ namespace Pal.Client.Scheduled
             private readonly TerritoryState _territoryState;
             private readonly DebugState _debugState;
 
-            public Handler(IPalacePalConfiguration configuration, FloorService floorService, TerritoryState territoryState, DebugState debugState)
+            public Handler(
+                ILogger<Handler> logger,
+                IPalacePalConfiguration configuration,
+                FloorService floorService,
+                TerritoryState territoryState,
+                DebugState debugState)
+                : base(logger)
             {
                 _configuration = configuration;
                 _floorService = floorService;

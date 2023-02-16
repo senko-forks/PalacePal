@@ -16,7 +16,7 @@
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation($"Starting {nameof(RemoveIpHashService)}");
+            _logger.LogInformation("Starting {ServiceName}", nameof(RemoveIpHashService));
             _timer = new Timer(DoWork, null, TimeSpan.FromSeconds(1), TimeSpan.FromHours(1));
             return Task.CompletedTask;
         }
@@ -37,7 +37,7 @@
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation($"Stopping {nameof(RemoveIpHashService)}");
+            _logger.LogInformation("Stopping {ServiceName}", nameof(RemoveIpHashService));
             _timer?.Change(Timeout.Infinite, 0);
             return Task.CompletedTask;
         }

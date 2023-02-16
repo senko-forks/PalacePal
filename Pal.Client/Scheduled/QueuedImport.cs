@@ -7,6 +7,7 @@ using System.Linq;
 using System.Numerics;
 using Dalamud.Game.Gui;
 using Dalamud.Logging;
+using Microsoft.Extensions.Logging;
 using Pal.Client.Database;
 using Pal.Client.DependencyInjection;
 using Pal.Client.Extensions;
@@ -36,10 +37,12 @@ namespace Pal.Client.Scheduled
             private readonly ConfigWindow _configWindow;
 
             public Handler(
+                ILogger<Handler> logger,
                 ChatGui chatGui,
                 FloorService floorService,
                 ImportService importService,
                 ConfigWindow configWindow)
+                : base(logger)
             {
                 _chatGui = chatGui;
                 _floorService = floorService;
@@ -83,14 +86,14 @@ namespace Pal.Client.Scheduled
                     });
                     _configWindow.UpdateLastImport();
 
-                    PluginLog.Information(
+                    _logger.LogInformation(
                         $"Imported {import.ExportId} for {import.ImportedTraps} traps, {import.ImportedHoardCoffers} hoard coffers");
                     _chatGui.PalMessage(string.Format(Localization.ImportCompleteStatistics, import.ImportedTraps,
                         import.ImportedHoardCoffers));
                 }
                 catch (Exception e)
                 {
-                    PluginLog.Error(e, "Import failed");
+                    _logger.LogError(e, "Import failed");
                     _chatGui.PalError(string.Format(Localization.Error_ImportFailed, e));
                 }
             }
@@ -99,15 +102,15 @@ namespace Pal.Client.Scheduled
             {
                 if (import.Export.ExportVersion != ExportConfig.ExportVersion)
                 {
-                    PluginLog.Error(
-                        $"Import: Different version in export file, {import.Export.ExportVersion} != {ExportConfig.ExportVersion}");
+                    _logger.LogError(
+                        "Import: Different version in export file, {ExportVersion} != {ConfiguredVersion}", import.Export.ExportVersion, ExportConfig.ExportVersion);
                     _chatGui.PalError(Localization.Error_ImportFailed_IncompatibleVersion);
                     return false;
                 }
 
                 if (!Guid.TryParse(import.Export.ExportId, out Guid exportId) || exportId == Guid.Empty)
                 {
-                    PluginLog.Error($"Import: Invalid export id ({import.Export.ExportId})");
+                    _logger.LogError("Import: Invalid export id '{Id}'", import.Export.ExportId);
                     _chatGui.PalError(Localization.Error_ImportFailed_InvalidFile);
                     return false;
                 }
@@ -117,7 +120,7 @@ namespace Pal.Client.Scheduled
                 if (string.IsNullOrEmpty(import.Export.ServerUrl))
                 {
                     // If we allow for backups as import/export, this should be removed
-                    PluginLog.Error("Import: No server URL");
+                    _logger.LogError("Import: No server URL");
                     _chatGui.PalError(Localization.Error_ImportFailed_InvalidFile);
                     return false;
                 }

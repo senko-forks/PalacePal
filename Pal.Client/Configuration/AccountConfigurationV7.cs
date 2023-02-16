@@ -3,12 +3,17 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 using Dalamud.Logging;
+using Microsoft.Extensions.Logging;
+using Pal.Client.DependencyInjection.Logging;
 
 namespace Pal.Client.Configuration
 {
     public sealed class AccountConfigurationV7 : IAccountConfiguration
     {
         private const int DefaultEntropyLength = 16;
+
+        private static readonly ILogger _logger =
+            DependencyInjectionContext.LoggerProvider.CreateLogger<AccountConfigurationV7>();
 
         [JsonConstructor]
         public AccountConfigurationV7()
@@ -74,7 +79,7 @@ namespace Pal.Client.Configuration
                 }
                 catch (Exception e)
                 {
-                    PluginLog.Verbose(e, $"Could not load account id {EncryptedId}");
+                    _logger.LogTrace(e, "Could not load account id {Id}", EncryptedId);
                     return null;
                 }
             }

@@ -85,7 +85,7 @@ namespace Pal.Server.Services
             }
             catch (Exception e)
             {
-                _logger.LogError("Could not create account: {e}", e);
+                _logger.LogError(e, "Could not create account: {e}", e);
                 return new CreateAccountReply { Success = false, Error = CreateAccountError.Unknown };
             }
         }

@@ -19,6 +19,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Dalamud.Game.Gui;
+using Microsoft.Extensions.Logging;
 using Pal.Client.Properties;
 using Pal.Client.Configuration;
 using Pal.Client.Database;
@@ -31,6 +32,7 @@ namespace Pal.Client.Windows
     {
         private const string WindowId = "###PalPalaceConfig";
 
+        private readonly ILogger<ConfigWindow> _logger;
         private readonly WindowSystem _windowSystem;
         private readonly ConfigurationManager _configurationManager;
         private readonly IPalacePalConfiguration _configuration;
@@ -60,8 +62,10 @@ namespace Pal.Client.Windows
         private ImportHistory? _lastImport;
 
         private CancellationTokenSource? _testConnectionCts;
+        private CancellationTokenSource? _lastImportCts;
 
         public ConfigWindow(
+            ILogger<ConfigWindow> logger,
             WindowSystem windowSystem,
             ConfigurationManager configurationManager,
             IPalacePalConfiguration configuration,
@@ -75,6 +79,7 @@ namespace Pal.Client.Windows
             ImportService importService)
             : base(WindowId)
         {
+            _logger = logger;
             _windowSystem = windowSystem;
             _configurationManager = configurationManager;
             _configuration = configuration;
@@ -105,6 +110,7 @@ namespace Pal.Client.Windows
         public void Dispose()
         {
             _windowSystem.RemoveWindow(this);
+            _lastImportCts?.Cancel();
             _testConnectionCts?.Cancel();
         }
 
@@ -454,11 +460,11 @@ namespace Pal.Client.Windows
                 {
                     if (cts == _testConnectionCts)
                     {
-                        PluginLog.Error(e, "Could not establish remote connection");
+                        _logger.LogError(e, "Could not establish remote connection");
                         _connectionText = e.ToString();
                     }
                     else
-                        PluginLog.Warning(e,
+                        _logger.LogWarning(e,
                             "Could not establish a remote connection, but user also clicked 'test connection' again so not updating UI");
                 }
             });
@@ -476,7 +482,14 @@ namespace Pal.Client.Windows
 
         internal void UpdateLastImport()
         {
-            _lastImport = _importService.FindLast();
+            _lastImportCts?.Cancel();
+            CancellationTokenSource cts = new CancellationTokenSource();
+            _lastImportCts = cts;
+
+            Task.Run(async () =>
+            {
+                _lastImport = await _importService.FindLast(cts.Token);
+            }, cts.Token);
         }
 
         private void DoExport(string destinationPath)
@@ -500,7 +513,7 @@ namespace Pal.Client.Windows
                 }
                 catch (Exception e)
                 {
-                    PluginLog.Error(e, "Export failed");
+                    _logger.LogError(e, "Export failed");
                     _chatGui.PalError($"Export failed: {e}");
                 }
             });

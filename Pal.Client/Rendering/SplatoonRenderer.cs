@@ -13,6 +13,7 @@ using System.Numerics;
 using System.Reflection;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.Gui;
+using Microsoft.Extensions.Logging;
 using Pal.Client.DependencyInjection;
 using Pal.Client.Extensions;
 
@@ -22,19 +23,24 @@ namespace Pal.Client.Rendering
     {
         private const long OnTerritoryChange = -2;
 
+        private readonly ILogger<SplatoonRenderer> _logger;
         private readonly DebugState _debugState;
         private readonly ClientState _clientState;
         private readonly ChatGui _chatGui;
 
-        public SplatoonRenderer(DalamudPluginInterface pluginInterface, IDalamudPlugin dalamudPlugin,
+        public SplatoonRenderer(
+            ILogger<SplatoonRenderer> logger,
+            DalamudPluginInterface pluginInterface,
+            IDalamudPlugin dalamudPlugin,
             DebugState debugState,
             ClientState clientState, ChatGui chatGui)
         {
+            _logger = logger;
             _debugState = debugState;
             _clientState = clientState;
             _chatGui = chatGui;
 
-            PluginLog.Information("Initializing splatoon...");
+            _logger.LogInformation("Initializing splatoon...");
             ECommonsMain.Init(pluginInterface, dalamudPlugin, ECommons.Module.SplatoonAPI);
         }
 
@@ -53,7 +59,7 @@ namespace Pal.Client.Rendering
                 }
                 catch (Exception e)
                 {
-                    PluginLog.Error(e, $"Could not create splatoon layer {layer} with {elements.Count} elements");
+                    _logger.LogError(e, "Could not create splatoon layer {Layer} with {Count} elements", layer, elements.Count);
                     _debugState.SetFromException(e);
                 }
             });
@@ -67,7 +73,7 @@ namespace Pal.Client.Rendering
             }
             catch (Exception e)
             {
-                PluginLog.Error(e, $"Could not reset splatoon layer {layer}");
+                _logger.LogError(e, "Could not reset splatoon layer {Layer}", layer);
             }
         }
 

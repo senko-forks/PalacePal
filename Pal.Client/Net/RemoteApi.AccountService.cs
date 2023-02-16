@@ -1,5 +1,4 @@
 ﻿using Account;
-using Dalamud.Logging;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
@@ -19,9 +18,11 @@ namespace Pal.Client.Net
     {
         private async Task<(bool Success, string Error)> TryConnect(CancellationToken cancellationToken, ILoggerFactory? loggerFactory = null, bool retry = true)
         {
+            using IDisposable? logScope = _logger.BeginScope("TryConnect");
+
             if (_configuration.Mode != EMode.Online)
             {
-                PluginLog.Debug("TryConnect: Not Online, not attempting to establish a connection");
+                _logger.LogDebug("Not Online, not attempting to establish a connection");
                 return (false, Localization.ConnectionError_NotOnline);
             }
 
@@ -29,7 +30,7 @@ namespace Pal.Client.Net
             {
                 Dispose();
 
-                PluginLog.Information("TryConnect: Creating new gRPC channel");
+                _logger.LogInformation("Creating new gRPC channel");
                 _channel = GrpcChannel.ForAddress(RemoteUrl, new GrpcChannelOptions
                 {
                     HttpHandler = new SocketsHttpHandler
@@ -40,7 +41,7 @@ namespace Pal.Client.Net
                     LoggerFactory = loggerFactory,
                 });
 
-                PluginLog.Information($"TryConnect: Connecting to upstream service at {RemoteUrl}");
+                _logger.LogInformation("Connecting to upstream service at {Url}", RemoteUrl);
                 await _channel.ConnectAsync(cancellationToken);
             }
 
@@ -50,7 +51,7 @@ namespace Pal.Client.Net
             IAccountConfiguration? configuredAccount = _configuration.FindAccount(RemoteUrl);
             if (configuredAccount == null)
             {
-                PluginLog.Information($"TryConnect: No account information saved for {RemoteUrl}, creating new account");
+                _logger.LogInformation("No account information saved for {Url}, creating new account", RemoteUrl);
                 var createAccountReply = await accountClient.CreateAccountAsync(new CreateAccountRequest(), headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
                 if (createAccountReply.Success)
                 {
@@ -58,13 +59,13 @@ namespace Pal.Client.Net
                         throw new InvalidOperationException("invalid account id returned");
 
                     configuredAccount = _configuration.CreateAccount(RemoteUrl, accountId);
-                    PluginLog.Information($"TryConnect: Account created with id {accountId.ToPartialId()}");
+                    _logger.LogInformation("Account created with id {AccountId}", accountId.ToPartialId());
 
                     _configurationManager.Save(_configuration);
                 }
                 else
                 {
-                    PluginLog.Error($"TryConnect: Account creation failed with error {createAccountReply.Error}");
+                    _logger.LogError("Account creation failed with error {Error}", createAccountReply.Error);
                     if (createAccountReply.Error == CreateAccountError.UpgradeRequired && !_warnedAboutUpgrade)
                     {
                         _chatGui.PalError(Localization.ConnectionError_OldVersion);
@@ -79,17 +80,17 @@ namespace Pal.Client.Net
             // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
             if (configuredAccount == null)
             {
-                PluginLog.Warning("TryConnect: No account to login with");
+                _logger.LogWarning("No account to login with");
                 return (false, Localization.ConnectionError_CreateAccountReturnedNoId);
             }
 
             if (!_loginInfo.IsValid)
             {
-                PluginLog.Information($"TryConnect: Logging in with account id {configuredAccount.AccountId.ToPartialId()}");
+                _logger.LogInformation("Logging in with account id {AccountId}", configuredAccount.AccountId.ToPartialId());
                 LoginReply loginReply = await accountClient.LoginAsync(new LoginRequest { AccountId = configuredAccount.AccountId.ToString() }, headers: UnauthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
                 if (loginReply.Success)
                 {
-                    PluginLog.Information($"TryConnect: Login successful with account id: {configuredAccount.AccountId.ToPartialId()}");
+                    _logger.LogInformation("Login successful with account id: {AccountId}", configuredAccount.AccountId.ToPartialId());
                     _loginInfo = new LoginInfo(loginReply.AuthToken);
 
                     bool save = configuredAccount.EncryptIfNeeded();
@@ -106,7 +107,7 @@ namespace Pal.Client.Net
                 }
                 else
                 {
-                    PluginLog.Error($"TryConnect: Login failed with error {loginReply.Error}");
+                    _logger.LogError("Login failed with error {Error}", loginReply.Error);
                     _loginInfo = new LoginInfo(null);
                     if (loginReply.Error == LoginError.InvalidAccountId)
                     {
@@ -114,7 +115,7 @@ namespace Pal.Client.Net
                         _configurationManager.Save(_configuration);
                         if (retry)
                         {
-                            PluginLog.Information("TryConnect: Attempting connection retry without account id");
+                            _logger.LogInformation("Attempting connection retry without account id");
                             return await TryConnect(cancellationToken, retry: false);
                         }
                         else
@@ -131,7 +132,7 @@ namespace Pal.Client.Net
 
             if (!_loginInfo.IsValid)
             {
-                PluginLog.Error($"TryConnect: Login state is loggedIn={_loginInfo.IsLoggedIn}, expired={_loginInfo.IsExpired}");
+                _logger.LogError("Login state is loggedIn={LoggedIn}, expired={Expired}", _loginInfo.IsLoggedIn, _loginInfo.IsExpired);
                 return (false, Localization.ConnectionError_LoginReturnedNoToken);
             }
 
@@ -147,17 +148,19 @@ namespace Pal.Client.Net
 
         public async Task<string> VerifyConnection(CancellationToken cancellationToken = default)
         {
+            using IDisposable? logScope = _logger.BeginScope("VerifyConnection");
+
             _warnedAboutUpgrade = false;
 
-            var connectionResult = await TryConnect(cancellationToken, loggerFactory: _grpcToPluginLogLoggerFactory);
+            var connectionResult = await TryConnect(cancellationToken, loggerFactory: _loggerFactory);
             if (!connectionResult.Success)
                 return string.Format(Localization.ConnectionError_CouldNotConnectToServer, connectionResult.Error);
 
-            PluginLog.Information("VerifyConnection: Connection established, trying to verify auth token");
+            _logger.LogInformation("Connection established, trying to verify auth token");
             var accountClient = new AccountService.AccountServiceClient(_channel);
             await accountClient.VerifyAsync(new VerifyRequest(), headers: AuthorizedHeaders(), deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
 
-            PluginLog.Information("VerifyConnection: Verification returned no errors.");
+            _logger.LogInformation("Verification returned no errors.");
             return Localization.ConnectionSuccessful;
         }
 
