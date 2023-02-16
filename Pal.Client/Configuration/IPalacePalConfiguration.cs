@@ -23,9 +23,6 @@ namespace Pal.Client.Configuration
         DeepDungeonConfiguration DeepDungeons { get; set; }
         RendererConfiguration Renderer { get; set; }
 
-        [Obsolete]
-        List<ConfigurationV1.ImportHistoryEntry> ImportHistory { get; }
-
         IAccountConfiguration CreateAccount(string server, Guid accountId);
         IAccountConfiguration? FindAccount(string server);
         void RemoveAccount(string server);

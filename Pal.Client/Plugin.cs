@@ -5,7 +5,6 @@ using Pal.Client.Windows;
 using System;
 using System.Globalization;
 using System.Linq;
-using Dalamud.Logging;
 using Pal.Client.Properties;
 using ECommons;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,8 +30,6 @@ namespace Pal.Client
             IPalacePalConfiguration configuration,
             RenderAdapter renderAdapter)
         {
-            PluginLog.Information("Initializing Palace Pal");
-
             _serviceProvider = serviceProvider;
             _pluginInterface = pluginInterface;
             _configuration = configuration;

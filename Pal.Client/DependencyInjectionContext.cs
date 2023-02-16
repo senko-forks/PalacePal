@@ -1,4 +1,8 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using Dalamud.Data;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
@@ -7,17 +11,22 @@ using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.Command;
 using Dalamud.Game.Gui;
 using Dalamud.Interface.Windowing;
+using Dalamud.Logging;
 using Dalamud.Plugin;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Pal.Client.Commands;
 using Pal.Client.Configuration;
+using Pal.Client.Database;
+using Pal.Client.DependencyInjection;
 using Pal.Client.Net;
 using Pal.Client.Properties;
 using Pal.Client.Rendering;
 using Pal.Client.Scheduled;
 using Pal.Client.Windows;
 
-namespace Pal.Client.DependencyInjection
+namespace Pal.Client
 {
     /// <summary>
     /// DI-aware Plugin.
@@ -25,6 +34,8 @@ namespace Pal.Client.DependencyInjection
     // ReSharper disable once UnusedType.Global
     internal sealed class DependencyInjectionContext : IDalamudPlugin
     {
+        private readonly string _sqliteConnectionString;
+        private readonly CancellationTokenSource _initCts = new();
         private ServiceProvider? _serviceProvider;
 
         public string Name => Localization.Palace_Pal;
@@ -39,6 +50,9 @@ namespace Pal.Client.DependencyInjection
             CommandManager commandManager,
             DataManager dataManager)
         {
+            PluginLog.Information("Building service container");
+
+            CancellationToken token = _initCts.Token;
             IServiceCollection services = new ServiceCollection();
 
             // dalamud
@@ -54,6 +68,11 @@ namespace Pal.Client.DependencyInjection
             services.AddSingleton(dataManager);
             services.AddSingleton(new WindowSystem(typeof(DependencyInjectionContext).AssemblyQualifiedName));
 
+            // EF core
+            _sqliteConnectionString =
+                $"Data Source={Path.Join(pluginInterface.GetPluginConfigDirectory(), "palace-pal.data.sqlite3")}";
+            services.AddDbContext<PalClientContext>(o => o.UseSqlite(_sqliteConnectionString));
+
             // plugin-specific
             services.AddSingleton<Plugin>();
             services.AddSingleton<DebugState>();
@@ -64,11 +83,12 @@ namespace Pal.Client.DependencyInjection
             services.AddTransient<RepoVerification>();
             services.AddSingleton<PalCommand>();
 
-            // territory handling
+            // territory & marker related services
             services.AddSingleton<TerritoryState>();
             services.AddSingleton<FrameworkService>();
             services.AddSingleton<ChatService>();
             services.AddSingleton<FloorService>();
+            services.AddSingleton<ImportService>();
 
             // windows & related services
             services.AddSingleton<AgreementWindow>();
@@ -97,7 +117,7 @@ namespace Pal.Client.DependencyInjection
                 ValidateScopes = true,
             });
 
-            // initialize plugin
+
 #if RELEASE
             // You're welcome to remove this code in your fork, but please make sure that:
             // - none of the links accessible within FFXIV open the original repo (e.g. in the plugin installer), and
@@ -108,24 +128,61 @@ namespace Pal.Client.DependencyInjection
             _serviceProvider.GetService<RepoVerification>();
 #endif
 
-            // set up legacy services
-            LocalState.PluginInterface = pluginInterface;
-            LocalState.Mode = _serviceProvider.GetRequiredService<IPalacePalConfiguration>().Mode;
+            // This is not ideal as far as loading the plugin goes, because there's no way to check for errors and
+            // tell Dalamud that no, the plugin isn't ready -- so the plugin will count as properly initialized,
+            // even if it's not.
+            //
+            // There's 2-3 seconds of slowdown primarily caused by the sqlite init, but that needs to happen for
+            // config stuff.
+            PluginLog.Information("Service container built, triggering async init");
+            Task.Run(async () =>
+            {
+                try
+                {
+                    PluginLog.Information("Starting async init");
 
-            // windows that have logic to open on startup
-            _serviceProvider.GetRequiredService<AgreementWindow>();
+                    // initialize database
+                    await using (var scope = _serviceProvider.CreateAsyncScope())
+                    {
+                        PluginLog.Log("Loading database & running migrations");
+                        await using var dbContext = scope.ServiceProvider.GetRequiredService<PalClientContext>();
+                        await dbContext.Database.MigrateAsync();
 
-            // initialize components that are mostly self-contained/self-registered
-            _serviceProvider.GetRequiredService<Hooks>();
-            _serviceProvider.GetRequiredService<PalCommand>();
-            _serviceProvider.GetRequiredService<FrameworkService>();
-            _serviceProvider.GetRequiredService<ChatService>();
+                        PluginLog.Log("Completed database migrations");
+                    }
 
-            _serviceProvider.GetRequiredService<Plugin>();
+                    token.ThrowIfCancellationRequested();
+
+                    // set up legacy services
+                    LocalState.PluginConfigDirectory = pluginInterface.GetPluginConfigDirectory();
+                    LocalState.Mode = _serviceProvider.GetRequiredService<IPalacePalConfiguration>().Mode;
+
+                    // windows that have logic to open on startup
+                    _serviceProvider.GetRequiredService<AgreementWindow>();
+
+                    // initialize components that are mostly self-contained/self-registered
+                    _serviceProvider.GetRequiredService<Hooks>();
+                    _serviceProvider.GetRequiredService<PalCommand>();
+                    _serviceProvider.GetRequiredService<FrameworkService>();
+                    _serviceProvider.GetRequiredService<ChatService>();
+
+                    token.ThrowIfCancellationRequested();
+                    _serviceProvider.GetRequiredService<Plugin>();
+
+                    PluginLog.Information("Async init complete");
+                }
+                catch (Exception e)
+                {
+                    PluginLog.Error(e, "Async load failed");
+                    chatGui.PrintError($"Async loading failed: {e}");
+                }
+            });
         }
 
         public void Dispose()
         {
+            _initCts.Cancel();
+
             // ensure we're not calling dispose recursively on ourselves
             if (_serviceProvider != null)
             {
@@ -133,6 +190,10 @@ namespace Pal.Client.DependencyInjection
                 _serviceProvider = null;
 
                 serviceProvider.Dispose();
+
+                // ensure we're not keeping the file open longer than the plugin is loaded
+                using (SqliteConnection sqliteConnection = new(_sqliteConnectionString))
+                    SqliteConnection.ClearPool(sqliteConnection);
             }
         }
     }

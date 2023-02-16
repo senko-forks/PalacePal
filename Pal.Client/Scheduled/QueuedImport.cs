@@ -7,10 +7,11 @@ using System.Linq;
 using System.Numerics;
 using Dalamud.Game.Gui;
 using Dalamud.Logging;
-using Pal.Client.Configuration;
+using Pal.Client.Database;
 using Pal.Client.DependencyInjection;
 using Pal.Client.Extensions;
 using Pal.Client.Properties;
+using Pal.Client.Windows;
 
 namespace Pal.Client.Scheduled
 {
@@ -30,17 +31,20 @@ namespace Pal.Client.Scheduled
         internal sealed class Handler : IQueueOnFrameworkThread.Handler<QueuedImport>
         {
             private readonly ChatGui _chatGui;
-            private readonly IPalacePalConfiguration _configuration;
-            private readonly ConfigurationManager _configurationManager;
             private readonly FloorService _floorService;
+            private readonly ImportService _importService;
+            private readonly ConfigWindow _configWindow;
 
-            public Handler(ChatGui chatGui, IPalacePalConfiguration configuration,
-                ConfigurationManager configurationManager, FloorService floorService)
+            public Handler(
+                ChatGui chatGui,
+                FloorService floorService,
+                ImportService importService,
+                ConfigWindow configWindow)
             {
                 _chatGui = chatGui;
-                _configuration = configuration;
-                _configurationManager = configurationManager;
                 _floorService = floorService;
+                _importService = importService;
+                _configWindow = configWindow;
             }
 
             protected override void Run(QueuedImport import, ref bool recreateLayout, ref bool saveMarkers)
@@ -53,11 +57,9 @@ namespace Pal.Client.Scheduled
                     if (!Validate(import))
                         return;
 
-                    var oldExportIds = string.IsNullOrEmpty(import.Export.ServerUrl)
-                        ? _configuration.ImportHistory.Where(x => x.RemoteUrl == import.Export.ServerUrl)
-                            .Select(x => x.Id)
-                            .Where(x => x != Guid.Empty).ToList()
-                        : new List<Guid>();
+                    List<Guid> oldExportIds = _importService.FindForServer(import.Export.ServerUrl)
+                        .Select(x => x.Id)
+                        .ToList();
 
                     foreach (var remoteFloor in import.Export.Floors)
                     {
@@ -70,17 +72,19 @@ namespace Pal.Client.Scheduled
                         localState.Save();
                     }
 
-                    _configuration.ImportHistory.RemoveAll(hist =>
-                        oldExportIds.Contains(hist.Id) || hist.Id == import.ExportId);
-                    _configuration.ImportHistory.Add(new ConfigurationV1.ImportHistoryEntry
+                    _importService.RemoveAllByIds(oldExportIds);
+                    _importService.RemoveById(import.ExportId);
+                    _importService.Add(new ImportHistory
                     {
                         Id = import.ExportId,
                         RemoteUrl = import.Export.ServerUrl,
                         ExportedAt = import.Export.CreatedAt.ToDateTime(),
                         ImportedAt = DateTime.UtcNow,
                     });
-                    _configurationManager.Save(_configuration);
+                    _configWindow.UpdateLastImport();
 
+                    PluginLog.Information(
+                        $"Imported {import.ExportId} for {import.ImportedTraps} traps, {import.ImportedHoardCoffers} hoard coffers");
                     _chatGui.PalMessage(string.Format(Localization.ImportCompleteStatistics, import.ImportedTraps,
                         import.ImportedHoardCoffers));
                 }
@@ -101,9 +105,9 @@ namespace Pal.Client.Scheduled
                     return false;
                 }
 
-                if (!Guid.TryParse(import.Export.ExportId, out Guid exportId) || import.ExportId == Guid.Empty)
+                if (!Guid.TryParse(import.Export.ExportId, out Guid exportId) || exportId == Guid.Empty)
                 {
-                    PluginLog.Error("Import: Invalid export id");
+                    PluginLog.Error($"Import: Invalid export id ({import.Export.ExportId})");
                     _chatGui.PalError(Localization.Error_ImportFailed_InvalidFile);
                     return false;
                 }

@@ -9,7 +9,10 @@ namespace Pal.Server
         public DbSet<PalaceLocation> Locations { get; set; } = null!;
         public DbSet<GlobalSetting> GlobalSettings { get; set; } = null!;
 
-        public PalServerContext(DbContextOptions<PalServerContext> options) : base(options) { }
+        public PalServerContext(DbContextOptions<PalServerContext> options)
+            : base(options)
+        {
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

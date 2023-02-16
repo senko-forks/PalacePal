@@ -7,6 +7,8 @@ using System.Text.Json;
 using Dalamud.Logging;
 using Dalamud.Plugin;
 using ImGuiNET;
+using Microsoft.Extensions.DependencyInjection;
+using Pal.Client.Database;
 using NJson = Newtonsoft.Json;
 
 namespace Pal.Client.Configuration
@@ -14,12 +16,14 @@ namespace Pal.Client.Configuration
     internal sealed class ConfigurationManager
     {
         private readonly DalamudPluginInterface _pluginInterface;
+        private readonly IServiceProvider _serviceProvider;
 
         public event EventHandler<IPalacePalConfiguration>? Saved;
 
-        public ConfigurationManager(DalamudPluginInterface pluginInterface)
+        public ConfigurationManager(DalamudPluginInterface pluginInterface, IServiceProvider serviceProvider)
         {
             _pluginInterface = pluginInterface;
+            _serviceProvider = serviceProvider;
 
             Migrate();
         }
@@ -60,6 +64,26 @@ namespace Pal.Client.Configuration
 
                 var v7 = MigrateToV7(configurationV1);
                 Save(v7, queue: false);
+
+                using (var scope = _serviceProvider.CreateScope())
+                {
+                    using var dbContext = scope.ServiceProvider.GetRequiredService<PalClientContext>();
+                    dbContext.Imports.RemoveRange(dbContext.Imports);
+
+                    foreach (var importHistory in configurationV1.ImportHistory)
+                    {
+                        PluginLog.Information($"Migrating import {importHistory.Id}");
+                        dbContext.Imports.Add(new ImportHistory
+                        {
+                            Id = importHistory.Id,
+                            RemoteUrl = importHistory.RemoteUrl?.Replace(".μ.tv", ".liza.sh"),
+                            ExportedAt = importHistory.ExportedAt,
+                            ImportedAt = importHistory.ImportedAt
+                        });
+                    }
+
+                    dbContext.SaveChanges();
+                }
 
                 File.Move(_pluginInterface.ConfigFile.FullName, _pluginInterface.ConfigFile.FullName + ".old", true);
             }

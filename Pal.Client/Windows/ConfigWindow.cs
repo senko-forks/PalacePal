@@ -21,6 +21,7 @@ using System.Threading.Tasks;
 using Dalamud.Game.Gui;
 using Pal.Client.Properties;
 using Pal.Client.Configuration;
+using Pal.Client.Database;
 using Pal.Client.DependencyInjection;
 using Pal.Client.Extensions;
 
@@ -40,6 +41,7 @@ namespace Pal.Client.Windows
         private readonly DebugState _debugState;
         private readonly ChatGui _chatGui;
         private readonly RemoteApi _remoteApi;
+        private readonly ImportService _importService;
 
         private int _mode;
         private int _renderer;
@@ -55,6 +57,7 @@ namespace Pal.Client.Windows
         private string? _saveExportDialogStartPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         private readonly FileDialogManager _importDialog;
         private readonly FileDialogManager _exportDialog;
+        private ImportHistory? _lastImport;
 
         private CancellationTokenSource? _testConnectionCts;
 
@@ -68,7 +71,8 @@ namespace Pal.Client.Windows
             FloorService floorService,
             DebugState debugState,
             ChatGui chatGui,
-            RemoteApi remoteApi)
+            RemoteApi remoteApi,
+            ImportService importService)
             : base(WindowId)
         {
             _windowSystem = windowSystem;
@@ -81,6 +85,7 @@ namespace Pal.Client.Windows
             _debugState = debugState;
             _chatGui = chatGui;
             _remoteApi = remoteApi;
+            _importService = importService;
 
             LanguageChanged();
 
@@ -117,6 +122,8 @@ namespace Pal.Client.Windows
             _hoardConfig = new ConfigurableMarker(_configuration.DeepDungeons.HoardCoffers);
             _silverConfig = new ConfigurableMarker(_configuration.DeepDungeons.SilverCoffers);
             _connectionText = null;
+
+            UpdateLastImport();
         }
 
         public override void OnClose()
@@ -278,13 +285,14 @@ namespace Pal.Client.Windows
                     DoImport(_openImportPath);
                 ImGui.EndDisabled();
 
-                var importHistory = _configuration.ImportHistory.OrderByDescending(x => x.ImportedAt)
-                    .ThenBy(x => x.Id).FirstOrDefault();
+                ImportHistory? importHistory = _lastImport;
                 if (importHistory != null)
                 {
                     ImGui.Separator();
                     ImGui.TextWrapped(string.Format(Localization.Config_UndoImportExplanation1,
-                        importHistory.ImportedAt, importHistory.RemoteUrl, importHistory.ExportedAt));
+                        importHistory.ImportedAt.ToLocalTime(),
+                        importHistory.RemoteUrl,
+                        importHistory.ExportedAt.ToUniversalTime()));
                     ImGui.TextWrapped(Localization.Config_UndoImportExplanation2);
                     if (ImGui.Button(Localization.Config_UndoImport))
                         UndoImport(importHistory.Id);
@@ -464,6 +472,11 @@ namespace Pal.Client.Windows
         private void UndoImport(Guid importId)
         {
             _frameworkService.EarlyEventQueue.Enqueue(new QueuedUndoImport(importId));
+        }
+
+        internal void UpdateLastImport()
+        {
+            _lastImport = _importService.FindLast();
         }
 
         private void DoExport(string destinationPath)
