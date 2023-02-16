@@ -8,6 +8,6 @@ namespace Pal.Common
 {
     public static class ExportConfig
     {
-        public static int ExportVersion => 1;
+        public static int ExportVersion => 2;
     }
 }

@@ -95,12 +95,15 @@ namespace Pal.Client.Scheduled
             {
                 if (import.Export.ExportVersion != ExportConfig.ExportVersion)
                 {
+                    PluginLog.Error(
+                        $"Import: Different version in export file, {import.Export.ExportVersion} != {ExportConfig.ExportVersion}");
                     _chatGui.PalError(Localization.Error_ImportFailed_IncompatibleVersion);
                     return false;
                 }
 
                 if (!Guid.TryParse(import.Export.ExportId, out Guid exportId) || import.ExportId == Guid.Empty)
                 {
+                    PluginLog.Error("Import: Invalid export id");
                     _chatGui.PalError(Localization.Error_ImportFailed_InvalidFile);
                     return false;
                 }
@@ -110,6 +113,7 @@ namespace Pal.Client.Scheduled
                 if (string.IsNullOrEmpty(import.Export.ServerUrl))
                 {
                     // If we allow for backups as import/export, this should be removed
+                    PluginLog.Error("Import: No server URL");
                     _chatGui.PalError(Localization.Error_ImportFailed_InvalidFile);
                     return false;
                 }
