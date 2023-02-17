@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Pal.Client.Configuration;
 using Pal.Client.DependencyInjection;
+using Pal.Client.Rendering;
 
 namespace Pal.Client.Scheduled
 {
@@ -11,14 +12,20 @@ namespace Pal.Client.Scheduled
             private readonly IPalacePalConfiguration _configuration;
             private readonly FloorService _floorService;
             private readonly TerritoryState _territoryState;
+            private readonly RenderAdapter _renderAdapter;
 
-            public Handler(ILogger<Handler> logger, IPalacePalConfiguration configuration, FloorService floorService,
-                TerritoryState territoryState)
+            public Handler(
+                ILogger<Handler> logger,
+                IPalacePalConfiguration configuration,
+                FloorService floorService,
+                TerritoryState territoryState,
+                RenderAdapter renderAdapter)
                 : base(logger)
             {
                 _configuration = configuration;
                 _floorService = floorService;
                 _territoryState = territoryState;
+                _renderAdapter = renderAdapter;
             }
 
             protected override void Run(QueuedConfigUpdate queued, ref bool recreateLayout, ref bool saveMarkers)
@@ -33,6 +40,8 @@ namespace Pal.Client.Scheduled
                     recreateLayout = true;
                     saveMarkers = true;
                 }
+
+                _renderAdapter.ConfigUpdated();
             }
         }
     }

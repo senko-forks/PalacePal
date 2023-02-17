@@ -48,6 +48,7 @@ namespace Pal.Client
         private readonly string _sqliteConnectionString;
         private readonly CancellationTokenSource _initCts = new();
         private ServiceProvider? _serviceProvider;
+        private Plugin? _plugin;
 
         public string Name => Localization.Palace_Pal;
 
@@ -122,8 +123,8 @@ namespace Pal.Client
             services.AddSingleton<StatisticsWindow>();
 
             // these should maybe be scoped
-            services.AddSingleton<SimpleRenderer>();
-            services.AddSingleton<SplatoonRenderer>();
+            services.AddScoped<SimpleRenderer>();
+            services.AddScoped<SplatoonRenderer>();
             services.AddSingleton<RenderAdapter>();
 
             // queue handling
@@ -199,7 +200,7 @@ namespace Pal.Client
                     _serviceProvider.GetRequiredService<ChatService>();
 
                     token.ThrowIfCancellationRequested();
-                    _serviceProvider.GetRequiredService<Plugin>();
+                    _plugin = new Plugin(pluginInterface, _serviceProvider);
 
                     _logger.LogInformation("Async init complete");
                 }
@@ -226,14 +227,22 @@ namespace Pal.Client
             // ensure we're not calling dispose recursively on ourselves
             if (_serviceProvider != null)
             {
+                _logger.LogInformation("Disposing DI Context");
+
                 ServiceProvider serviceProvider = _serviceProvider;
                 _serviceProvider = null;
 
+                _plugin?.Dispose();
+                _plugin = null;
                 serviceProvider.Dispose();
 
                 // ensure we're not keeping the file open longer than the plugin is loaded
                 using (SqliteConnection sqliteConnection = new(_sqliteConnectionString))
                     SqliteConnection.ClearPool(sqliteConnection);
+            }
+            else
+            {
+                _logger.LogDebug("DI context is already disposed");
             }
         }
     }

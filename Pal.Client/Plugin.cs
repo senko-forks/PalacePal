@@ -8,6 +8,7 @@ using System.Linq;
 using Pal.Client.Properties;
 using ECommons;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Pal.Client.Configuration;
 
 namespace Pal.Client
@@ -19,24 +20,23 @@ namespace Pal.Client
     /// <see cref="DependencyInjection.DependencyInjectionContext"/>
     internal sealed class Plugin : IDisposable
     {
-        private readonly IServiceProvider _serviceProvider;
         private readonly DalamudPluginInterface _pluginInterface;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly ILogger<Plugin> _logger;
         private readonly IPalacePalConfiguration _configuration;
         private readonly RenderAdapter _renderAdapter;
         private readonly WindowSystem _windowSystem;
 
         public Plugin(
-            IServiceProvider serviceProvider,
             DalamudPluginInterface pluginInterface,
-            IPalacePalConfiguration configuration,
-            RenderAdapter renderAdapter,
-            WindowSystem windowSystem)
+            IServiceProvider serviceProvider)
         {
-            _serviceProvider = serviceProvider;
             _pluginInterface = pluginInterface;
-            _configuration = configuration;
-            _renderAdapter = renderAdapter;
-            _windowSystem = windowSystem;
+            _serviceProvider = serviceProvider;
+            _logger = _serviceProvider.GetRequiredService<ILogger<Plugin>>();
+            _configuration = serviceProvider.GetRequiredService<IPalacePalConfiguration>();
+            _renderAdapter = serviceProvider.GetRequiredService<RenderAdapter>();
+            _windowSystem = serviceProvider.GetRequiredService<WindowSystem>();
 
             LanguageChanged(pluginInterface.UiLanguage);
 
@@ -65,6 +65,8 @@ namespace Pal.Client
 
         private void LanguageChanged(string languageCode)
         {
+            _logger.LogInformation("Language set to '{Language}'", languageCode);
+
             Localization.Culture = new CultureInfo(languageCode);
             _windowSystem.Windows.OfType<ILanguageChanged>()
                 .Each(w => w.LanguageChanged());

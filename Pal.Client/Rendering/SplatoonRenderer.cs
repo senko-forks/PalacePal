@@ -14,6 +14,7 @@ using System.Reflection;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.Gui;
 using Microsoft.Extensions.Logging;
+using Pal.Client.Configuration;
 using Pal.Client.DependencyInjection;
 using Pal.Client.Extensions;
 
@@ -41,7 +42,7 @@ namespace Pal.Client.Rendering
             _clientState = clientState;
             _chat = chat;
 
-            _logger.LogInformation("Initializing splatoon...");
+            _logger.LogInformation("Initializing splatoon");
             ECommonsMain.Init(pluginInterface, dalamudPlugin, ECommons.Module.SplatoonAPI);
         }
 
@@ -117,7 +118,7 @@ namespace Pal.Client.Rendering
                         CreateElement(Marker.EType.Hoard, pos.Value, ImGui.ColorConvertFloat4ToU32(hoardColor)),
                     };
 
-                    if (!Splatoon.AddDynamicElements("PalacePal.Test",
+                    if (!Splatoon.AddDynamicElements(ToLayerName(ELayer.Test),
                             elements.Cast<SplatoonElement>().Select(x => x.Delegate).ToArray(),
                             new[] { Environment.TickCount64 + 10000 }))
                     {
@@ -158,12 +159,18 @@ namespace Pal.Client.Rendering
             }
         }
 
+        public ERenderer GetConfigValue()
+            => ERenderer.Splatoon;
+
         public void Dispose()
         {
+            _logger.LogInformation("Disposing splatoon");
+
             IsDisposed = true;
 
             ResetLayer(ELayer.TrapHoard);
             ResetLayer(ELayer.RegularCoffers);
+            ResetLayer(ELayer.Test);
 
             ECommonsMain.Dispose();
         }

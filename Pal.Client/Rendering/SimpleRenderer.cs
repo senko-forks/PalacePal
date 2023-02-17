@@ -146,6 +146,9 @@ namespace Pal.Client.Rendering
                 ImGui.GetWindowDrawList().PathClear();
         }
 
+        public ERenderer GetConfigValue()
+            => ERenderer.Simple;
+
         public void Dispose()
         {
             foreach (var l in _layers.Values)
