@@ -26,19 +26,20 @@ namespace Pal.Client.Rendering
         private readonly ILogger<SplatoonRenderer> _logger;
         private readonly DebugState _debugState;
         private readonly ClientState _clientState;
-        private readonly ChatGui _chatGui;
+        private readonly Chat _chat;
 
         public SplatoonRenderer(
             ILogger<SplatoonRenderer> logger,
             DalamudPluginInterface pluginInterface,
             IDalamudPlugin dalamudPlugin,
             DebugState debugState,
-            ClientState clientState, ChatGui chatGui)
+            ClientState clientState,
+            Chat chat)
         {
             _logger = logger;
             _debugState = debugState;
             _clientState = clientState;
-            _chatGui = chatGui;
+            _chat = chat;
 
             _logger.LogInformation("Initializing splatoon...");
             ECommonsMain.Init(pluginInterface, dalamudPlugin, ECommons.Module.SplatoonAPI);
@@ -100,6 +101,9 @@ namespace Pal.Client.Rendering
             return new SplatoonElement(this, element);
         }
 
+        // TODO This should be handled differently
+        //      - make SimpleRenderer implement this
+        //      - return error (if any) instead of using chat here
         public void DrawDebugItems(Vector4 trapColor, Vector4 hoardColor)
         {
             try
@@ -117,7 +121,7 @@ namespace Pal.Client.Rendering
                             elements.Cast<SplatoonElement>().Select(x => x.Delegate).ToArray(),
                             new[] { Environment.TickCount64 + 10000 }))
                     {
-                        _chatGui.PalMessage("Could not draw markers :(");
+                        _chat.Message("Could not draw markers :(");
                     }
                 }
             }
@@ -137,9 +141,9 @@ namespace Pal.Client.Rendering
                         string? pluginName = (string?)t.GetType().GetProperty("Name")?.GetValue(t);
                         if (assemblyName?.Name == "Splatoon" && pluginName != "Splatoon")
                         {
-                            _chatGui.PalError(
+                            _chat.Error(
                                 $"Splatoon is installed under the plugin name '{pluginName}', which is incompatible with the Splatoon API.");
-                            _chatGui.PalMessage(
+                            _chat.Message(
                                 "You need to install Splatoon from the official repository at https://github.com/NightmareXIV/MyDalamudPlugins.");
                             return;
                         }
@@ -150,7 +154,7 @@ namespace Pal.Client.Rendering
                     // not relevant
                 }
 
-                _chatGui.PalError("Could not draw markers, is Splatoon installed and enabled?");
+                _chat.Error("Could not draw markers, is Splatoon installed and enabled?");
             }
         }
 

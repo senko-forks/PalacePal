@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Pal.Client.Extensions;
 using Pal.Client.Properties;
 using Pal.Client.Configuration;
+using Pal.Client.DependencyInjection;
 
 namespace Pal.Client.Net
 {
@@ -68,7 +69,7 @@ namespace Pal.Client.Net
                     _logger.LogError("Account creation failed with error {Error}", createAccountReply.Error);
                     if (createAccountReply.Error == CreateAccountError.UpgradeRequired && !_warnedAboutUpgrade)
                     {
-                        _chatGui.PalError(Localization.ConnectionError_OldVersion);
+                        _chat.Error(Localization.ConnectionError_OldVersion);
                         _warnedAboutUpgrade = true;
                     }
                     return (false, string.Format(Localization.ConnectionError_CreateAccountFailed, createAccountReply.Error));
@@ -123,7 +124,7 @@ namespace Pal.Client.Net
                     }
                     if (loginReply.Error == LoginError.UpgradeRequired && !_warnedAboutUpgrade)
                     {
-                        _chatGui.PalError(Localization.ConnectionError_OldVersion);
+                        _chat.Error(Localization.ConnectionError_OldVersion);
                         _warnedAboutUpgrade = true;
                     }
                     return (false, string.Format(Localization.ConnectionError_LoginFailed, loginReply.Error));
@@ -181,7 +182,7 @@ namespace Pal.Client.Net
             public bool IsLoggedIn { get; }
             public string? AuthToken { get; }
             public JwtClaims? Claims { get; }
-            public DateTimeOffset ExpiresAt => Claims?.ExpiresAt.Subtract(TimeSpan.FromMinutes(5)) ?? DateTimeOffset.MinValue;
+            private DateTimeOffset ExpiresAt => Claims?.ExpiresAt.Subtract(TimeSpan.FromMinutes(5)) ?? DateTimeOffset.MinValue;
             public bool IsExpired => ExpiresAt < DateTimeOffset.UtcNow;
 
             public bool IsValid => IsLoggedIn && !IsExpired;

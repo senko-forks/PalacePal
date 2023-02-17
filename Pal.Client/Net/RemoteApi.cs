@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using Dalamud.Game.Gui;
 using Pal.Client.Configuration;
+using Pal.Client.DependencyInjection;
 
 namespace Pal.Client.Net
 {
@@ -19,7 +20,7 @@ namespace Pal.Client.Net
 
         private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger<RemoteApi> _logger;
-        private readonly ChatGui _chatGui;
+        private readonly Chat _chat;
         private readonly ConfigurationManager _configurationManager;
         private readonly IPalacePalConfiguration _configuration;
 
@@ -30,13 +31,13 @@ namespace Pal.Client.Net
         public RemoteApi(
             ILoggerFactory loggerFactory,
             ILogger<RemoteApi> logger,
-            ChatGui chatGui,
+            Chat chat,
             ConfigurationManager configurationManager,
             IPalacePalConfiguration configuration)
         {
             _loggerFactory = loggerFactory;
             _logger = logger;
-            _chatGui = chatGui;
+            _chat = chat;
             _configurationManager = configurationManager;
             _configuration = configuration;
         }

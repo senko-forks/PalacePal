@@ -31,20 +31,20 @@ namespace Pal.Client.Scheduled
 
         internal sealed class Handler : IQueueOnFrameworkThread.Handler<QueuedImport>
         {
-            private readonly ChatGui _chatGui;
+            private readonly Chat _chat;
             private readonly FloorService _floorService;
             private readonly ImportService _importService;
             private readonly ConfigWindow _configWindow;
 
             public Handler(
                 ILogger<Handler> logger,
-                ChatGui chatGui,
+                Chat chat,
                 FloorService floorService,
                 ImportService importService,
                 ConfigWindow configWindow)
                 : base(logger)
             {
-                _chatGui = chatGui;
+                _chat = chat;
                 _floorService = floorService;
                 _importService = importService;
                 _configWindow = configWindow;
@@ -88,13 +88,13 @@ namespace Pal.Client.Scheduled
 
                     _logger.LogInformation(
                         $"Imported {import.ExportId} for {import.ImportedTraps} traps, {import.ImportedHoardCoffers} hoard coffers");
-                    _chatGui.PalMessage(string.Format(Localization.ImportCompleteStatistics, import.ImportedTraps,
+                    _chat.Message(string.Format(Localization.ImportCompleteStatistics, import.ImportedTraps,
                         import.ImportedHoardCoffers));
                 }
                 catch (Exception e)
                 {
                     _logger.LogError(e, "Import failed");
-                    _chatGui.PalError(string.Format(Localization.Error_ImportFailed, e));
+                    _chat.Error(string.Format(Localization.Error_ImportFailed, e));
                 }
             }
 
@@ -104,14 +104,14 @@ namespace Pal.Client.Scheduled
                 {
                     _logger.LogError(
                         "Import: Different version in export file, {ExportVersion} != {ConfiguredVersion}", import.Export.ExportVersion, ExportConfig.ExportVersion);
-                    _chatGui.PalError(Localization.Error_ImportFailed_IncompatibleVersion);
+                    _chat.Error(Localization.Error_ImportFailed_IncompatibleVersion);
                     return false;
                 }
 
                 if (!Guid.TryParse(import.Export.ExportId, out Guid exportId) || exportId == Guid.Empty)
                 {
                     _logger.LogError("Import: Invalid export id '{Id}'", import.Export.ExportId);
-                    _chatGui.PalError(Localization.Error_ImportFailed_InvalidFile);
+                    _chat.Error(Localization.Error_ImportFailed_InvalidFile);
                     return false;
                 }
 
@@ -121,7 +121,7 @@ namespace Pal.Client.Scheduled
                 {
                     // If we allow for backups as import/export, this should be removed
                     _logger.LogError("Import: No server URL");
-                    _chatGui.PalError(Localization.Error_ImportFailed_InvalidFile);
+                    _chat.Error(Localization.Error_ImportFailed_InvalidFile);
                     return false;
                 }
 

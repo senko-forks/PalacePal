@@ -91,7 +91,7 @@ namespace Pal.Client.DependencyInjection
             return _dataManager.GetExcelSheet<LogMessage>()?.GetRow(id)?.Text?.ToString() ?? "Unknown";
         }
 
-        private class LocalizedChatMessages
+        private sealed class LocalizedChatMessages
         {
             public string MapRevealed { get; init; } = "???"; //"The map for this floor has been revealed!";
             public string AllTrapsRemoved { get; init; } = "???"; // "All the traps on this floor have disappeared!";

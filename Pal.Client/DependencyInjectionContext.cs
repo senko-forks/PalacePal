@@ -22,6 +22,7 @@ using Pal.Client.Configuration;
 using Pal.Client.Database;
 using Pal.Client.DependencyInjection;
 using Pal.Client.DependencyInjection.Logging;
+using Pal.Client.Extensions;
 using Pal.Client.Net;
 using Pal.Client.Properties;
 using Pal.Client.Rendering;
@@ -72,6 +73,7 @@ namespace Pal.Client
             services.AddSingleton(clientState);
             services.AddSingleton(gameGui);
             services.AddSingleton(chatGui);
+            services.AddSingleton<Chat>();
             services.AddSingleton(objectTable);
             services.AddSingleton(framework);
             services.AddSingleton(condition);
@@ -151,9 +153,11 @@ namespace Pal.Client
             {
                 using IDisposable? logScope = _logger.BeginScope("AsyncInit");
 
+                Chat? chat = null;
                 try
                 {
                     _logger.LogInformation("Starting async init");
+                    chat = _serviceProvider.GetService<Chat>();
 
                     // initialize database
                     await using (var scope = _serviceProvider.CreateAsyncScope())
@@ -191,7 +195,7 @@ namespace Pal.Client
                 catch (Exception e)
                 {
                     _logger.LogError(e, "Async load failed");
-                    chatGui.PrintError($"Async loading failed: {e.GetType()}: {e.Message}");
+                    chat?.Error($"Async loading failed: {e.GetType()}: {e.Message}");
                 }
             });
         }

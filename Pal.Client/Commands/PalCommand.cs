@@ -19,7 +19,7 @@ namespace Pal.Client.Commands
     {
         private readonly IPalacePalConfiguration _configuration;
         private readonly CommandManager _commandManager;
-        private readonly ChatGui _chatGui;
+        private readonly Chat _chat;
         private readonly StatisticsService _statisticsService;
         private readonly ConfigWindow _configWindow;
         private readonly TerritoryState _territoryState;
@@ -29,7 +29,7 @@ namespace Pal.Client.Commands
         public PalCommand(
             IPalacePalConfiguration configuration,
             CommandManager commandManager,
-            ChatGui chatGui,
+            Chat chat,
             StatisticsService statisticsService,
             ConfigWindow configWindow,
             TerritoryState territoryState,
@@ -38,7 +38,7 @@ namespace Pal.Client.Commands
         {
             _configuration = configuration;
             _commandManager = commandManager;
-            _chatGui = chatGui;
+            _chat = chat;
             _statisticsService = statisticsService;
             _configWindow = configWindow;
             _territoryState = territoryState;
@@ -60,7 +60,7 @@ namespace Pal.Client.Commands
         {
             if (_configuration.FirstUse)
             {
-                _chatGui.PalError(Localization.Error_FirstTimeSetupRequired);
+                _chat.Error(Localization.Error_FirstTimeSetupRequired);
                 return;
             }
 
@@ -82,7 +82,7 @@ namespace Pal.Client.Commands
 #if DEBUG
                     case "update-saves":
                         LocalState.UpdateAll();
-                        _chatGui.PalMessage(Localization.Command_pal_updatesaves);
+                        _chat.Message(Localization.Command_pal_updatesaves);
                         break;
 #endif
 
@@ -104,14 +104,14 @@ namespace Pal.Client.Commands
                         break;
 
                     default:
-                        _chatGui.PalError(string.Format(Localization.Command_pal_UnknownSubcommand, arguments,
+                        _chat.Error(string.Format(Localization.Command_pal_UnknownSubcommand, arguments,
                             command));
                         break;
                 }
             }
             catch (Exception e)
             {
-                _chatGui.PalError(e.ToString());
+                _chat.Error(e.ToString());
             }
         }
 
@@ -124,7 +124,7 @@ namespace Pal.Client.Commands
             var playerPosition = _clientState.LocalPlayer?.Position;
             if (playerPosition == null)
                 return;
-            _chatGui.PalMessage($"{playerPosition}");
+            _chat.Message($"{playerPosition}");
 
             var nearbyMarkers = state.Markers
                 .Where(m => predicate(m))
@@ -134,7 +134,7 @@ namespace Pal.Client.Commands
                 .Take(5)
                 .ToList();
             foreach (var nearbyMarker in nearbyMarkers)
-                _chatGui.Print(
+                _chat.UnformattedMessage(
                     $"{nearbyMarker.distance:F2} - {nearbyMarker.m.Type} {nearbyMarker.m.NetworkId?.ToPartialId(length: 8)} - {nearbyMarker.m.Position}");
         }
     }

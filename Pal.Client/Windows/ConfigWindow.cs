@@ -41,7 +41,7 @@ namespace Pal.Client.Windows
         private readonly FrameworkService _frameworkService;
         private readonly FloorService _floorService;
         private readonly DebugState _debugState;
-        private readonly ChatGui _chatGui;
+        private readonly Chat _chat;
         private readonly RemoteApi _remoteApi;
         private readonly ImportService _importService;
 
@@ -74,7 +74,7 @@ namespace Pal.Client.Windows
             FrameworkService frameworkService,
             FloorService floorService,
             DebugState debugState,
-            ChatGui chatGui,
+            Chat chat,
             RemoteApi remoteApi,
             ImportService importService)
             : base(WindowId)
@@ -88,7 +88,7 @@ namespace Pal.Client.Windows
             _frameworkService = frameworkService;
             _floorService = floorService;
             _debugState = debugState;
-            _chatGui = chatGui;
+            _chat = chat;
             _remoteApi = remoteApi;
             _importService = importService;
 
@@ -504,17 +504,17 @@ namespace Pal.Client.Windows
                         await using var output = File.Create(destinationPath);
                         export.WriteTo(output);
 
-                        _chatGui.PalMessage($"Export saved as {destinationPath}.");
+                        _chat.Message($"Export saved as {destinationPath}.");
                     }
                     else
                     {
-                        _chatGui.PalError("Export failed due to server error.");
+                        _chat.Error("Export failed due to server error.");
                     }
                 }
                 catch (Exception e)
                 {
                     _logger.LogError(e, "Export failed");
-                    _chatGui.PalError($"Export failed: {e}");
+                    _chat.Error($"Export failed: {e}");
                 }
             });
         }

@@ -15,15 +15,15 @@ namespace Pal.Client.DependencyInjection
         private readonly IPalacePalConfiguration _configuration;
         private readonly RemoteApi _remoteApi;
         private readonly StatisticsWindow _statisticsWindow;
-        private readonly ChatGui _chatGui;
+        private readonly Chat _chat;
 
         public StatisticsService(IPalacePalConfiguration configuration, RemoteApi remoteApi,
-            StatisticsWindow statisticsWindow, ChatGui chatGui)
+            StatisticsWindow statisticsWindow, Chat chat)
         {
             _configuration = configuration;
             _remoteApi = remoteApi;
             _statisticsWindow = statisticsWindow;
-            _chatGui = chatGui;
+            _chat = chat;
         }
 
         public void ShowGlobalStatistics()
@@ -35,7 +35,7 @@ namespace Pal.Client.DependencyInjection
         {
             if (!_configuration.HasRoleOnCurrentServer(RemoteApi.RemoteUrl, "statistics:view"))
             {
-                _chatGui.PalError(Localization.Command_pal_stats_CurrentFloor);
+                _chat.Error(Localization.Command_pal_stats_CurrentFloor);
                 return;
             }
 
@@ -49,16 +49,16 @@ namespace Pal.Client.DependencyInjection
                 }
                 else
                 {
-                    _chatGui.PalError(Localization.Command_pal_stats_UnableToFetchStatistics);
+                    _chat.Error(Localization.Command_pal_stats_UnableToFetchStatistics);
                 }
             }
             catch (RpcException e) when (e.StatusCode == StatusCode.PermissionDenied)
             {
-                _chatGui.PalError(Localization.Command_pal_stats_CurrentFloor);
+                _chat.Error(Localization.Command_pal_stats_CurrentFloor);
             }
             catch (Exception e)
             {
-                _chatGui.PalError(e.ToString());
+                _chat.Error(e.ToString());
             }
         }
     }

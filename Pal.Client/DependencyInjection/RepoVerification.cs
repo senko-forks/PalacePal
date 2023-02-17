@@ -10,14 +10,14 @@ namespace Pal.Client.DependencyInjection
 {
     internal sealed class RepoVerification
     {
-        public RepoVerification(ILogger<RepoVerification> logger, DalamudPluginInterface pluginInterface, ChatGui chatGui)
+        public RepoVerification(ILogger<RepoVerification> logger, DalamudPluginInterface pluginInterface, Chat chat)
         {
             logger.LogInformation("Install source: {Repo}", pluginInterface.SourceRepository);
             if (!pluginInterface.IsDev
                 && !pluginInterface.SourceRepository.StartsWith("https://raw.githubusercontent.com/carvelli/")
                 && !pluginInterface.SourceRepository.StartsWith("https://github.com/carvelli/"))
             {
-                chatGui.PalError(string.Format(Localization.Error_WrongRepository,
+                chat.Error(string.Format(Localization.Error_WrongRepository,
                     "https://github.com/carvelli/Dalamud-Plugins"));
                 throw new InvalidOperationException();
             }

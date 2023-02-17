@@ -3,13 +3,20 @@ using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Pal.Client.Properties;
 
-namespace Pal.Client.Extensions
+namespace Pal.Client.DependencyInjection
 {
-    public static class ChatExtensions
+    internal sealed class Chat
     {
-        public static void PalError(this ChatGui chat, string e)
+        private readonly ChatGui _chatGui;
+
+        public Chat(ChatGui chatGui)
         {
-            chat.PrintChat(new XivChatEntry
+            _chatGui = chatGui;
+        }
+
+        public void Error(string e)
+        {
+            _chatGui.PrintChat(new XivChatEntry
             {
                 Message = new SeStringBuilder()
                     .AddUiForeground($"[{Localization.Palace_Pal}] ", 16)
@@ -18,11 +25,14 @@ namespace Pal.Client.Extensions
             });
         }
 
-        public static void PalMessage(this ChatGui chat, string message)
+        public void Message(string message)
         {
-            chat.Print(new SeStringBuilder()
+            _chatGui.Print(new SeStringBuilder()
                 .AddUiForeground($"[{Localization.Palace_Pal}] ", 57)
                 .AddText(message).Build());
         }
+
+        public void UnformattedMessage(string message)
+            => _chatGui.Print(message);
     }
 }
