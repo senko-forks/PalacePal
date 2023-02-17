@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json.Serialization;
 
 namespace Pal.Client.Configuration
 {
@@ -16,10 +15,6 @@ namespace Pal.Client.Configuration
         public DeepDungeonConfiguration DeepDungeons { get; set; } = new();
         public RendererConfiguration Renderer { get; set; } = new();
         public List<AccountConfigurationV7> Accounts { get; set; } = new();
-
-        [JsonIgnore]
-        [Obsolete]
-        public List<ConfigurationV1.ImportHistoryEntry> ImportHistory { get; set; } = new();
 
         public IAccountConfiguration CreateAccount(string server, Guid accountId)
         {

@@ -9,6 +9,7 @@ using Dalamud.Plugin;
 using ImGuiNET;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Pal.Client.Configuration.Legacy;
 using Pal.Client.Database;
 using NJson = Newtonsoft.Json;
 

@@ -19,6 +19,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Pal.Client.Commands;
 using Pal.Client.Configuration;
+using Pal.Client.Configuration.Legacy;
 using Pal.Client.Database;
 using Pal.Client.DependencyInjection;
 using Pal.Client.DependencyInjection.Logging;
@@ -39,7 +40,11 @@ namespace Pal.Client
     {
         public static DalamudLoggerProvider LoggerProvider { get; } = new();
 
+        /// <summary>
+        /// Initialized as temporary logger, will be overriden once context is ready with a logger that supports scopes.
+        /// </summary>
         private readonly ILogger _logger = LoggerProvider.CreateLogger<DependencyInjectionContext>();
+
         private readonly string _sqliteConnectionString;
         private readonly CancellationTokenSource _initCts = new();
         private ServiceProvider? _serviceProvider;
@@ -56,9 +61,14 @@ namespace Pal.Client
             CommandManager commandManager,
             DataManager dataManager)
         {
-            // Temporary logger, will be overriden later
             _logger.LogInformation("Building service container");
 
+            // set up legacy services
+#pragma warning disable CS0612
+            JsonFloorState.SetContextProperties(pluginInterface.GetPluginConfigDirectory());
+#pragma warning restore CS0612
+
+            // set up logging
             CancellationToken token = _initCts.Token;
             IServiceCollection services = new ServiceCollection();
             services.AddLogging(builder =>
@@ -67,6 +77,7 @@ namespace Pal.Client
                     .AddFilter("Grpc", LogLevel.Debug)
                     .ClearProviders()
                     .AddProvider(LoggerProvider));
+
             // dalamud
             services.AddSingleton<IDalamudPlugin>(this);
             services.AddSingleton(pluginInterface);
@@ -170,10 +181,6 @@ namespace Pal.Client
                     }
 
                     token.ThrowIfCancellationRequested();
-
-                    // set up legacy services
-                    LocalState.PluginConfigDirectory = pluginInterface.GetPluginConfigDirectory();
-                    LocalState.Mode = _serviceProvider.GetRequiredService<IPalacePalConfiguration>().Mode;
 
                     // windows that have logic to open on startup
                     _serviceProvider.GetRequiredService<AgreementWindow>();

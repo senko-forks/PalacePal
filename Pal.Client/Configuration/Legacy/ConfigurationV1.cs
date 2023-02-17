@@ -1,6 +1,4 @@
-﻿using Dalamud.Logging;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -8,8 +6,9 @@ using System.Linq;
 using System.Numerics;
 using Dalamud.Plugin;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
-namespace Pal.Client.Configuration
+namespace Pal.Client.Configuration.Legacy
 {
     [Obsolete]
     public sealed class ConfigurationV1
@@ -90,7 +89,7 @@ namespace Pal.Client.Configuration
                 // 2.2 had a bug that would mark chests as traps, there's no easy way to detect this -- or clean this up.
                 // Not a problem for online players, but offline players might be fucked.
                 //bool changedAnyFile = false;
-                LocalState.ForEach(s =>
+                JsonFloorState.ForEach(s =>
                 {
                     foreach (var marker in s.Markers)
                         marker.SinceVersion = "0.0";
@@ -100,7 +99,7 @@ namespace Pal.Client.Configuration
                     {
                         s.Backup(suffix: "bak");
 
-                        s.Markers = new ConcurrentBag<Marker>(s.Markers.Where(m => m.SinceVersion != "0.0" || m.Type == Marker.EType.Hoard || m.WasImported));
+                        s.Markers = new ConcurrentBag<JsonMarker>(s.Markers.Where(m => m.SinceVersion != "0.0" || m.Type == JsonMarker.EType.Hoard || m.WasImported));
                         s.Save();
 
                         //changedAnyFile = true;
@@ -131,7 +130,7 @@ namespace Pal.Client.Configuration
 
             if (Version == 5)
             {
-                LocalState.UpdateAll();
+                JsonFloorState.UpdateAll();
 
                 Version = 6;
                 Save(pluginInterface);
