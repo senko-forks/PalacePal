@@ -18,18 +18,18 @@ namespace Pal.Client.Configuration.Legacy
         private static readonly JsonSerializerOptions JsonSerializerOptions = new() { IncludeFields = true };
         private const int CurrentVersion = 4;
 
-        private static string _pluginConfigDirectory;
-        private static EMode _mode = EMode.Online; // might not be true, but this is 'less strict filtering' for migrations
+        private static string _pluginConfigDirectory = null!;
+        private static readonly EMode _mode = EMode.Online; // might not be true, but this is 'less strict filtering' for migrations
 
         internal static void SetContextProperties(string pluginConfigDirectory)
         {
             _pluginConfigDirectory = pluginConfigDirectory;
         }
 
-        public uint TerritoryType { get; set; }
+        public ushort TerritoryType { get; set; }
         public ConcurrentBag<JsonMarker> Markers { get; set; } = new();
 
-        public JsonFloorState(uint territoryType)
+        public JsonFloorState(ushort territoryType)
         {
             TerritoryType = territoryType;
         }
@@ -44,7 +44,7 @@ namespace Pal.Client.Configuration.Legacy
                 Markers = new ConcurrentBag<JsonMarker>(Markers.Where(x => x.Seen || !x.WasImported || x.Imports.Count > 0));
         }
 
-        public static JsonFloorState? Load(uint territoryType)
+        public static JsonFloorState? Load(ushort territoryType)
         {
             string path = GetSaveLocation(territoryType);
             if (!File.Exists(path))
@@ -136,6 +136,10 @@ namespace Pal.Client.Configuration.Legacy
         {
             foreach (ETerritoryType territory in typeof(ETerritoryType).GetEnumValues())
             {
+                // we never had markers for eureka orthos, so don't bother
+                if (territory > ETerritoryType.HeavenOnHigh_91_100)
+                    break;
+
                 JsonFloorState? localState = Load((ushort)territory);
                 if (localState != null)
                     action(localState);

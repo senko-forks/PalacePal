@@ -28,8 +28,6 @@ namespace Pal.Client.Configuration
             _logger = logger;
             _pluginInterface = pluginInterface;
             _serviceProvider = serviceProvider;
-
-            Migrate();
         }
 
         private string ConfigPath => Path.Join(_pluginInterface.GetPluginConfigDirectory(), "palace-pal.config.json");
@@ -54,7 +52,7 @@ namespace Pal.Client.Configuration
 
 #pragma warning disable CS0612
 #pragma warning disable CS0618
-        private void Migrate()
+        public void Migrate()
         {
             if (_pluginInterface.ConfigFile.Exists)
             {

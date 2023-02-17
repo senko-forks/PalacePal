@@ -17,7 +17,7 @@
 		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<DebugType>portable</DebugType>
-		<PathMap>$(SolutionDir)=X:\</PathMap>
+		<PathMap Condition="$(SolutionDir) != ''">$(SolutionDir)=X:\</PathMap>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">

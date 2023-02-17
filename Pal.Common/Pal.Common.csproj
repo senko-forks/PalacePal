@@ -6,6 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <DebugType>portable</DebugType>
-    <PathMap>$(SolutionDir)=X:\</PathMap>
+    <PathMap Condition="$(SolutionDir) != ''">$(SolutionDir)=X:\</PathMap>
   </PropertyGroup>
 </Project>

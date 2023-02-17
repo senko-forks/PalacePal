@@ -96,6 +96,7 @@ namespace Pal.Client
             _sqliteConnectionString =
                 $"Data Source={Path.Join(pluginInterface.GetPluginConfigDirectory(), "palace-pal.data.sqlite3")}";
             services.AddDbContext<PalClientContext>(o => o.UseSqlite(_sqliteConnectionString));
+            services.AddTransient<JsonMigration>();
 
             // plugin-specific
             services.AddSingleton<Plugin>();
@@ -175,10 +176,16 @@ namespace Pal.Client
                     {
                         _logger.LogInformation("Loading database & running migrations");
                         await using var dbContext = scope.ServiceProvider.GetRequiredService<PalClientContext>();
-                        await dbContext.Database.MigrateAsync();
+                        await dbContext.Database.MigrateAsync(token);
 
                         _logger.LogInformation("Completed database migrations");
                     }
+
+                    token.ThrowIfCancellationRequested();
+
+                    // v1 migration: config migration for import history, json migration for markers
+                    _serviceProvider.GetRequiredService<ConfigurationManager>().Migrate();
+                    await _serviceProvider.GetRequiredService<JsonMigration>().MigrateAsync(token);
 
                     token.ThrowIfCancellationRequested();
 

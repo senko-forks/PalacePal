@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pal.Client.Database;
 
@@ -10,9 +11,11 @@ using Pal.Client.Database;
 namespace Pal.Client.Database.Migrations
 {
     [DbContext(typeof(PalClientContext))]
-    partial class PalClientContextModelSnapshot : ModelSnapshot
+    [Migration("20230217160342_AddClientLocations")]
+    partial class AddClientLocations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "7.0.3");
@@ -58,7 +61,7 @@ namespace Pal.Client.Database.Migrations
 
                     b.HasKey("LocalId");
 
-                    b.ToTable("Locations", (string)null);
+                    b.ToTable("Locations");
                 });
 
             modelBuilder.Entity("Pal.Client.Database.ImportHistory", b =>
@@ -78,7 +81,7 @@ namespace Pal.Client.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Imports", (string)null);
+                    b.ToTable("Imports");
                 });
 
             modelBuilder.Entity("Pal.Client.Database.RemoteEncounter", b =>
@@ -99,7 +102,7 @@ namespace Pal.Client.Database.Migrations
 
                     b.HasIndex("ClientLocationId");
 
-                    b.ToTable("RemoteEncounters", (string)null);
+                    b.ToTable("RemoteEncounters");
                 });
 
             modelBuilder.Entity("ClientLocationImportHistory", b =>

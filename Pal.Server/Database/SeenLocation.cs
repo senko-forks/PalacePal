@@ -11,7 +11,7 @@
 
         private SeenLocation() { }
 
-        public SeenLocation(Database.Account account, Guid palaceLocationId)
+        public SeenLocation(Account account, Guid palaceLocationId)
         {
             Account = account;
             PalaceLocationId = palaceLocationId;
