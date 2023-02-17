@@ -1,10 +1,8 @@
-﻿using Dalamud.Logging;
-using Dalamud.Plugin;
+﻿using Dalamud.Plugin;
 using ECommons;
 using ECommons.Reflection;
 using ECommons.Schedulers;
 using ECommons.SplatoonAPI;
-using ImGuiNET;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,15 +10,13 @@ using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using Dalamud.Game.ClientState;
-using Dalamud.Game.Gui;
 using Microsoft.Extensions.Logging;
 using Pal.Client.Configuration;
 using Pal.Client.DependencyInjection;
-using Pal.Client.Extensions;
 
 namespace Pal.Client.Rendering
 {
-    internal sealed class SplatoonRenderer : IRenderer, IDrawDebugItems, IDisposable
+    internal sealed class SplatoonRenderer : IRenderer, IDisposable
     {
         private const long OnTerritoryChange = -2;
 
@@ -102,25 +98,24 @@ namespace Pal.Client.Rendering
             return new SplatoonElement(this, element);
         }
 
-        // TODO This should be handled differently
-        //      - make SimpleRenderer implement this
-        //      - return error (if any) instead of using chat here
-        public void DrawDebugItems(Vector4 trapColor, Vector4 hoardColor)
+        public void DrawDebugItems(uint trapColor, uint hoardColor)
         {
             try
             {
                 Vector3? pos = _clientState.LocalPlayer?.Position;
                 if (pos != null)
                 {
+                    ResetLayer(ELayer.Test);
+
                     var elements = new List<IRenderElement>
                     {
-                        CreateElement(Marker.EType.Trap, pos.Value, ImGui.ColorConvertFloat4ToU32(trapColor)),
-                        CreateElement(Marker.EType.Hoard, pos.Value, ImGui.ColorConvertFloat4ToU32(hoardColor)),
+                        CreateElement(Marker.EType.Trap, pos.Value, trapColor),
+                        CreateElement(Marker.EType.Hoard, pos.Value, hoardColor),
                     };
 
                     if (!Splatoon.AddDynamicElements(ToLayerName(ELayer.Test),
                             elements.Cast<SplatoonElement>().Select(x => x.Delegate).ToArray(),
-                            new[] { Environment.TickCount64 + 10000 }))
+                            new[] { Environment.TickCount64 + RenderData.TestLayerTimeout }))
                     {
                         _chat.Message("Could not draw markers :(");
                     }

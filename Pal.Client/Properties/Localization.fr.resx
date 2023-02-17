@@ -228,9 +228,6 @@ Il n'y a pas de synchronisation avec les autres joueurs ni de sauvegarde entre l
   <data name="Config_Renderer_Simple_Hint" xml:space="preserve">
         <value>Expérimental</value>
     </data>
-  <data name="Config_Splatoon_Test" xml:space="preserve">
-        <value>Test de Splatoon :</value>
-    </data>
   <data name="Config_Splatoon_DrawCircles" xml:space="preserve">
         <value>Dessiner les marqueurs des pièges et coffres autour de soi</value>
         <comment>To test the Splatoon integration, you can draw markers around yourself.</comment>

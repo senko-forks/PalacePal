@@ -66,6 +66,22 @@ namespace Pal.Client.Rendering
             };
         }
 
+        public void DrawDebugItems(uint trapColor, uint hoardColor)
+        {
+            _layers[ELayer.Test] = new SimpleLayer
+            {
+                TerritoryType = _clientState.TerritoryType,
+                Elements = new List<SimpleElement>
+                {
+                    (SimpleElement)CreateElement(Marker.EType.Trap, _clientState.LocalPlayer?.Position ?? default,
+                        trapColor),
+                    (SimpleElement)CreateElement(Marker.EType.Hoard, _clientState.LocalPlayer?.Position ?? default,
+                        hoardColor)
+                },
+                ExpiresAt = Environment.TickCount64 + RenderData.TestLayerTimeout
+            };
+        }
+
         public void DrawLayers()
         {
             if (_layers.Count == 0)
@@ -80,15 +96,14 @@ namespace Pal.Client.Rendering
                     ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoSavedSettings |
                     ImGuiWindowFlags.AlwaysUseWindowPadding))
             {
-                ushort territoryType = _clientState.TerritoryType;
-
-                foreach (var layer in _layers.Values.Where(l => l.TerritoryType == territoryType))
+                foreach (var layer in _layers.Values.Where(l => l.IsValid(_clientState)))
                 {
                     foreach (var e in layer.Elements)
                         Draw(e);
                 }
 
-                foreach (var key in _layers.Where(l => l.Value.TerritoryType != territoryType).Select(l => l.Key)
+                foreach (var key in _layers.Where(l => !l.Value.IsValid(_clientState))
+                             .Select(l => l.Key)
                              .ToList())
                     ResetLayer(key);
 
@@ -159,6 +174,10 @@ namespace Pal.Client.Rendering
         {
             public required ushort TerritoryType { get; init; }
             public required IReadOnlyList<SimpleElement> Elements { get; init; }
+            public long ExpiresAt { get; init; } = long.MaxValue;
+
+            public bool IsValid(ClientState clientState) =>
+                TerritoryType == clientState.TerritoryType && ExpiresAt >= Environment.TickCount64;
 
             public void Dispose()
             {

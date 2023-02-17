@@ -227,9 +227,6 @@
   <data name="Config_Renderer_Simple_Hint" xml:space="preserve">
         <value>試験的機能</value>
     </data>
-  <data name="Config_Splatoon_Test" xml:space="preserve">
-        <value>Splatoonのテスト:</value>
-    </data>
   <data name="Config_Splatoon_DrawCircles" xml:space="preserve">
         <value>自分の周りにトラップと宝箱を表示する</value>
         <comment>To test the Splatoon integration, you can draw markers around yourself.</comment>

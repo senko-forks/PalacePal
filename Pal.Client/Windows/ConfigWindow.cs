@@ -363,12 +363,9 @@ namespace Pal.Client.Windows
                 saveAndClose = ImGui.Button(Localization.SaveAndClose);
 
                 ImGui.Separator();
-                ImGui.Text(Localization.Config_Splatoon_Test);
-                ImGui.BeginDisabled(!(_renderAdapter.Implementation is IDrawDebugItems));
                 if (ImGui.Button(Localization.Config_Splatoon_DrawCircles))
-                    (_renderAdapter.Implementation as IDrawDebugItems)?.DrawDebugItems(_trapConfig.Color,
-                        _hoardConfig.Color);
-                ImGui.EndDisabled();
+                    _renderAdapter.DrawDebugItems(ImGui.ColorConvertFloat4ToU32(_trapConfig.Color),
+                        ImGui.ColorConvertFloat4ToU32(_hoardConfig.Color));
 
                 ImGui.EndTabItem();
             }

@@ -14,6 +14,7 @@ namespace Pal.Client.Rendering
         private readonly IPalacePalConfiguration _configuration;
 
         private IServiceScope? _renderScope;
+        private IRenderer _implementation;
 
         public RenderAdapter(IServiceScopeFactory serviceScopeFactory, ILogger<RenderAdapter> logger,
             IPalacePalConfiguration configuration)
@@ -22,14 +23,14 @@ namespace Pal.Client.Rendering
             _logger = logger;
             _configuration = configuration;
 
-            Implementation = Recreate(null);
+            _implementation = Recreate(null);
         }
 
         private IRenderer Recreate(ERenderer? currentRenderer)
         {
             ERenderer targetRenderer = _configuration.Renderer.SelectedRenderer;
             if (targetRenderer == currentRenderer)
-                return Implementation;
+                return _implementation;
 
             _renderScope?.Dispose();
 
@@ -43,30 +44,31 @@ namespace Pal.Client.Rendering
 
         public void ConfigUpdated()
         {
-            Implementation = Recreate(Implementation.GetConfigValue());
+            _implementation = Recreate(_implementation.GetConfigValue());
         }
 
         public void Dispose()
             => _renderScope?.Dispose();
 
-        public IRenderer Implementation { get; private set; }
-
         public void SetLayer(ELayer layer, IReadOnlyList<IRenderElement> elements)
-            => Implementation.SetLayer(layer, elements);
+            => _implementation.SetLayer(layer, elements);
 
         public void ResetLayer(ELayer layer)
-            => Implementation.ResetLayer(layer);
+            => _implementation.ResetLayer(layer);
 
         public IRenderElement CreateElement(Marker.EType type, Vector3 pos, uint color, bool fill = false)
-            => Implementation.CreateElement(type, pos, color, fill);
-
-        public void DrawLayers()
-        {
-            if (Implementation is SimpleRenderer sr)
-                sr.DrawLayers();
-        }
+            => _implementation.CreateElement(type, pos, color, fill);
 
         public ERenderer GetConfigValue()
             => throw new NotImplementedException();
+
+        public void DrawDebugItems(uint trapColor, uint hoardColor)
+            => _implementation.DrawDebugItems(trapColor, hoardColor);
+
+        public void DrawLayers()
+        {
+            if (_implementation is SimpleRenderer sr)
+                sr.DrawLayers();
+        }
     }
 }

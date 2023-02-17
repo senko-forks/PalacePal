@@ -239,9 +239,6 @@ This is not synchronized with other players and not saved between floors/runs.</
     <data name="Config_Renderer_Simple_Hint" xml:space="preserve">
         <value>experimental</value>
     </data>
-    <data name="Config_Splatoon_Test" xml:space="preserve">
-        <value>Splatoon Test:</value>
-    </data>
     <data name="Config_Splatoon_DrawCircles" xml:space="preserve">
         <value>Draw trap &amp; coffer circles around self</value>
         <comment>To test the Splatoon integration, you can draw markers around yourself.</comment>
