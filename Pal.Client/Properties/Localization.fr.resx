@@ -35,12 +35,12 @@
         <value>Enregistrer</value>
     </data>
   <data name="SaveAndClose" xml:space="preserve">
-        <value>Sauvegarder et Fermer</value>
+        <value>Enregistrer et Fermer</value>
     </data>
   <!-- Generic Errors -->
   <data name="Error_FirstTimeSetupRequired" xml:space="preserve">
         <value>Veuillez s'il vous plaît terminer la configuration initiale.</value>
-        <comment>Before using any /pal command, the first-time setup/agreeement needs to be completed.</comment>
+        <comment>Before using any /pal command, the initial setup/agreeement needs to be completed.</comment>
     </data>
   <data name="Error_WrongRepository" xml:space="preserve">
         <value>Veuillez installer ce plugin depuis le dépôt officiel {0} pour continuer à l'utiliser.</value>
@@ -100,7 +100,7 @@
   <data name="ConnectionError_CouldNotConnectToServer" xml:space="preserve">
         <value>Échec de connexion au serveur : {0}</value>
     </data>
-  <!-- Config Window -->
+  <!-- Config Window: Deep Dungeons -->
   <data name="ConfigTab_DeepDungeons" xml:space="preserve">
         <value>Donjons sans fonds</value>
     </data>
@@ -145,6 +145,7 @@ Il n'y a pas de synchronisation avec les autres joueurs ni de sauvegarde entre l
         <value>Remplir</value>
         <comment>Whether silver coffers should only be drawn with the circle outline or as filled circle.</comment>
     </data>
+  <!-- Config Window: Community -->
   <data name="ConfigTab_Community" xml:space="preserve">
         <value>Communauté</value>
     </data>
@@ -155,6 +156,7 @@ Il n'y a pas de synchronisation avec les autres joueurs ni de sauvegarde entre l
         <value>Test en cours...</value>
         <comment>When clicking on the 'Test Connection' button, this is shown until a success/error message is available.</comment>
     </data>
+  <!-- Config Window: Import -->
   <data name="ConfigTab_Import" xml:space="preserve">
         <value>Importer</value>
     </data>
@@ -192,6 +194,7 @@ Il n'y a pas de synchronisation avec les autres joueurs ni de sauvegarde entre l
   <data name="Config_UndoImport" xml:space="preserve">
         <value>Annuler l'importation</value>
     </data>
+  <!-- Config Window: Export -->
   <data name="ConfigTab_Export" xml:space="preserve">
         <value>Exporter</value>
     </data>
@@ -204,6 +207,7 @@ Il n'y a pas de synchronisation avec les autres joueurs ni de sauvegarde entre l
   <data name="Config_StartExport" xml:space="preserve">
         <value>Démarrer l'exportation</value>
     </data>
+  <!-- Config Window: Renderer -->
   <data name="ConfigTab_Renderer" xml:space="preserve">
         <value>Moteur de rendu</value>
         <comment>Configuration tab to select Splatoon or Simple as rendering backend</comment>
@@ -231,6 +235,7 @@ Il n'y a pas de synchronisation avec les autres joueurs ni de sauvegarde entre l
         <value>Dessiner les marqueurs des pièges et coffres autour de soi</value>
         <comment>To test the Splatoon integration, you can draw markers around yourself.</comment>
     </data>
+  <!-- Config Window: Debug -->
   <data name="ConfigTab_Debug" xml:space="preserve">
         <value>Débogage</value>
     </data>
@@ -289,9 +294,9 @@ Il n'y a pas de synchronisation avec les autres joueurs ni de sauvegarde entre l
     </data>
   <data name="Agreement_PickOneOption" xml:space="preserve">
         <value>Veuillez choisir une des options ci-dessous.</value>
-        <comment>Shown if neither of the two radio buttons in the first-time setup window are selected.</comment>
+        <comment>Shown if neither of the two radio buttons in the setup setup window are selected.</comment>
     </data>
-  <!-- Import -->
+  <!-- Import (chat messages) -->
   <data name="ImportCompleteStatistics" xml:space="preserve">
         <value>Importation de {0} nouvelles locations de pièges et {1} locations de trésors cachés.</value>
         <comment>After the import of a *.pal file, the number of traps/hoard coffers is shown as a summary.</comment>

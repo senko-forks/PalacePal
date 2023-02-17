@@ -21,9 +21,14 @@
   <!-- Generic Errors -->
   <!-- /pal commands -->
   <!-- Messages while connecting to the server. These are typically only visible when clicking 'Test connection'. -->
-  <!-- Config Window -->
+  <!-- Config Window: Deep Dungeons -->
+  <!-- Config Window: Community -->
+  <!-- Config Window: Import -->
+  <!-- Config Window: Export -->
+  <!-- Config Window: Renderer -->
+  <!-- Config Window: Debug -->
   <!-- Statistics Window -->
   <!-- Agreement Window -->
-  <!-- Import -->
+  <!-- Import (chat messages) -->
   <!-- Other -->
 </root>
