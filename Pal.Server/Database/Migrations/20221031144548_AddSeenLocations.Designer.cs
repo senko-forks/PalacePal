@@ -5,14 +5,15 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pal.Server;
+using Pal.Server.Database;
 
 #nullable disable
 
-namespace Pal.Server.Migrations
+namespace Pal.Server.Database.Migrations
 {
     [DbContext(typeof(PalServerContext))]
-    [Migration("20221023010252_AddPalaceLocation")]
-    partial class AddPalaceLocation
+    [Migration("20221031144548_AddSeenLocations")]
+    partial class AddSeenLocations
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -30,6 +31,10 @@ namespace Pal.Server.Migrations
 
                     b.Property<string>("IpHash")
                         .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Roles")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
@@ -58,6 +63,12 @@ namespace Pal.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<ushort>("TerritoryType")
                         .HasColumnType("INTEGER");
 
@@ -76,6 +87,54 @@ namespace Pal.Server.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Locations");
+                });
+
+            modelBuilder.Entity("Pal.Server.SeenLocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("FirstSeenAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("PalaceLocationId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("PalaceLocationId");
+
+                    b.ToTable("SeenLocation");
+                });
+
+            modelBuilder.Entity("Pal.Server.SeenLocation", b =>
+                {
+                    b.HasOne("Pal.Server.Account", "Account")
+                        .WithMany("SeenLocations")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Pal.Server.PalaceLocation", "PalaceLocation")
+                        .WithMany()
+                        .HasForeignKey("PalaceLocationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+
+                    b.Navigation("PalaceLocation");
+                });
+
+            modelBuilder.Entity("Pal.Server.Account", b =>
+                {
+                    b.Navigation("SeenLocations");
                 });
 #pragma warning restore 612, 618
         }

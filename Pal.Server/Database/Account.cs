@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Pal.Server
+namespace Pal.Server.Database
 {
     public class Account
     {

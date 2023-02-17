@@ -1,17 +1,17 @@
-﻿namespace Pal.Server
+﻿namespace Pal.Server.Database
 {
-    public class SeenLocation
+    public sealed class SeenLocation
     {
         public Guid Id { get; set; }
         public Guid AccountId { get; set; }
-        public Account Account { get; set; } = null!;
+        public Database.Account Account { get; set; } = null!;
         public Guid PalaceLocationId { get; set; }
-        public PalaceLocation PalaceLocation { get; set; } = null!;
+        public ServerLocation ServerLocation { get; set; } = null!;
         public DateTime FirstSeenAt { get; set; }
 
-        protected SeenLocation() { }
+        private SeenLocation() { }
 
-        public SeenLocation(Account account, Guid palaceLocationId)
+        public SeenLocation(Database.Account account, Guid palaceLocationId)
         {
             Account = account;
             PalaceLocationId = palaceLocationId;

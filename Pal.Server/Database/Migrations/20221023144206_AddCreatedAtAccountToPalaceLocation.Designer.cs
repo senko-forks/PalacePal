@@ -5,14 +5,15 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pal.Server;
+using Pal.Server.Database;
 
 #nullable disable
 
-namespace Pal.Server.Migrations
+namespace Pal.Server.Database.Migrations
 {
     [DbContext(typeof(PalServerContext))]
-    [Migration("20221022152852_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20221023144206_AddCreatedAtAccountToPalaceLocation")]
+    partial class AddCreatedAtAccountToPalaceLocation
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -50,6 +51,38 @@ namespace Pal.Server.Migrations
                     b.HasKey("Key");
 
                     b.ToTable("GlobalSettings");
+                });
+
+            modelBuilder.Entity("Pal.Server.PalaceLocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<ushort>("TerritoryType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<float>("X")
+                        .HasColumnType("REAL");
+
+                    b.Property<float>("Y")
+                        .HasColumnType("REAL");
+
+                    b.Property<float>("Z")
+                        .HasColumnType("REAL");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Locations");
                 });
 #pragma warning restore 612, 618
         }

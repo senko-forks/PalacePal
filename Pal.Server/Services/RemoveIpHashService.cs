@@ -1,4 +1,6 @@
-﻿namespace Pal.Server.Services
+﻿using Pal.Server.Database;
+
+namespace Pal.Server.Services
 {
     public class RemoveIpHashService : IHostedService, IDisposable
     {

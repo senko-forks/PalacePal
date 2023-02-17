@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Pal.Server.Migrations
+namespace Pal.Server.Database.Migrations
 {
     public partial class AddSeenLocations : Migration
     {

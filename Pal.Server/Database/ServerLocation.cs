@@ -1,6 +1,6 @@
-﻿namespace Pal.Server
+﻿namespace Pal.Server.Database
 {
-    public class PalaceLocation
+    public sealed class ServerLocation
     {
         public Guid Id { get; set; }
         public ushort TerritoryType { get; set; }

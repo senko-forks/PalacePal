@@ -1,12 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 
-namespace Pal.Server
+namespace Pal.Server.Database
 {
     public class PalServerContext : DbContext
     {
         public DbSet<Account> Accounts { get; set; } = null!;
-        public DbSet<PalaceLocation> Locations { get; set; } = null!;
+        public DbSet<ServerLocation> Locations { get; set; } = null!;
         public DbSet<GlobalSetting> GlobalSettings { get; set; } = null!;
 
         public PalServerContext(DbContextOptions<PalServerContext> options)

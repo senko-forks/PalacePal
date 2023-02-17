@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Pal.Common;
 using System.Data;
+using Pal.Server.Database;
 using static Account.ExportService;
 
 namespace Pal.Server.Services
@@ -42,7 +43,7 @@ namespace Pal.Server.Services
                 foreach (var (territoryType, objects) in objectsByFloor)
                 {
                     var floorReply = new ExportFloor { TerritoryType = territoryType };
-                    floorReply.Objects.AddRange(objects.Where(o => o.Type == PalaceLocation.EType.Trap || o.Type == PalaceLocation.EType.Hoard).Select(o => new ExportObject
+                    floorReply.Objects.AddRange(objects.Where(o => o.Type == ServerLocation.EType.Trap || o.Type == ServerLocation.EType.Hoard).Select(o => new ExportObject
                     {
                         Type = (ExportObjectType)o.Type,
                         X = o.X,

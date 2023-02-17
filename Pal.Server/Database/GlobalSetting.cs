@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Pal.Server
+namespace Pal.Server.Database
 {
-    public class GlobalSetting
+    public sealed class GlobalSetting
     {
         public GlobalSetting(string key, string value)
         {

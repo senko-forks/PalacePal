@@ -1,5 +1,4 @@
 using Account;
-using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +7,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using Pal.Server.Database;
 using static Account.AccountService;
 
 namespace Pal.Server.Services
@@ -59,7 +59,7 @@ namespace Pal.Server.Services
                 _salt ??= Convert.FromBase64String((await _dbContext.GlobalSettings.FindAsync(new object[] { "salt" }, cancellationToken: context.CancellationToken))!.Value);
                 var ipHash = Convert.ToBase64String(new Rfc2898DeriveBytes(remoteIp.GetAddressBytes(), _salt, iterations: 10000, HashAlgorithmName.SHA1).GetBytes(24));
 
-                Account? existingAccount = await _dbContext.Accounts.FirstOrDefaultAsync(a => a.IpHash == ipHash, cancellationToken: context.CancellationToken);
+                Database.Account? existingAccount = await _dbContext.Accounts.FirstOrDefaultAsync(a => a.IpHash == ipHash, cancellationToken: context.CancellationToken);
                 if (existingAccount != null)
                 {
                     _logger.LogInformation("CreateAccount: Returning existing account {AccountId} for ip hash {IpHash} ({Ip})", existingAccount.Id, ipHash, remoteIp.ToString().Substring(0, Math.Min(5, remoteIp.ToString().Length)));
@@ -67,7 +67,7 @@ namespace Pal.Server.Services
                 }
 
 
-                Account newAccount = new Account
+                Database.Account newAccount = new Database.Account
                 {
                     Id = Guid.NewGuid(),
                     IpHash = ipHash,

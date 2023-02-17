@@ -5,20 +5,20 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pal.Server;
+using Pal.Server.Database;
 
 #nullable disable
 
-namespace Pal.Server.Migrations
+namespace Pal.Server.Database.Migrations
 {
     [DbContext(typeof(PalServerContext))]
-    [Migration("20230208192847_RemoveDebugMarkers")]
-    partial class RemoveDebugMarkers
+    [Migration("20221026183635_AddRolesToAccounts")]
+    partial class AddRolesToAccounts
     {
-        /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "7.0.2");
+            modelBuilder.HasAnnotation("ProductVersion", "6.0.10");
 
             modelBuilder.Entity("Pal.Server.Account", b =>
                 {
@@ -87,59 +87,6 @@ namespace Pal.Server.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Locations");
-                });
-
-            modelBuilder.Entity("Pal.Server.SeenLocation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("AccountId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("FirstSeenAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("PalaceLocationId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AccountId");
-
-                    b.HasIndex("PalaceLocationId");
-
-                    b.ToTable("SeenLocation");
-                });
-
-            modelBuilder.Entity("Pal.Server.SeenLocation", b =>
-                {
-                    b.HasOne("Pal.Server.Account", "Account")
-                        .WithMany("SeenLocations")
-                        .HasForeignKey("AccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Pal.Server.PalaceLocation", "PalaceLocation")
-                        .WithMany("SeenLocations")
-                        .HasForeignKey("PalaceLocationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Account");
-
-                    b.Navigation("PalaceLocation");
-                });
-
-            modelBuilder.Entity("Pal.Server.Account", b =>
-                {
-                    b.Navigation("SeenLocations");
-                });
-
-            modelBuilder.Entity("Pal.Server.PalaceLocation", b =>
-                {
-                    b.Navigation("SeenLocations");
                 });
 #pragma warning restore 612, 618
         }

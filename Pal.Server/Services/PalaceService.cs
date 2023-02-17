@@ -6,6 +6,7 @@ using Palace;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using Pal.Server.Database;
 using static Palace.PalaceService;
 
 namespace Pal.Server.Services
@@ -71,11 +72,11 @@ namespace Pal.Server.Services
                     .Where(o => o.Type != ObjectType.Unknown && !(o.X == 0 && o.Y == 0 && o.Z == 0))
                     .Where(o => o.Type == ObjectType.Trap || o.Type == ObjectType.Hoard)
                     .Distinct(_objEqualityComparer)
-                    .Select(o => new PalaceLocation
+                    .Select(o => new ServerLocation
                     {
                         Id = Guid.NewGuid(),
                         TerritoryType = territoryType,
-                        Type = (PalaceLocation.EType)o.Type,
+                        Type = (ServerLocation.EType)o.Type,
                         X = o.X,
                         Y = o.Y,
                         Z = o.Z,

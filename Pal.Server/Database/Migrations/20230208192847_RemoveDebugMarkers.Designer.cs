@@ -5,19 +5,21 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pal.Server;
+using Pal.Server.Database;
 
 #nullable disable
 
-namespace Pal.Server.Migrations
+namespace Pal.Server.Database.Migrations
 {
     [DbContext(typeof(PalServerContext))]
-    [Migration("20221031144548_AddSeenLocations")]
-    partial class AddSeenLocations
+    [Migration("20230208192847_RemoveDebugMarkers")]
+    partial class RemoveDebugMarkers
     {
+        /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "6.0.10");
+            modelBuilder.HasAnnotation("ProductVersion", "7.0.2");
 
             modelBuilder.Entity("Pal.Server.Account", b =>
                 {
@@ -121,7 +123,7 @@ namespace Pal.Server.Migrations
                         .IsRequired();
 
                     b.HasOne("Pal.Server.PalaceLocation", "PalaceLocation")
-                        .WithMany()
+                        .WithMany("SeenLocations")
                         .HasForeignKey("PalaceLocationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -132,6 +134,11 @@ namespace Pal.Server.Migrations
                 });
 
             modelBuilder.Entity("Pal.Server.Account", b =>
+                {
+                    b.Navigation("SeenLocations");
+                });
+
+            modelBuilder.Entity("Pal.Server.PalaceLocation", b =>
                 {
                     b.Navigation("SeenLocations");
                 });

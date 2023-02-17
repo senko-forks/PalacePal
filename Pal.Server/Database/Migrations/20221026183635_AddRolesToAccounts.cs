@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace Pal.Server.Migrations
+namespace Pal.Server.Database.Migrations
 {
     public partial class AddRolesToAccounts : Migration
     {

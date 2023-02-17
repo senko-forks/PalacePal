@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Migrations.Operations;
 
 #nullable disable
 
-namespace Pal.Server.Migrations
+namespace Pal.Server.Database.Migrations
 {
     public partial class InitialCreate : Migration
     {
