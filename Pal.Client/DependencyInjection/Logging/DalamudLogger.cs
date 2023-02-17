@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using System.Text;
 using Serilog.Events;
 
@@ -24,12 +23,18 @@ namespace Pal.Client.DependencyInjection.Logging
             where TState : notnull
             => _scopeProvider?.Push(state) ?? NullScope.Instance;
 
-        public bool IsEnabled(LogLevel logLevel) => logLevel != LogLevel.None && PluginLogDelegate.IsEnabled(ToSerilogLevel(logLevel));
+        public bool IsEnabled(LogLevel logLevel) => logLevel != LogLevel.None && IsEnabled(ToSerilogLevel(logLevel));
+
+        private bool IsEnabled(LogEventLevel logEventLevel) => PluginLogDelegate.IsEnabled(logEventLevel);
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
             Func<TState, Exception?, string> formatter)
         {
-            if (!IsEnabled(logLevel))
+            if (logLevel == LogLevel.None)
+                return;
+
+            LogEventLevel logEventLevel = ToSerilogLevel(logLevel);
+            if (!IsEnabled(logEventLevel))
                 return;
 
             if (formatter == null)
@@ -52,7 +57,7 @@ namespace Pal.Client.DependencyInjection.Logging
                 },
                 sb);
             sb.Append(_name).Append(": ").Append(formatter(state, null));
-            PluginLogDelegate.Write(ToSerilogLevel(logLevel), exception, sb.ToString());
+            PluginLogDelegate.Write(logEventLevel, exception, sb.ToString());
         }
 
         private LogEventLevel ToSerilogLevel(LogLevel logLevel)

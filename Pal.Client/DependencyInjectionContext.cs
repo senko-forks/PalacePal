@@ -206,6 +206,11 @@ namespace Pal.Client
                 catch (ObjectDisposedException)
                 {
                 }
+                catch (TaskCanceledException e)
+                {
+                    _logger.LogError(e, "Task cancelled");
+                    chat?.Error("Plugin was unloaded before it finished loading.");
+                }
                 catch (Exception e)
                 {
                     _logger.LogError(e, "Async load failed");
