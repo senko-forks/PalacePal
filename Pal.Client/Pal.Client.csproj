@@ -90,6 +90,10 @@
 			<HintPath>$(AppData)\XIVLauncher\addon\Hooks\dev\FFXIVClientStructs.dll</HintPath>
 			<Private Condition="'$(Configuration)' != 'EF'">false</Private>
 		</Reference>
+		<Reference Include="Serilog">
+			<HintPath>$(AppData)\XIVLauncher\addon\Hooks\dev\Serilog.dll</HintPath>
+			<Private Condition="'$(Configuration)' != 'EF'">false</Private>
+		</Reference>
 	</ItemGroup>
 
 	<ItemGroup>

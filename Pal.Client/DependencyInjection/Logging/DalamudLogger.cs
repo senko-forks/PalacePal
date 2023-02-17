@@ -1,14 +1,16 @@
-﻿using Dalamud.Logging;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Serilog.Events;
 
 namespace Pal.Client.DependencyInjection.Logging
 {
     internal sealed class DalamudLogger : ILogger
     {
+        private static readonly string AssemblyName = typeof(Plugin).Assembly.GetName().Name!;
+        private static readonly Serilog.ILogger PluginLogDelegate = Serilog.Log.ForContext("SourceContext", AssemblyName);
         private readonly string _name;
         private readonly IExternalScopeProvider? _scopeProvider;
 
@@ -22,10 +24,8 @@ namespace Pal.Client.DependencyInjection.Logging
             where TState : notnull
             => _scopeProvider?.Push(state) ?? NullScope.Instance;
 
-        public bool IsEnabled(LogLevel logLevel) => logLevel != LogLevel.None;
+        public bool IsEnabled(LogLevel logLevel) => logLevel != LogLevel.None && PluginLogDelegate.IsEnabled(ToSerilogLevel(logLevel));
 
-        // PluginLog detects the plugin name as `Microsoft.Extensions.Logging` if inlined
-        [MethodImpl(MethodImplOptions.NoInlining)]
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
             Func<TState, Exception?, string> formatter)
         {
@@ -36,6 +36,7 @@ namespace Pal.Client.DependencyInjection.Logging
                 throw new ArgumentNullException(nameof(formatter));
 
             StringBuilder sb = new StringBuilder();
+            sb.Append('[').Append(AssemblyName).Append("] ");
             _scopeProvider?.ForEachScope((scope, builder) =>
                 {
                     if (scope is IEnumerable<KeyValuePair<string, object>> properties)
@@ -50,37 +51,22 @@ namespace Pal.Client.DependencyInjection.Logging
                         builder.Append('<').Append(scope).Append("> ");
                 },
                 sb);
-            sb.Append('[').Append(_name).Append("] ").Append(formatter(state, null));
-            string message = sb.ToString();
+            sb.Append(_name).Append(": ").Append(formatter(state, null));
+            PluginLogDelegate.Write(ToSerilogLevel(logLevel), exception, sb.ToString());
+        }
 
-#pragma warning disable CS8604 // the nullability on PluginLog methods is wrong and allows nulls for exceptions, WriteLog even declares the parameter as `Exception? exception = null`
-            switch (logLevel)
+        private LogEventLevel ToSerilogLevel(LogLevel logLevel)
+        {
+            return logLevel switch
             {
-                case LogLevel.Critical:
-                    PluginLog.Fatal(exception, message);
-                    break;
-
-                case LogLevel.Error:
-                    PluginLog.Error(exception, message);
-                    break;
-
-                case LogLevel.Warning:
-                    PluginLog.Warning(exception, message);
-                    break;
-
-                case LogLevel.Information:
-                    PluginLog.Information(exception, message);
-                    break;
-
-                case LogLevel.Debug:
-                    PluginLog.Debug(exception, message);
-                    break;
-
-                case LogLevel.Trace:
-                    PluginLog.Verbose(exception, message);
-                    break;
-            }
-#pragma warning restore CS8604
+                LogLevel.Critical => LogEventLevel.Fatal,
+                LogLevel.Error => LogEventLevel.Error,
+                LogLevel.Warning => LogEventLevel.Warning,
+                LogLevel.Information => LogEventLevel.Information,
+                LogLevel.Debug => LogEventLevel.Debug,
+                LogLevel.Trace => LogEventLevel.Verbose,
+                _ => throw new ArgumentOutOfRangeException(nameof(logLevel), logLevel, null)
+            };
         }
 
         private sealed class NullScope : IDisposable

@@ -61,7 +61,8 @@ namespace Pal.Client
             CancellationToken token = _initCts.Token;
             IServiceCollection services = new ServiceCollection();
             services.AddLogging(builder =>
-                builder.AddFilter("Microsoft.EntityFrameworkCore.Database", LogLevel.Warning)
+                builder.AddFilter("Pal", LogLevel.Trace)
+                    .AddFilter("Microsoft.EntityFrameworkCore.Database", LogLevel.Warning)
                     .AddFilter("Grpc", LogLevel.Debug)
                     .ClearProviders()
                     .AddProvider(LoggerProvider));
