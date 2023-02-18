@@ -114,6 +114,9 @@ namespace Pal.Client.Configuration.Legacy
                             .Cast<ImportHistory>()
                             .Distinct()
                             .ToList(),
+
+                        Imported = o.WasImported,
+                        SinceVersion = o.SinceVersion ?? "0.0",
                     };
 
                     clientLocation.RemoteEncounters = o.RemoteSeenOn

@@ -13,6 +13,7 @@ using Dalamud.Game.ClientState;
 using Microsoft.Extensions.Logging;
 using Pal.Client.Configuration;
 using Pal.Client.DependencyInjection;
+using Pal.Client.Floors;
 
 namespace Pal.Client.Rendering
 {
@@ -57,7 +58,8 @@ namespace Pal.Client.Rendering
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError(e, "Could not create splatoon layer {Layer} with {Count} elements", layer, elements.Count);
+                    _logger.LogError(e, "Could not create splatoon layer {Layer} with {Count} elements", layer,
+                        elements.Count);
                     _debugState.SetFromException(e);
                 }
             });
@@ -78,7 +80,7 @@ namespace Pal.Client.Rendering
         private string ToLayerName(ELayer layer)
             => $"PalacePal.{layer}";
 
-        public IRenderElement CreateElement(Marker.EType type, Vector3 pos, uint color, bool fill = false)
+        public IRenderElement CreateElement(MemoryLocation.EType type, Vector3 pos, uint color, bool fill = false)
         {
             MarkerConfig config = MarkerConfig.ForType(type);
             Element element = new Element(ElementType.CircleAtFixedCoordinates)
@@ -109,8 +111,8 @@ namespace Pal.Client.Rendering
 
                     var elements = new List<IRenderElement>
                     {
-                        CreateElement(Marker.EType.Trap, pos.Value, trapColor),
-                        CreateElement(Marker.EType.Hoard, pos.Value, hoardColor),
+                        CreateElement(MemoryLocation.EType.Trap, pos.Value, trapColor),
+                        CreateElement(MemoryLocation.EType.Hoard, pos.Value, hoardColor),
                     };
 
                     if (!Splatoon.AddDynamicElements(ToLayerName(ELayer.Test),

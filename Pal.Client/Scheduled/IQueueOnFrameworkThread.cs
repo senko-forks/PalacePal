@@ -8,7 +8,7 @@ namespace Pal.Client.Scheduled
     {
         internal interface IHandler
         {
-            void RunIfCompatible(IQueueOnFrameworkThread queued, ref bool recreateLayout, ref bool saveMarkers);
+            void RunIfCompatible(IQueueOnFrameworkThread queued, ref bool recreateLayout);
         }
 
         internal abstract class Handler<T> : IHandler
@@ -21,14 +21,14 @@ namespace Pal.Client.Scheduled
                 _logger = logger;
             }
 
-            protected abstract void Run(T queued, ref bool recreateLayout, ref bool saveMarkers);
+            protected abstract void Run(T queued, ref bool recreateLayout);
 
-            public void RunIfCompatible(IQueueOnFrameworkThread queued, ref bool recreateLayout, ref bool saveMarkers)
+            public void RunIfCompatible(IQueueOnFrameworkThread queued, ref bool recreateLayout)
             {
                 if (queued is T t)
                 {
                     _logger.LogInformation("Handling {QueuedType}", queued.GetType());
-                    Run(t, ref recreateLayout, ref saveMarkers);
+                    Run(t, ref recreateLayout);
                 }
                 else
                 {

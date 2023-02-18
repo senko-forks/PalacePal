@@ -3,6 +3,7 @@ using System.Linq;
 using Dalamud.Game.ClientState;
 using Pal.Client.DependencyInjection;
 using Pal.Client.Extensions;
+using Pal.Client.Floors;
 using Pal.Client.Rendering;
 
 namespace Pal.Client.Commands
@@ -32,30 +33,33 @@ namespace Pal.Client.Commands
                     break;
 
                 case "tnear":
-                    DebugNearest(m => m.Type == Marker.EType.Trap);
+                    DebugNearest(m => m.Type == MemoryLocation.EType.Trap);
                     break;
 
                 case "hnear":
-                    DebugNearest(m => m.Type == Marker.EType.Hoard);
+                    DebugNearest(m => m.Type == MemoryLocation.EType.Hoard);
                     break;
             }
         }
 
-        private void DebugNearest(Predicate<Marker> predicate)
+        private void DebugNearest(Predicate<PersistentLocation> predicate)
         {
             if (!_territoryState.IsInDeepDungeon())
                 return;
 
-            var state = _floorService.GetFloorMarkers(_clientState.TerritoryType);
+            var state = _floorService.GetTerritoryIfReady(_clientState.TerritoryType);
+            if (state == null)
+                return;
+
             var playerPosition = _clientState.LocalPlayer?.Position;
             if (playerPosition == null)
                 return;
             _chat.Message($"{playerPosition}");
 
-            var nearbyMarkers = state.Markers
+            var nearbyMarkers = state.Locations
                 .Where(m => predicate(m))
                 .Where(m => m.RenderElement != null && m.RenderElement.Color != RenderData.ColorInvisible)
-                .Select(m => new { m, distance = (playerPosition - m.Position)?.Length() ?? float.MaxValue })
+                .Select(m => new { m, distance = (playerPosition.Value - m.Position).Length() })
                 .OrderBy(m => m.distance)
                 .Take(5)
                 .ToList();

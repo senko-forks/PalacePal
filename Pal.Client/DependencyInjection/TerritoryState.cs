@@ -17,7 +17,7 @@ namespace Pal.Client.DependencyInjection
         }
 
         public ushort LastTerritory { get; set; }
-        public SyncState TerritorySyncState { get; set; }
+        public ESyncState TerritorySyncState { get; set; }
         public PomanderState PomanderOfSight { get; set; } = PomanderState.Inactive;
         public PomanderState PomanderOfIntuition { get; set; } = PomanderState.Inactive;
 

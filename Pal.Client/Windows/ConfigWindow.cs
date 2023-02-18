@@ -25,6 +25,7 @@ using Pal.Client.Configuration;
 using Pal.Client.Database;
 using Pal.Client.DependencyInjection;
 using Pal.Client.Extensions;
+using Pal.Client.Floors;
 
 namespace Pal.Client.Windows
 {
@@ -382,24 +383,25 @@ namespace Pal.Client.Windows
                     ImGui.Text($"{_debugState.DebugMessage}");
 
                     ImGui.Indent();
-                    if (_floorService.FloorMarkers.TryGetValue(_territoryState.LastTerritory, out var currentFloor))
+                    MemoryTerritory? memoryTerritory = _floorService.GetTerritoryIfReady(_territoryState.LastTerritory);
+                    if (memoryTerritory != null)
                     {
                         if (_trapConfig.Show)
                         {
-                            int traps = currentFloor.Markers.Count(x => x.Type == Marker.EType.Trap);
+                            int traps = memoryTerritory.Locations.Count(x => x.Type == MemoryLocation.EType.Trap);
                             ImGui.Text($"{traps} known trap{(traps == 1 ? "" : "s")}");
                         }
 
                         if (_hoardConfig.Show)
                         {
-                            int hoardCoffers = currentFloor.Markers.Count(x => x.Type == Marker.EType.Hoard);
+                            int hoardCoffers = memoryTerritory.Locations.Count(x => x.Type == MemoryLocation.EType.Hoard);
                             ImGui.Text($"{hoardCoffers} known hoard coffer{(hoardCoffers == 1 ? "" : "s")}");
                         }
 
                         if (_silverConfig.Show)
                         {
                             int silverCoffers =
-                                _floorService.EphemeralMarkers.Count(x => x.Type == Marker.EType.SilverCoffer);
+                                _floorService.EphemeralLocations.Count(x => x.Type == MemoryLocation.EType.SilverCoffer);
                             ImGui.Text(
                                 $"{silverCoffers} silver coffer{(silverCoffers == 1 ? "" : "s")} visible on current floor");
                         }

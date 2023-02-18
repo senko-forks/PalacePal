@@ -4,6 +4,7 @@ using System.Numerics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Pal.Client.Configuration;
+using Pal.Client.Floors;
 
 namespace Pal.Client.Rendering
 {
@@ -56,7 +57,7 @@ namespace Pal.Client.Rendering
         public void ResetLayer(ELayer layer)
             => _implementation.ResetLayer(layer);
 
-        public IRenderElement CreateElement(Marker.EType type, Vector3 pos, uint color, bool fill = false)
+        public IRenderElement CreateElement(MemoryLocation.EType type, Vector3 pos, uint color, bool fill = false)
             => _implementation.CreateElement(type, pos, color, fill);
 
         public ERenderer GetConfigValue()

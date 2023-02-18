@@ -9,6 +9,7 @@ using Dalamud.Game.ClientState;
 using Dalamud.Game.Gui;
 using Pal.Client.Configuration;
 using Pal.Client.DependencyInjection;
+using Pal.Client.Floors;
 
 namespace Pal.Client.Rendering
 {
@@ -53,7 +54,7 @@ namespace Pal.Client.Rendering
                 l.Dispose();
         }
 
-        public IRenderElement CreateElement(Marker.EType type, Vector3 pos, uint color, bool fill = false)
+        public IRenderElement CreateElement(MemoryLocation.EType type, Vector3 pos, uint color, bool fill = false)
         {
             var config = MarkerConfig.ForType(type);
             return new SimpleElement
@@ -73,9 +74,13 @@ namespace Pal.Client.Rendering
                 TerritoryType = _clientState.TerritoryType,
                 Elements = new List<SimpleElement>
                 {
-                    (SimpleElement)CreateElement(Marker.EType.Trap, _clientState.LocalPlayer?.Position ?? default,
+                    (SimpleElement)CreateElement(
+                        MemoryLocation.EType.Trap,
+                        _clientState.LocalPlayer?.Position ?? default,
                         trapColor),
-                    (SimpleElement)CreateElement(Marker.EType.Hoard, _clientState.LocalPlayer?.Position ?? default,
+                    (SimpleElement)CreateElement(
+                        MemoryLocation.EType.Hoard,
+                        _clientState.LocalPlayer?.Position ?? default,
                         hoardColor)
                 },
                 ExpiresAt = Environment.TickCount64 + RenderData.TestLayerTimeout
@@ -120,15 +125,15 @@ namespace Pal.Client.Rendering
 
             switch (e.Type)
             {
-                case Marker.EType.Hoard:
+                case MemoryLocation.EType.Hoard:
                     // ignore distance if this is a found hoard coffer
                     if (_territoryState.PomanderOfIntuition == PomanderState.Active &&
                         _configuration.DeepDungeons.HoardCoffers.OnlyVisibleAfterPomander)
                         break;
 
-                    goto case Marker.EType.Trap;
+                    goto case MemoryLocation.EType.Trap;
 
-                case Marker.EType.Trap:
+                case MemoryLocation.EType.Trap:
                     var playerPos = _clientState.LocalPlayer?.Position;
                     if (playerPos == null)
                         return;
@@ -189,7 +194,7 @@ namespace Pal.Client.Rendering
         public sealed class SimpleElement : IRenderElement
         {
             public bool IsValid { get; set; } = true;
-            public required Marker.EType Type { get; init; }
+            public required MemoryLocation.EType Type { get; init; }
             public required Vector3 Position { get; init; }
             public required uint Color { get; set; }
             public required float Radius { get; init; }

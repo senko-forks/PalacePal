@@ -24,6 +24,7 @@ using Pal.Client.Database;
 using Pal.Client.DependencyInjection;
 using Pal.Client.DependencyInjection.Logging;
 using Pal.Client.Extensions;
+using Pal.Client.Floors;
 using Pal.Client.Net;
 using Pal.Client.Properties;
 using Pal.Client.Rendering;
@@ -63,7 +64,8 @@ namespace Pal.Client
             CommandManager commandManager,
             DataManager dataManager)
         {
-            _logger.LogInformation("Building service container");
+            _logger.LogInformation("Building service container for {Assembly}",
+                typeof(DependencyInjectionContext).Assembly.FullName);
 
             // set up legacy services
 #pragma warning disable CS0612

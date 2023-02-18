@@ -30,6 +30,17 @@ namespace Pal.Client.Database
         /// </summary>
         public List<ImportHistory> ImportedBy { get; set; } = new();
 
+        /// <summary>
+        /// Whether this location was originally imported.
+        /// </summary>
+        public bool Imported { get; set; }
+
+
+        /// <summary>
+        /// To make rollbacks of local data easier, keep track of the plugin version which was used to create this location initially.
+        /// </summary>
+        public string SinceVersion { get; set; } = "0.0";
+
         public enum EType
         {
             Trap = 1,

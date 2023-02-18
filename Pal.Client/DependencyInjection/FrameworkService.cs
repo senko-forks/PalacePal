@@ -14,9 +14,11 @@ using ImGuiNET;
 using Microsoft.Extensions.DependencyInjection;
 using Pal.Client.Configuration;
 using Pal.Client.Extensions;
+using Pal.Client.Floors;
 using Pal.Client.Net;
 using Pal.Client.Rendering;
 using Pal.Client.Scheduled;
+using Pal.Common;
 
 namespace Pal.Client.DependencyInjection
 {
@@ -84,44 +86,45 @@ namespace Pal.Client.DependencyInjection
             try
             {
                 bool recreateLayout = false;
-                bool saveMarkers = false;
 
                 while (EarlyEventQueue.TryDequeue(out IQueueOnFrameworkThread? queued))
-                    HandleQueued(queued, ref recreateLayout, ref saveMarkers);
+                    HandleQueued(queued, ref recreateLayout);
 
                 if (_territoryState.LastTerritory != _clientState.TerritoryType)
                 {
                     _territoryState.LastTerritory = _clientState.TerritoryType;
-                    _territoryState.TerritorySyncState = SyncState.NotAttempted;
+                    _territoryState.TerritorySyncState = ESyncState.NotAttempted;
                     NextUpdateObjects.Clear();
 
-                    if (_territoryState.IsInDeepDungeon())
-                        _floorService.GetFloorMarkers(_territoryState.LastTerritory);
-                    _floorService.EphemeralMarkers.Clear();
+                    _floorService.ChangeTerritory(_territoryState.LastTerritory);
                     _territoryState.PomanderOfSight = PomanderState.Inactive;
                     _territoryState.PomanderOfIntuition = PomanderState.Inactive;
                     recreateLayout = true;
                     _debugState.Reset();
                 }
 
-                if (!_territoryState.IsInDeepDungeon())
+                if (!_territoryState.IsInDeepDungeon() || !_floorService.IsReady(_territoryState.LastTerritory))
                     return;
 
-                if (_configuration.Mode == EMode.Online && _territoryState.TerritorySyncState == SyncState.NotAttempted)
+                if (_configuration.Mode == EMode.Online &&
+                    _territoryState.TerritorySyncState == ESyncState.NotAttempted)
                 {
-                    _territoryState.TerritorySyncState = SyncState.Started;
+                    _territoryState.TerritorySyncState = ESyncState.Started;
                     Task.Run(async () => await DownloadMarkersForTerritory(_territoryState.LastTerritory));
                 }
 
                 while (LateEventQueue.TryDequeue(out IQueueOnFrameworkThread? queued))
-                    HandleQueued(queued, ref recreateLayout, ref saveMarkers);
+                    HandleQueued(queued, ref recreateLayout);
 
-                var currentFloor = _floorService.GetFloorMarkers(_territoryState.LastTerritory);
+                (IReadOnlyList<PersistentLocation> visiblePersistentMarkers,
+                        IReadOnlyList<EphemeralLocation> visibleEphemeralMarkers) =
+                    GetRelevantGameObjects();
 
-                IList<Marker> visibleMarkers = GetRelevantGameObjects();
-                HandlePersistentMarkers(currentFloor, visibleMarkers.Where(x => x.IsPermanent()).ToList(), saveMarkers,
-                    recreateLayout);
-                HandleEphemeralMarkers(visibleMarkers.Where(x => !x.IsPermanent()).ToList(), recreateLayout);
+                ETerritoryType territoryType = (ETerritoryType)_territoryState.LastTerritory;
+                HandlePersistentLocations(territoryType, visiblePersistentMarkers, recreateLayout);
+
+                if (_floorService.MergeEphemeralLocations(visibleEphemeralMarkers, recreateLayout))
+                    RecreateEphemeralLayout();
             }
             catch (Exception e)
             {
@@ -131,183 +134,161 @@ namespace Pal.Client.DependencyInjection
 
         #region Render Markers
 
-        private void HandlePersistentMarkers(LocalState currentFloor, IList<Marker> visibleMarkers, bool saveMarkers,
+        private void HandlePersistentLocations(ETerritoryType territoryType,
+            IReadOnlyList<PersistentLocation> visiblePersistentMarkers,
             bool recreateLayout)
         {
-            var currentFloorMarkers = currentFloor.Markers;
-
-            bool updateSeenMarkers = false;
-            var partialAccountId = _configuration.FindAccount(RemoteApi.RemoteUrl)?.AccountId.ToPartialId();
-            foreach (var visibleMarker in visibleMarkers)
+            bool recreatePersistentLocations = _floorService.MergePersistentLocations(
+                territoryType,
+                visiblePersistentMarkers,
+                recreateLayout,
+                out List<PersistentLocation> locationsToSync);
+            recreatePersistentLocations |= CheckLocationsForPomanders(visiblePersistentMarkers);
+            if (locationsToSync.Count > 0)
             {
-                Marker? knownMarker = currentFloorMarkers.SingleOrDefault(x => x == visibleMarker);
-                if (knownMarker != null)
-                {
-                    if (!knownMarker.Seen)
-                    {
-                        knownMarker.Seen = true;
-                        saveMarkers = true;
-                    }
-
-                    // This requires you to have seen a trap/hoard marker once per floor to synchronize this for older local states,
-                    // markers discovered afterwards are automatically marked seen.
-                    if (partialAccountId != null && knownMarker is { NetworkId: { }, RemoteSeenRequested: false } &&
-                        !knownMarker.RemoteSeenOn.Contains(partialAccountId))
-                        updateSeenMarkers = true;
-
-                    continue;
-                }
-
-                currentFloorMarkers.Add(visibleMarker);
-                recreateLayout = true;
-                saveMarkers = true;
+                Task.Run(async () =>
+                    await SyncSeenMarkersForTerritory(_territoryState.LastTerritory, locationsToSync));
             }
 
-            if (!recreateLayout && currentFloorMarkers.Count > 0 &&
+            UploadLocations();
+
+            if (recreatePersistentLocations)
+                RecreatePersistentLayout(visiblePersistentMarkers);
+        }
+
+        private bool CheckLocationsForPomanders(IReadOnlyList<PersistentLocation> visibleLocations)
+        {
+            MemoryTerritory? memoryTerritory = _floorService.GetTerritoryIfReady(_territoryState.LastTerritory);
+            if (memoryTerritory is { Locations.Count: > 0 } &&
                 (_configuration.DeepDungeons.Traps.OnlyVisibleAfterPomander ||
                  _configuration.DeepDungeons.HoardCoffers.OnlyVisibleAfterPomander))
             {
                 try
                 {
-                    foreach (var marker in currentFloorMarkers)
+                    foreach (var location in memoryTerritory.Locations)
                     {
-                        uint desiredColor = DetermineColor(marker, visibleMarkers);
-                        if (marker.RenderElement == null || !marker.RenderElement.IsValid)
-                        {
-                            recreateLayout = true;
-                            break;
-                        }
+                        uint desiredColor = DetermineColor(location, visibleLocations);
+                        if (location.RenderElement == null || !location.RenderElement.IsValid)
+                            return true;
 
-                        if (marker.RenderElement.Color != desiredColor)
-                            marker.RenderElement.Color = desiredColor;
+                        if (location.RenderElement.Color != desiredColor)
+                            location.RenderElement.Color = desiredColor;
                     }
                 }
                 catch (Exception e)
                 {
                     _debugState.SetFromException(e);
-                    recreateLayout = true;
+                    return true;
                 }
             }
 
-            if (updateSeenMarkers && partialAccountId != null)
+            return false;
+        }
+
+        private void UploadLocations()
+        {
+            MemoryTerritory? memoryTerritory = _floorService.GetTerritoryIfReady(_territoryState.LastTerritory);
+            if (memoryTerritory == null)
+                return;
+
+            List<PersistentLocation> locationsToUpload = memoryTerritory.Locations
+                .Where(loc => loc.NetworkId == null && loc.UploadRequested == false)
+                .ToList();
+            if (locationsToUpload.Count > 0)
             {
-                var markersToUpdate = currentFloorMarkers.Where(x =>
-                    x is { Seen: true, NetworkId: { }, RemoteSeenRequested: false } &&
-                    !x.RemoteSeenOn.Contains(partialAccountId)).ToList();
-                foreach (var marker in markersToUpdate)
-                    marker.RemoteSeenRequested = true;
-                Task.Run(async () => await SyncSeenMarkersForTerritory(_territoryState.LastTerritory, markersToUpdate));
-            }
+                foreach (var location in locationsToUpload)
+                    location.UploadRequested = true;
 
-            if (saveMarkers)
-            {
-                currentFloor.Save();
-
-                if (_territoryState.TerritorySyncState == SyncState.Complete)
-                {
-                    var markersToUpload = currentFloorMarkers
-                        .Where(x => x.IsPermanent() && x.NetworkId == null && !x.UploadRequested).ToList();
-                    if (markersToUpload.Count > 0)
-                    {
-                        foreach (var marker in markersToUpload)
-                            marker.UploadRequested = true;
-                        Task.Run(async () =>
-                            await UploadMarkersForTerritory(_territoryState.LastTerritory, markersToUpload));
-                    }
-                }
-            }
-
-            if (recreateLayout)
-            {
-                _renderAdapter.ResetLayer(ELayer.TrapHoard);
-
-                List<IRenderElement> elements = new();
-                foreach (var marker in currentFloorMarkers)
-                {
-                    if (marker.Seen || _configuration.Mode == EMode.Online ||
-                        marker is { WasImported: true, Imports.Count: > 0 })
-                    {
-                        if (marker.Type == Marker.EType.Trap)
-                        {
-                            CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers),
-                                _configuration.DeepDungeons.Traps);
-                        }
-                        else if (marker.Type == Marker.EType.Hoard)
-                        {
-                            CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers),
-                                _configuration.DeepDungeons.HoardCoffers);
-                        }
-                    }
-                }
-
-                if (elements.Count == 0)
-                    return;
-
-                _renderAdapter.SetLayer(ELayer.TrapHoard, elements);
+                Task.Run(async () =>
+                    await UploadLocationsForTerritory(_territoryState.LastTerritory, locationsToUpload));
             }
         }
 
-        private void HandleEphemeralMarkers(IList<Marker> visibleMarkers, bool recreateLayout)
+        private void RecreatePersistentLayout(IReadOnlyList<PersistentLocation> visibleMarkers)
         {
-            recreateLayout |=
-                _floorService.EphemeralMarkers.Any(existingMarker => visibleMarkers.All(x => x != existingMarker));
-            recreateLayout |=
-                visibleMarkers.Any(visibleMarker => _floorService.EphemeralMarkers.All(x => x != visibleMarker));
+            _renderAdapter.ResetLayer(ELayer.TrapHoard);
 
-            if (recreateLayout)
+            MemoryTerritory? memoryTerritory = _floorService.GetTerritoryIfReady(_territoryState.LastTerritory);
+            if (memoryTerritory == null)
+                return;
+
+            List<IRenderElement> elements = new();
+            foreach (var location in memoryTerritory.Locations)
             {
-                _renderAdapter.ResetLayer(ELayer.RegularCoffers);
-                _floorService.EphemeralMarkers.Clear();
-
-                List<IRenderElement> elements = new();
-                foreach (var marker in visibleMarkers)
+                if (location.Type == MemoryLocation.EType.Trap)
                 {
-                    _floorService.EphemeralMarkers.Add(marker);
-
-                    if (marker.Type == Marker.EType.SilverCoffer && _configuration.DeepDungeons.SilverCoffers.Show)
-                    {
-                        CreateRenderElement(marker, elements, DetermineColor(marker, visibleMarkers),
-                            _configuration.DeepDungeons.SilverCoffers);
-                    }
+                    CreateRenderElement(location, elements, DetermineColor(location, visibleMarkers),
+                        _configuration.DeepDungeons.Traps);
                 }
-
-                if (elements.Count == 0)
-                    return;
-
-                _renderAdapter.SetLayer(ELayer.RegularCoffers, elements);
+                else if (location.Type == MemoryLocation.EType.Hoard)
+                {
+                    CreateRenderElement(location, elements, DetermineColor(location, visibleMarkers),
+                        _configuration.DeepDungeons.HoardCoffers);
+                }
             }
+
+            if (elements.Count == 0)
+                return;
+
+            _renderAdapter.SetLayer(ELayer.TrapHoard, elements);
         }
 
-        private uint DetermineColor(Marker marker, IList<Marker> visibleMarkers)
+        private void RecreateEphemeralLayout()
         {
-            switch (marker.Type)
+            _renderAdapter.ResetLayer(ELayer.RegularCoffers);
+
+            List<IRenderElement> elements = new();
+            foreach (var location in _floorService.EphemeralLocations)
             {
-                case Marker.EType.Trap when _territoryState.PomanderOfSight == PomanderState.Inactive ||
-                                            !_configuration.DeepDungeons.Traps.OnlyVisibleAfterPomander ||
-                                            visibleMarkers.Any(x => x == marker):
+                if (location.Type == MemoryLocation.EType.SilverCoffer &&
+                    _configuration.DeepDungeons.SilverCoffers.Show)
+                {
+                    CreateRenderElement(location, elements, DetermineColor(location),
+                        _configuration.DeepDungeons.SilverCoffers);
+                }
+            }
+
+            if (elements.Count == 0)
+                return;
+
+            _renderAdapter.SetLayer(ELayer.RegularCoffers, elements);
+        }
+
+        private uint DetermineColor(PersistentLocation location, IReadOnlyList<PersistentLocation> visibleLocations)
+        {
+            switch (location.Type)
+            {
+                case MemoryLocation.EType.Trap
+                    when _territoryState.PomanderOfSight == PomanderState.Inactive ||
+                         !_configuration.DeepDungeons.Traps.OnlyVisibleAfterPomander ||
+                         visibleLocations.Any(x => x == location):
                     return _configuration.DeepDungeons.Traps.Color;
-                case Marker.EType.Hoard when _territoryState.PomanderOfIntuition == PomanderState.Inactive ||
-                                             !_configuration.DeepDungeons.HoardCoffers.OnlyVisibleAfterPomander ||
-                                             visibleMarkers.Any(x => x == marker):
+                case MemoryLocation.EType.Hoard
+                    when _territoryState.PomanderOfIntuition == PomanderState.Inactive ||
+                         !_configuration.DeepDungeons.HoardCoffers.OnlyVisibleAfterPomander ||
+                         visibleLocations.Any(x => x == location):
                     return _configuration.DeepDungeons.HoardCoffers.Color;
-                case Marker.EType.SilverCoffer:
-                    return _configuration.DeepDungeons.SilverCoffers.Color;
-                case Marker.EType.Trap:
-                case Marker.EType.Hoard:
-                    return RenderData.ColorInvisible;
                 default:
-                    return ImGui.ColorConvertFloat4ToU32(new Vector4(1, 0.5f, 1, 0.4f));
+                    return RenderData.ColorInvisible;
             }
         }
 
-        private void CreateRenderElement(Marker marker, List<IRenderElement> elements, uint color,
+        private uint DetermineColor(EphemeralLocation location)
+        {
+            if (location.Type == MemoryLocation.EType.SilverCoffer)
+                return _configuration.DeepDungeons.SilverCoffers.Color;
+
+            return RenderData.ColorInvisible;
+        }
+
+        private void CreateRenderElement(MemoryLocation location, List<IRenderElement> elements, uint color,
             MarkerConfiguration config)
         {
             if (!config.Show)
                 return;
 
-            var element = _renderAdapter.CreateElement(marker.Type, marker.Position, color, config.Fill);
-            marker.RenderElement = element;
+            var element = _renderAdapter.CreateElement(location.Type, location.Position, color, config.Fill);
+            location.RenderElement = element;
             elements.Add(element);
         }
 
@@ -325,7 +306,7 @@ namespace Pal.Client.DependencyInjection
                     Type = SyncType.Download,
                     TerritoryType = territoryId,
                     Success = success,
-                    Markers = downloadedMarkers
+                    Locations = downloadedMarkers
                 });
             }
             catch (Exception e)
@@ -334,17 +315,17 @@ namespace Pal.Client.DependencyInjection
             }
         }
 
-        private async Task UploadMarkersForTerritory(ushort territoryId, List<Marker> markersToUpload)
+        private async Task UploadLocationsForTerritory(ushort territoryId, List<PersistentLocation> locationsToUpload)
         {
             try
             {
-                var (success, uploadedMarkers) = await _remoteApi.UploadMarker(territoryId, markersToUpload);
+                var (success, uploadedLocations) = await _remoteApi.UploadLocations(territoryId, locationsToUpload);
                 LateEventQueue.Enqueue(new QueuedSyncResponse
                 {
                     Type = SyncType.Upload,
                     TerritoryType = territoryId,
                     Success = success,
-                    Markers = uploadedMarkers
+                    Locations = uploadedLocations
                 });
             }
             catch (Exception e)
@@ -353,17 +334,18 @@ namespace Pal.Client.DependencyInjection
             }
         }
 
-        private async Task SyncSeenMarkersForTerritory(ushort territoryId, List<Marker> markersToUpdate)
+        private async Task SyncSeenMarkersForTerritory(ushort territoryId,
+            IReadOnlyList<PersistentLocation> locationsToUpdate)
         {
             try
             {
-                var success = await _remoteApi.MarkAsSeen(territoryId, markersToUpdate);
+                var success = await _remoteApi.MarkAsSeen(territoryId, locationsToUpdate);
                 LateEventQueue.Enqueue(new QueuedSyncResponse
                 {
                     Type = SyncType.MarkSeen,
                     TerritoryType = territoryId,
                     Success = success,
-                    Markers = markersToUpdate,
+                    Locations = locationsToUpdate,
                 });
             }
             catch (Exception e)
@@ -374,9 +356,10 @@ namespace Pal.Client.DependencyInjection
 
         #endregion
 
-        private IList<Marker> GetRelevantGameObjects()
+        private (IReadOnlyList<PersistentLocation>, IReadOnlyList<EphemeralLocation>) GetRelevantGameObjects()
         {
-            List<Marker> result = new();
+            List<PersistentLocation> persistentLocations = new();
+            List<EphemeralLocation> ephemeralLocations = new();
             for (int i = 246; i < _objectTable.Length; i++)
             {
                 GameObject? obj = _objectTable[i];
@@ -391,16 +374,31 @@ namespace Pal.Client.DependencyInjection
                     case 2007185:
                     case 2007186:
                     case 2009504:
-                        result.Add(new Marker(Marker.EType.Trap, obj.Position) { Seen = true });
+                        persistentLocations.Add(new PersistentLocation
+                        {
+                            Type = MemoryLocation.EType.Trap,
+                            Position = obj.Position,
+                            Seen = true
+                        });
                         break;
 
                     case 2007542:
                     case 2007543:
-                        result.Add(new Marker(Marker.EType.Hoard, obj.Position) { Seen = true });
+                        persistentLocations.Add(new PersistentLocation
+                        {
+                            Type = MemoryLocation.EType.Hoard,
+                            Position = obj.Position,
+                            Seen = true
+                        });
                         break;
 
                     case 2007357:
-                        result.Add(new Marker(Marker.EType.SilverCoffer, obj.Position) { Seen = true });
+                        ephemeralLocations.Add(new EphemeralLocation
+                        {
+                            Type = MemoryLocation.EType.SilverCoffer,
+                            Position = obj.Position,
+                            Seen = true
+                        });
                         break;
                 }
             }
@@ -409,18 +407,25 @@ namespace Pal.Client.DependencyInjection
             {
                 var obj = _objectTable.FirstOrDefault(x => x.Address == address);
                 if (obj != null && obj.Position.Length() > 0.1)
-                    result.Add(new Marker(Marker.EType.Trap, obj.Position) { Seen = true });
+                {
+                    persistentLocations.Add(new PersistentLocation
+                    {
+                        Type = MemoryLocation.EType.Trap,
+                        Position = obj.Position,
+                        Seen = true,
+                    });
+                }
             }
 
-            return result;
+            return (persistentLocations, ephemeralLocations);
         }
 
-        private void HandleQueued(IQueueOnFrameworkThread queued, ref bool recreateLayout, ref bool saveMarkers)
+        private void HandleQueued(IQueueOnFrameworkThread queued, ref bool recreateLayout)
         {
             Type handlerType = typeof(IQueueOnFrameworkThread.Handler<>).MakeGenericType(queued.GetType());
             var handler = (IQueueOnFrameworkThread.IHandler)_serviceProvider.GetRequiredService(handlerType);
 
-            handler.RunIfCompatible(queued, ref recreateLayout, ref saveMarkers);
+            handler.RunIfCompatible(queued, ref recreateLayout);
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Numerics;
 using Pal.Client.Configuration;
+using Pal.Client.Floors;
 
 namespace Pal.Client.Rendering
 {
@@ -12,7 +13,7 @@ namespace Pal.Client.Rendering
 
         void ResetLayer(ELayer layer);
 
-        IRenderElement CreateElement(Marker.EType type, Vector3 pos, uint color, bool fill = false);
+        IRenderElement CreateElement(MemoryLocation.EType type, Vector3 pos, uint color, bool fill = false);
 
         void DrawDebugItems(uint trapColor, uint hoardColor);
     }

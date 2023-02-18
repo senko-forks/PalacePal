@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Pal.Client.Configuration;
 using Pal.Client.DependencyInjection;
 using Pal.Client.Extensions;
+using Pal.Client.Floors;
+using Pal.Client.Floors.Tasks;
 using Pal.Client.Net;
 
 namespace Pal.Client.Scheduled
@@ -14,10 +17,11 @@ namespace Pal.Client.Scheduled
         public required SyncType Type { get; init; }
         public required ushort TerritoryType { get; init; }
         public required bool Success { get; init; }
-        public required List<Marker> Markers { get; init; }
+        public required IReadOnlyList<PersistentLocation> Locations { get; init; }
 
         internal sealed class Handler : IQueueOnFrameworkThread.Handler<QueuedSyncResponse>
         {
+            private readonly IServiceScopeFactory _serviceScopeFactory;
             private readonly IPalacePalConfiguration _configuration;
             private readonly FloorService _floorService;
             private readonly TerritoryState _territoryState;
@@ -25,46 +29,56 @@ namespace Pal.Client.Scheduled
 
             public Handler(
                 ILogger<Handler> logger,
+                IServiceScopeFactory serviceScopeFactory,
                 IPalacePalConfiguration configuration,
                 FloorService floorService,
                 TerritoryState territoryState,
                 DebugState debugState)
                 : base(logger)
             {
+                _serviceScopeFactory = serviceScopeFactory;
                 _configuration = configuration;
                 _floorService = floorService;
                 _territoryState = territoryState;
                 _debugState = debugState;
             }
 
-            protected override void Run(QueuedSyncResponse queued, ref bool recreateLayout, ref bool saveMarkers)
+            protected override void Run(QueuedSyncResponse queued, ref bool recreateLayout)
             {
                 recreateLayout = true;
-                saveMarkers = true;
 
                 try
                 {
-                    var remoteMarkers = queued.Markers;
-                    var currentFloor = _floorService.GetFloorMarkers(queued.TerritoryType);
-                    if (_configuration.Mode == EMode.Online && queued.Success && remoteMarkers.Count > 0)
+                    var remoteMarkers = queued.Locations;
+                    var memoryTerritory = _floorService.GetTerritoryIfReady(queued.TerritoryType);
+                    if (memoryTerritory != null && _configuration.Mode == EMode.Online && queued.Success &&
+                        remoteMarkers.Count > 0)
                     {
                         switch (queued.Type)
                         {
                             case SyncType.Download:
                             case SyncType.Upload:
+                                List<PersistentLocation> newLocations = new();
                                 foreach (var remoteMarker in remoteMarkers)
                                 {
                                     // Both uploads and downloads return the network id to be set, but only the downloaded marker is new as in to-be-saved.
-                                    Marker? localMarker = currentFloor.Markers.SingleOrDefault(x => x == remoteMarker);
-                                    if (localMarker != null)
+                                    PersistentLocation? localLocation =
+                                        memoryTerritory.Locations.SingleOrDefault(x => x == remoteMarker);
+                                    if (localLocation != null)
                                     {
-                                        localMarker.NetworkId = remoteMarker.NetworkId;
+                                        localLocation.NetworkId = remoteMarker.NetworkId;
                                         continue;
                                     }
 
                                     if (queued.Type == SyncType.Download)
-                                        currentFloor.Markers.Add(remoteMarker);
+                                    {
+                                        memoryTerritory.Locations.Add(remoteMarker);
+                                        newLocations.Add(remoteMarker);
+                                    }
                                 }
+
+                                if (newLocations.Count > 0)
+                                    new SaveNewLocations(_serviceScopeFactory, memoryTerritory, newLocations).Start();
 
                                 break;
 
@@ -73,11 +87,23 @@ namespace Pal.Client.Scheduled
                                     _configuration.FindAccount(RemoteApi.RemoteUrl)?.AccountId.ToPartialId();
                                 if (partialAccountId == null)
                                     break;
+
+                                List<PersistentLocation> locationsToUpdate = new();
                                 foreach (var remoteMarker in remoteMarkers)
                                 {
-                                    Marker? localMarker = currentFloor.Markers.SingleOrDefault(x => x == remoteMarker);
-                                    if (localMarker != null)
-                                        localMarker.RemoteSeenOn.Add(partialAccountId);
+                                    PersistentLocation? localLocation =
+                                        memoryTerritory.Locations.SingleOrDefault(x => x == remoteMarker);
+                                    if (localLocation != null)
+                                    {
+                                        localLocation.RemoteSeenOn.Add(partialAccountId);
+                                        locationsToUpdate.Add(localLocation);
+                                    }
+                                }
+
+                                if (locationsToUpdate.Count > 0)
+                                {
+                                    new MarkRemoteSeen(_serviceScopeFactory, memoryTerritory, locationsToUpdate,
+                                        partialAccountId).Start();
                                 }
 
                                 break;
@@ -91,22 +117,22 @@ namespace Pal.Client.Scheduled
                     if (queued.Type == SyncType.Download)
                     {
                         if (queued.Success)
-                            _territoryState.TerritorySyncState = SyncState.Complete;
+                            _territoryState.TerritorySyncState = ESyncState.Complete;
                         else
-                            _territoryState.TerritorySyncState = SyncState.Failed;
+                            _territoryState.TerritorySyncState = ESyncState.Failed;
                     }
                 }
                 catch (Exception e)
                 {
                     _debugState.SetFromException(e);
                     if (queued.Type == SyncType.Download)
-                        _territoryState.TerritorySyncState = SyncState.Failed;
+                        _territoryState.TerritorySyncState = ESyncState.Failed;
                 }
             }
         }
     }
 
-    public enum SyncState
+    public enum ESyncState
     {
         NotAttempted,
         NotNeeded,
