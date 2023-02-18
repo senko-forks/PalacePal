@@ -61,10 +61,6 @@
         <value>統計情報を取得できません。</value>
         <comment>Shown when /pal stats produces a server-side error, and the statistics window can't be loaded.</comment>
     </data>
-  <data name="Command_pal_updatesaves" xml:space="preserve">
-        <value>保存されたマーカーファイルを更新しました。</value>
-        <comment>Shown after /pal update-saves was successful.</comment>
-    </data>
   <!-- Messages while connecting to the server. These are typically only visible when clicking 'Test connection'. -->
   <data name="ConnectionSuccessful" xml:space="preserve">
         <value>接続に成功しました。</value>

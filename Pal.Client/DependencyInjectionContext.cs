@@ -52,7 +52,8 @@ namespace Pal.Client
 
         public string Name => Localization.Palace_Pal;
 
-        public DependencyInjectionContext(DalamudPluginInterface pluginInterface,
+        public DependencyInjectionContext(
+            DalamudPluginInterface pluginInterface,
             ClientState clientState,
             GameGui gameGui,
             ChatGui chatGui,
@@ -70,7 +71,6 @@ namespace Pal.Client
 #pragma warning restore CS0612
 
             // set up logging
-            CancellationToken token = _initCts.Token;
             IServiceCollection services = new ServiceCollection();
             services.AddLogging(builder =>
                 builder.AddFilter("Pal", LogLevel.Trace)
@@ -100,32 +100,37 @@ namespace Pal.Client
             services.AddTransient<JsonMigration>();
 
             // plugin-specific
-            services.AddSingleton<Plugin>();
-            services.AddSingleton<DebugState>();
-            services.AddSingleton<Hooks>();
-            services.AddSingleton<RemoteApi>();
-            services.AddSingleton<ConfigurationManager>();
-            services.AddSingleton<IPalacePalConfiguration>(sp => sp.GetRequiredService<ConfigurationManager>().Load());
+            services.AddScoped<DependencyInjectionLoader>();
+            services.AddScoped<DebugState>();
+            services.AddScoped<Hooks>();
+            services.AddScoped<RemoteApi>();
+            services.AddScoped<ConfigurationManager>();
+            services.AddScoped<IPalacePalConfiguration>(sp => sp.GetRequiredService<ConfigurationManager>().Load());
             services.AddTransient<RepoVerification>();
-            services.AddSingleton<PalCommand>();
+
+            // commands
+            services.AddScoped<PalConfigCommand>();
+            services.AddScoped<PalNearCommand>();
+            services.AddScoped<PalStatsCommand>();
+            services.AddScoped<PalTestConnectionCommand>();
 
             // territory & marker related services
-            services.AddSingleton<TerritoryState>();
-            services.AddSingleton<FrameworkService>();
-            services.AddSingleton<ChatService>();
-            services.AddSingleton<FloorService>();
-            services.AddSingleton<ImportService>();
+            services.AddScoped<TerritoryState>();
+            services.AddScoped<FrameworkService>();
+            services.AddScoped<ChatService>();
+            services.AddScoped<FloorService>();
+            services.AddScoped<ImportService>();
 
             // windows & related services
-            services.AddSingleton<AgreementWindow>();
-            services.AddSingleton<ConfigWindow>();
-            services.AddTransient<StatisticsService>();
-            services.AddSingleton<StatisticsWindow>();
+            services.AddScoped<AgreementWindow>();
+            services.AddScoped<ConfigWindow>();
+            services.AddScoped<StatisticsService>();
+            services.AddScoped<StatisticsWindow>();
 
             // these should maybe be scoped
             services.AddScoped<SimpleRenderer>();
             services.AddScoped<SplatoonRenderer>();
-            services.AddSingleton<RenderAdapter>();
+            services.AddScoped<RenderAdapter>();
 
             // queue handling
             services.AddTransient<IQueueOnFrameworkThread.Handler<QueuedImport>, QueuedImport.Handler>();
@@ -161,63 +166,8 @@ namespace Pal.Client
             // There's 2-3 seconds of slowdown primarily caused by the sqlite init, but that needs to happen for
             // config stuff.
             _logger = _serviceProvider.GetRequiredService<ILogger<DependencyInjectionContext>>();
-            _logger.LogInformation("Service container built, triggering async init");
-            Task.Run(async () =>
-            {
-                using IDisposable? logScope = _logger.BeginScope("AsyncInit");
-
-                Chat? chat = null;
-                try
-                {
-                    _logger.LogInformation("Starting async init");
-                    chat = _serviceProvider.GetService<Chat>();
-
-                    // initialize database
-                    await using (var scope = _serviceProvider.CreateAsyncScope())
-                    {
-                        _logger.LogInformation("Loading database & running migrations");
-                        await using var dbContext = scope.ServiceProvider.GetRequiredService<PalClientContext>();
-                        await dbContext.Database.MigrateAsync(token);
-
-                        _logger.LogInformation("Completed database migrations");
-                    }
-
-                    token.ThrowIfCancellationRequested();
-
-                    // v1 migration: config migration for import history, json migration for markers
-                    _serviceProvider.GetRequiredService<ConfigurationManager>().Migrate();
-                    await _serviceProvider.GetRequiredService<JsonMigration>().MigrateAsync(token);
-
-                    token.ThrowIfCancellationRequested();
-
-                    // windows that have logic to open on startup
-                    _serviceProvider.GetRequiredService<AgreementWindow>();
-
-                    // initialize components that are mostly self-contained/self-registered
-                    _serviceProvider.GetRequiredService<Hooks>();
-                    _serviceProvider.GetRequiredService<PalCommand>();
-                    _serviceProvider.GetRequiredService<FrameworkService>();
-                    _serviceProvider.GetRequiredService<ChatService>();
-
-                    token.ThrowIfCancellationRequested();
-                    _plugin = new Plugin(pluginInterface, _serviceProvider);
-
-                    _logger.LogInformation("Async init complete");
-                }
-                catch (ObjectDisposedException)
-                {
-                }
-                catch (TaskCanceledException e)
-                {
-                    _logger.LogError(e, "Task cancelled");
-                    chat?.Error("Plugin was unloaded before it finished loading.");
-                }
-                catch (Exception e)
-                {
-                    _logger.LogError(e, "Async load failed");
-                    chat?.Error($"Async loading failed: {e.GetType()}: {e.Message}");
-                }
-            });
+            _logger.LogInformation("Service container built, creating plugin");
+            _plugin = new Plugin(pluginInterface, _serviceProvider, _initCts.Token);
         }
 
         public void Dispose()

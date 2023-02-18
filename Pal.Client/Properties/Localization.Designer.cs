@@ -150,15 +150,6 @@ namespace Pal.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Updated all locally cached marker files to latest version..
-        /// </summary>
-        internal static string Command_pal_updatesaves {
-            get {
-                return ResourceManager.GetString("Command_pal_updatesaves", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to You are NOT in a deep dungeon..
         /// </summary>
         internal static string Config_Debug_NotInADeepDungeon {
@@ -661,6 +652,15 @@ namespace Pal.Client.Properties {
         internal static string Error_ImportFailed_InvalidFile {
             get {
                 return ResourceManager.GetString("Error_ImportFailed_InvalidFile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Plugin could not be loaded: {0}.
+        /// </summary>
+        internal static string Error_LoadFailed {
+            get {
+                return ResourceManager.GetString("Error_LoadFailed", resourceCulture);
             }
         }
         

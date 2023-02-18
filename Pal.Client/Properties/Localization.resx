@@ -46,6 +46,9 @@
         <value>Please finish the initial setup first.</value>
         <comment>Before using any /pal command, the initial setup/agreeement needs to be completed.</comment>
     </data>
+    <data name="Error_LoadFailed" xml:space="preserve">
+        <value>Plugin could not be loaded: {0}</value>
+    </data>
     <data name="Error_WrongRepository" xml:space="preserve">
         <value>Please install this plugin from the official repository at {0} to continue using it.</value>
     </data>
@@ -66,11 +69,7 @@
         <value>Unable to fetch statistics.</value>
         <comment>Shown when /pal stats produces a server-side error, and the statistics window can't be loaded.</comment>
     </data>
-    <data name="Command_pal_updatesaves" xml:space="preserve">
-        <value>Updated all locally cached marker files to latest version.</value>
-        <comment>Shown after /pal update-saves was successful.</comment>
-    </data>
-    
+
     <!-- Messages while connecting to the server. These are typically only visible when clicking 'Test connection'. -->
     <data name="ConnectionSuccessful" xml:space="preserve">
         <value>Connection successful.</value>
@@ -322,6 +321,5 @@ This is not synchronized with other players and not saved between floors/runs.</
     <data name="Error_ImportFailed_InvalidFile" xml:space="preserve">
         <value>Import failed: Invalid file.</value>
     </data>
-
     <!-- Other -->
 </root>
