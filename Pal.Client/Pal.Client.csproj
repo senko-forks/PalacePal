@@ -41,7 +41,9 @@
 		<PackageReference Include="DalamudPackager" Version="2.1.10" />
 		<PackageReference Include="Google.Protobuf" Version="3.21.12" />
 		<PackageReference Include="Grpc.Net.Client" Version="2.51.0" />
-		<PackageReference Include="GitInfo" Version="3.0.2" PrivateAssets="all" />
+		<PackageReference Include="GitInfo" Version="2.3.0">
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
 		<PackageReference Include="Grpc.Tools" Version="2.51.0">
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
