@@ -20,6 +20,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dalamud.Game.Gui;
 using Microsoft.Extensions.Logging;
+using Pal.Client.Extensions;
 using Pal.Client.Properties;
 using Pal.Client.Configuration;
 using Pal.Client.Database;
@@ -229,7 +230,7 @@ namespace Pal.Client.Windows
 
         private void DrawCommunityTab(ref bool saveAndClose)
         {
-            if (BeginTabItemEx($"{Localization.ConfigTab_Community}###TabCommunity",
+            if (PalImGui.BeginTabItemWithFlags($"{Localization.ConfigTab_Community}###TabCommunity",
                     _switchToCommunityTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
             {
                 _switchToCommunityTab = false;
@@ -237,8 +238,9 @@ namespace Pal.Client.Windows
                 ImGui.TextWrapped(Localization.Explanation_3);
                 ImGui.TextWrapped(Localization.Explanation_4);
 
-                ImGui.RadioButton(Localization.Config_UploadMyDiscoveries_ShowOtherTraps, ref _mode, (int)EMode.Online);
-                ImGui.RadioButton(Localization.Config_NeverUploadDiscoveries_ShowMyTraps, ref _mode,
+                PalImGui.RadioButtonWrapped(Localization.Config_UploadMyDiscoveries_ShowOtherTraps, ref _mode,
+                    (int)EMode.Online);
+                PalImGui.RadioButtonWrapped(Localization.Config_NeverUploadDiscoveries_ShowMyTraps, ref _mode,
                     (int)EMode.Offline);
                 saveAndClose = ImGui.Button(Localization.SaveAndClose);
 
@@ -394,14 +396,16 @@ namespace Pal.Client.Windows
 
                         if (_hoardConfig.Show)
                         {
-                            int hoardCoffers = memoryTerritory.Locations.Count(x => x.Type == MemoryLocation.EType.Hoard);
+                            int hoardCoffers =
+                                memoryTerritory.Locations.Count(x => x.Type == MemoryLocation.EType.Hoard);
                             ImGui.Text($"{hoardCoffers} known hoard coffer{(hoardCoffers == 1 ? "" : "s")}");
                         }
 
                         if (_silverConfig.Show)
                         {
                             int silverCoffers =
-                                _floorService.EphemeralLocations.Count(x => x.Type == MemoryLocation.EType.SilverCoffer);
+                                _floorService.EphemeralLocations.Count(x =>
+                                    x.Type == MemoryLocation.EType.SilverCoffer);
                             ImGui.Text(
                                 $"{silverCoffers} silver coffer{(silverCoffers == 1 ? "" : "s")} visible on current floor");
                         }
@@ -421,21 +425,6 @@ namespace Pal.Client.Windows
 
                 ImGui.EndTabItem();
             }
-        }
-
-        /// <summary>
-        /// None of the default BeginTabItem methods allow using flags without making the tab have a close button for some reason.
-        /// </summary>
-        private static unsafe bool BeginTabItemEx(string label, ImGuiTabItemFlags flags)
-        {
-            int labelLength = Encoding.UTF8.GetByteCount(label);
-            byte* labelPtr = stackalloc byte[labelLength + 1];
-            byte[] labelBytes = Encoding.UTF8.GetBytes(label);
-
-            Marshal.Copy(labelBytes, 0, (IntPtr)labelPtr, labelLength);
-            labelPtr[labelLength] = 0;
-
-            return ImGuiNative.igBeginTabItem(labelPtr, null, flags) != 0;
         }
 
         internal void TestConnection()
@@ -485,10 +474,7 @@ namespace Pal.Client.Windows
             CancellationTokenSource cts = new CancellationTokenSource();
             _lastImportCts = cts;
 
-            Task.Run(async () =>
-            {
-                _lastImport = await _importService.FindLast(cts.Token);
-            }, cts.Token);
+            Task.Run(async () => { _lastImport = await _importService.FindLast(cts.Token); }, cts.Token);
         }
 
         private void DoExport(string destinationPath)

@@ -5,6 +5,7 @@ using ECommons;
 using ImGuiNET;
 using System.Numerics;
 using Pal.Client.Configuration;
+using Pal.Client.Extensions;
 using Pal.Client.Properties;
 
 namespace Pal.Client.Windows
@@ -66,8 +67,10 @@ namespace Pal.Client.Windows
             ImGui.TextWrapped(Localization.Explanation_3);
             ImGui.TextWrapped(Localization.Explanation_4);
 
-            ImGui.RadioButton(Localization.Config_UploadMyDiscoveries_ShowOtherTraps, ref _choice, (int)EMode.Online);
-            ImGui.RadioButton(Localization.Config_NeverUploadDiscoveries_ShowMyTraps, ref _choice, (int)EMode.Offline);
+            PalImGui.RadioButtonWrapped(Localization.Config_UploadMyDiscoveries_ShowOtherTraps, ref _choice,
+                (int)EMode.Online);
+            PalImGui.RadioButtonWrapped(Localization.Config_NeverUploadDiscoveries_ShowMyTraps, ref _choice,
+                (int)EMode.Offline);
 
             ImGui.Separator();
 

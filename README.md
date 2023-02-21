@@ -14,3 +14,6 @@ Please check [Splatoon's Installation Instructions](https://github.com/Nightmare
 ## Translation
 
 Please feel free to help by [translating this plugin into your language](https://crowdin.com/project/palace-pal).
+
+If you want to translate the plugin into a language that is currently not enabled, 
+[please create a new issue](https://github.com/carvelli/PalacePal/issues/new).
