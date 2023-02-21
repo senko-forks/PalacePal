@@ -3,7 +3,6 @@
 	<PropertyGroup>
 		<TargetFramework>net7.0-windows</TargetFramework>
 		<LangVersion>11.0</LangVersion>
-		<Version>2.16</Version>
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
@@ -14,6 +13,10 @@
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<GitVersion>false</GitVersion>
+		<GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+		<GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+		<GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
@@ -38,6 +41,7 @@
 		<PackageReference Include="DalamudPackager" Version="2.1.10" />
 		<PackageReference Include="Google.Protobuf" Version="3.21.12" />
 		<PackageReference Include="Grpc.Net.Client" Version="2.51.0" />
+		<PackageReference Include="GitInfo" Version="3.0.2" PrivateAssets="all" />
 		<PackageReference Include="Grpc.Tools" Version="2.51.0">
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -96,7 +100,14 @@
 	    <DependentUpon>Localization.resx</DependentUpon>
 	  </Compile>
 	</ItemGroup>
-
+	
+	<Target Name="PopulateInfo" DependsOnTargets="GitVersion" BeforeTargets="GetAssemblyVersion;GenerateNuspec;GetPackageContents">
+		<PropertyGroup>
+			<Version>$(GitSemVerMajor).$(GitSemVerMinor)</Version>
+			<PackageVersion>$(Version)</PackageVersion>
+		</PropertyGroup>
+	</Target>
+	
 	<Target Name="RenameLatestZip" AfterTargets="PackagePlugin">
 		<Exec Command="rename &quot;$(OutDir)$(AssemblyName)\latest.zip&quot; &quot;$(AssemblyName)-$(Version).zip&quot;" />
 	</Target>
