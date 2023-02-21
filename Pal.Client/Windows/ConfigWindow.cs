@@ -18,6 +18,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Pal.Client.Extensions;
 using Pal.Client.Properties;
 
 namespace Pal.Client.Windows
@@ -183,15 +184,15 @@ namespace Pal.Client.Windows
 
         private void DrawCommunityTab(ref bool saveAndClose)
         {
-            if (BeginTabItemEx($"{Localization.ConfigTab_Community}###TabCommunity", _switchToCommunityTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
+            if (PalImGui.BeginTabItemWithFlags($"{Localization.ConfigTab_Community}###TabCommunity", _switchToCommunityTab ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
             {
                 _switchToCommunityTab = false;
 
                 ImGui.TextWrapped(Localization.Explanation_3);
                 ImGui.TextWrapped(Localization.Explanation_4);
 
-                ImGui.RadioButton(Localization.Config_UploadMyDiscoveries_ShowOtherTraps, ref _mode, (int)Configuration.EMode.Online);
-                ImGui.RadioButton(Localization.Config_NeverUploadDiscoveries_ShowMyTraps, ref _mode, (int)Configuration.EMode.Offline);
+                PalImGui.RadioButtonWrapped(Localization.Config_UploadMyDiscoveries_ShowOtherTraps, ref _mode, (int)Configuration.EMode.Online);
+                PalImGui.RadioButtonWrapped(Localization.Config_NeverUploadDiscoveries_ShowMyTraps, ref _mode, (int)Configuration.EMode.Offline);
                 saveAndClose = ImGui.Button(Localization.SaveAndClose);
 
                 ImGui.Separator();
@@ -357,21 +358,6 @@ namespace Pal.Client.Windows
 
                 ImGui.EndTabItem();
             }
-        }
-
-        /// <summary>
-        /// None of the default BeginTabItem methods allow using flags without making the tab have a close button for some reason.
-        /// </summary>
-        private static unsafe bool BeginTabItemEx(string label, ImGuiTabItemFlags flags)
-        {
-            int labelLength = Encoding.UTF8.GetByteCount(label);
-            byte* labelPtr = stackalloc byte[labelLength + 1];
-            byte[] labelBytes = Encoding.UTF8.GetBytes(label);
-
-            Marshal.Copy(labelBytes, 0, (IntPtr)labelPtr, labelLength);
-            labelPtr[labelLength] = 0;
-
-            return ImGuiNative.igBeginTabItem(labelPtr, null, flags) != 0;
         }
 
         internal void TestConnection()
