@@ -3,7 +3,6 @@ using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Windowing;
-using Dalamud.Logging;
 using ECommons;
 using Google.Protobuf;
 using ImGuiNET;
@@ -14,18 +13,14 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Dalamud.Game.Gui;
 using Microsoft.Extensions.Logging;
 using Pal.Client.Extensions;
 using Pal.Client.Properties;
 using Pal.Client.Configuration;
 using Pal.Client.Database;
 using Pal.Client.DependencyInjection;
-using Pal.Client.Extensions;
 using Pal.Client.Floors;
 
 namespace Pal.Client.Windows
