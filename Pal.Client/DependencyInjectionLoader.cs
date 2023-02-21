@@ -1,7 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Dalamud.Plugin;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -44,16 +50,11 @@ namespace Pal.Client
                 _logger.LogInformation("Starting async init");
                 chat = _serviceProvider.GetService<Chat>();
 
-                // initialize database
-                await using (var scope = _serviceProvider.CreateAsyncScope())
-                {
-                    _logger.LogInformation("Loading database & running migrations");
-                    await using var dbContext = scope.ServiceProvider.GetRequiredService<PalClientContext>();
+                await RemoveOldBackups();
+                await CreateBackups();
+                cancellationToken.ThrowIfCancellationRequested();
 
-                    // takes 2-3 seconds with initializing connections, loading driver etc.
-                    await dbContext.Database.MigrateAsync(cancellationToken);
-                    _logger.LogInformation("Completed database migrations");
-                }
+                await RunMigrations(cancellationToken);
 
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -91,9 +92,97 @@ namespace Pal.Client
             catch (Exception e)
             {
                 _logger.LogError(e, "Async load failed");
-                InitCompleted?.Invoke(() => chat?.Error(string.Format(Localization.Error_LoadFailed, $"{e.GetType()} - {e.Message}")));
+                InitCompleted?.Invoke(() =>
+                    chat?.Error(string.Format(Localization.Error_LoadFailed, $"{e.GetType()} - {e.Message}")));
 
                 LoadState = ELoadState.Error;
+            }
+        }
+
+        private async Task RemoveOldBackups()
+        {
+            await using var scope = _serviceProvider.CreateAsyncScope();
+            var pluginInterface = scope.ServiceProvider.GetRequiredService<DalamudPluginInterface>();
+            var configuration = scope.ServiceProvider.GetRequiredService<IPalacePalConfiguration>();
+
+            var paths = Directory.GetFiles(pluginInterface.GetPluginConfigDirectory(), "backup-*.data.sqlite3",
+                new EnumerationOptions
+                {
+                    IgnoreInaccessible = true,
+                    RecurseSubdirectories = false,
+                    MatchCasing = MatchCasing.CaseSensitive,
+                    AttributesToSkip = FileAttributes.ReadOnly | FileAttributes.Hidden | FileAttributes.System,
+                    ReturnSpecialDirectories = false,
+                });
+            if (paths.Length == 0)
+                return;
+
+            Regex backupRegex = new Regex(@"backup-([\d\-]{10})\.data\.sqlite3", RegexOptions.Compiled);
+            List<(DateTime Date, string Path)> backupFiles = new();
+            foreach (string path in paths)
+            {
+                var match = backupRegex.Match(Path.GetFileName(path));
+                if (!match.Success)
+                    continue;
+
+                if (DateTime.TryParseExact(match.Groups[1].Value, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                        DateTimeStyles.AssumeUniversal, out DateTime backupDate))
+                {
+                    backupFiles.Add((backupDate, path));
+                }
+            }
+
+            var toDelete = backupFiles.OrderByDescending(x => x.Date)
+                .Skip(configuration.Backups.MinimumBackupsToKeep)
+                .Where(x => (DateTime.Today.ToUniversalTime() - x.Date).Days > configuration.Backups.DaysToDeleteAfter)
+                .Select(x => x.Path);
+            foreach (var path in toDelete)
+            {
+                try
+                {
+                    File.Delete(path);
+                    _logger.LogInformation("Deleted old backup file '{Path}'", path);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogWarning(e, "Could not delete backup file '{Path}'", path);
+                }
+            }
+        }
+
+        private async Task CreateBackups()
+        {
+            await using var scope = _serviceProvider.CreateAsyncScope();
+
+            var pluginInterface = scope.ServiceProvider.GetRequiredService<DalamudPluginInterface>();
+            string backupPath = Path.Join(pluginInterface.GetPluginConfigDirectory(),
+                $"backup-{DateTime.Today.ToUniversalTime():yyyy-MM-dd}.data.sqlite3");
+            if (!File.Exists(backupPath))
+            {
+                _logger.LogInformation("Creating database backup '{Path}'", backupPath);
+
+                await using var db = scope.ServiceProvider.GetRequiredService<PalClientContext>();
+                await using SqliteConnection source = new(db.Database.GetConnectionString());
+                await source.OpenAsync();
+                await using SqliteConnection backup = new($"Data Source={backupPath}");
+                source.BackupDatabase(backup);
+                SqliteConnection.ClearPool(backup);
+            }
+            else
+                _logger.LogInformation("Database backup in '{Path}' already exists", backupPath);
+        }
+
+        private async Task RunMigrations(CancellationToken cancellationToken)
+        {
+            // initialize database
+            await using (var scope = _serviceProvider.CreateAsyncScope())
+            {
+                _logger.LogInformation("Loading database & running migrations");
+                await using var dbContext = scope.ServiceProvider.GetRequiredService<PalClientContext>();
+
+                // takes 2-3 seconds with initializing connections, loading driver etc.
+                await dbContext.Database.MigrateAsync(cancellationToken);
+                _logger.LogInformation("Completed database migrations");
             }
         }
 

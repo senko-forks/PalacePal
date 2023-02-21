@@ -22,6 +22,7 @@ namespace Pal.Client.Configuration
 
         DeepDungeonConfiguration DeepDungeons { get; set; }
         RendererConfiguration Renderer { get; set; }
+        BackupConfiguration Backups { get; set; }
 
         IAccountConfiguration CreateAccount(string server, Guid accountId);
         IAccountConfiguration? FindAccount(string server);
@@ -91,5 +92,11 @@ namespace Pal.Client.Configuration
         List<string> CachedRoles { get; set; }
 
         bool EncryptIfNeeded();
+    }
+
+    public class BackupConfiguration
+    {
+        public int MinimumBackupsToKeep { get; set; } = 3;
+        public int DaysToDeleteAfter { get; set; } = 21;
     }
 }

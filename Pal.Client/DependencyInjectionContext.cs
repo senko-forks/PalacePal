@@ -1,8 +1,6 @@
-﻿using System;
-using System.Globalization;
+﻿using System.Globalization;
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 using Dalamud.Data;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
@@ -11,7 +9,6 @@ using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.Command;
 using Dalamud.Game.Gui;
 using Dalamud.Interface.Windowing;
-using Dalamud.Logging;
 using Dalamud.Plugin;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -23,7 +20,6 @@ using Pal.Client.Configuration.Legacy;
 using Pal.Client.Database;
 using Pal.Client.DependencyInjection;
 using Pal.Client.DependencyInjection.Logging;
-using Pal.Client.Extensions;
 using Pal.Client.Floors;
 using Pal.Client.Net;
 using Pal.Client.Properties;
@@ -129,7 +125,7 @@ namespace Pal.Client
             services.AddScoped<StatisticsService>();
             services.AddScoped<StatisticsWindow>();
 
-            // these should maybe be scoped
+            // rendering
             services.AddScoped<SimpleRenderer>();
             services.AddScoped<SplatoonRenderer>();
             services.AddScoped<RenderAdapter>();

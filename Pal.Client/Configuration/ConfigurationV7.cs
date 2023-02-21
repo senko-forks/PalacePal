@@ -15,6 +15,7 @@ namespace Pal.Client.Configuration
         public DeepDungeonConfiguration DeepDungeons { get; set; } = new();
         public RendererConfiguration Renderer { get; set; } = new();
         public List<AccountConfigurationV7> Accounts { get; set; } = new();
+        public BackupConfiguration Backups { get; set; } = new();
 
         public IAccountConfiguration CreateAccount(string server, Guid accountId)
         {
