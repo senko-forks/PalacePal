@@ -33,6 +33,7 @@ namespace Pal.Client
     /// </summary>
     internal sealed class DependencyInjectionContext : IDisposable
     {
+        public const string DatabaseFileName = "palace-pal.data.sqlite3";
         public static DalamudLoggerProvider LoggerProvider { get; } = new();
 
         /// <summary>
@@ -89,7 +90,7 @@ namespace Pal.Client
             _serviceCollection.AddSingleton(new WindowSystem(typeof(DependencyInjectionContext).AssemblyQualifiedName));
 
             _sqliteConnectionString =
-                $"Data Source={Path.Join(pluginInterface.GetPluginConfigDirectory(), "palace-pal.data.sqlite3")}";
+                $"Data Source={Path.Join(pluginInterface.GetPluginConfigDirectory(), DatabaseFileName)}";
         }
 
         public IServiceProvider BuildServiceContainer()

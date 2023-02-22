@@ -30,7 +30,8 @@ namespace Pal.Client
         private readonly ILogger<DependencyContextInitializer> _logger;
         private readonly IServiceProvider _serviceProvider;
 
-        public DependencyContextInitializer(ILogger<DependencyContextInitializer> logger, IServiceProvider serviceProvider)
+        public DependencyContextInitializer(ILogger<DependencyContextInitializer> logger,
+            IServiceProvider serviceProvider)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
@@ -135,16 +136,25 @@ namespace Pal.Client
             var pluginInterface = scope.ServiceProvider.GetRequiredService<DalamudPluginInterface>();
             string backupPath = Path.Join(pluginInterface.GetPluginConfigDirectory(),
                 $"backup-{DateTime.Today.ToUniversalTime():yyyy-MM-dd}.data.sqlite3");
-            if (!File.Exists(backupPath))
+            string sourcePath = Path.Join(pluginInterface.GetPluginConfigDirectory(),
+                DependencyInjectionContext.DatabaseFileName);
+            if (File.Exists(sourcePath) && !File.Exists(backupPath))
             {
-                _logger.LogInformation("Creating database backup '{Path}'", backupPath);
+                if (File.Exists(sourcePath + "-shm") || File.Exists(sourcePath + "-wal"))
+                {
+                    _logger.LogWarning("Could not create backup, database is open in another program");
+                    return;
+                }
 
-                await using var db = scope.ServiceProvider.GetRequiredService<PalClientContext>();
-                await using SqliteConnection source = new(db.Database.GetConnectionString());
-                await source.OpenAsync();
-                await using SqliteConnection backup = new($"Data Source={backupPath}");
-                source.BackupDatabase(backup);
-                SqliteConnection.ClearPool(backup);
+                _logger.LogInformation("Creating database backup '{Path}'", backupPath);
+                try
+                {
+                    File.Copy(sourcePath, backupPath);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, "Could not create backup");
+                }
             }
             else
                 _logger.LogInformation("Database backup in '{Path}' already exists", backupPath);
