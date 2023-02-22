@@ -1,5 +1,4 @@
 using Account;
-using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -8,14 +7,15 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using Pal.Server.Database;
 using static Account.AccountService;
 
 namespace Pal.Server.Services
 {
-    internal class AccountService : AccountServiceBase
+    internal sealed class AccountService : AccountServiceBase
     {
         private readonly ILogger<AccountService> _logger;
-        private readonly PalContext _dbContext;
+        private readonly PalServerContext _dbContext;
         private readonly string _tokenIssuer;
         private readonly string _tokenAudience;
         private readonly bool _useForwardedIp;
@@ -23,7 +23,7 @@ namespace Pal.Server.Services
 
         private byte[]? _salt;
 
-        public AccountService(ILogger<AccountService> logger, IConfiguration configuration, PalContext dbContext)
+        public AccountService(ILogger<AccountService> logger, IConfiguration configuration, PalServerContext dbContext)
         {
             _logger = logger;
             _dbContext = dbContext;
@@ -59,7 +59,7 @@ namespace Pal.Server.Services
                 _salt ??= Convert.FromBase64String((await _dbContext.GlobalSettings.FindAsync(new object[] { "salt" }, cancellationToken: context.CancellationToken))!.Value);
                 var ipHash = Convert.ToBase64String(new Rfc2898DeriveBytes(remoteIp.GetAddressBytes(), _salt, iterations: 10000, HashAlgorithmName.SHA1).GetBytes(24));
 
-                Account? existingAccount = await _dbContext.Accounts.FirstOrDefaultAsync(a => a.IpHash == ipHash, cancellationToken: context.CancellationToken);
+                Database.Account? existingAccount = await _dbContext.Accounts.FirstOrDefaultAsync(a => a.IpHash == ipHash, cancellationToken: context.CancellationToken);
                 if (existingAccount != null)
                 {
                     _logger.LogInformation("CreateAccount: Returning existing account {AccountId} for ip hash {IpHash} ({Ip})", existingAccount.Id, ipHash, remoteIp.ToString().Substring(0, Math.Min(5, remoteIp.ToString().Length)));
@@ -67,7 +67,7 @@ namespace Pal.Server.Services
                 }
 
 
-                Account newAccount = new Account
+                Database.Account newAccount = new Database.Account
                 {
                     Id = Guid.NewGuid(),
                     IpHash = ipHash,
@@ -85,7 +85,7 @@ namespace Pal.Server.Services
             }
             catch (Exception e)
             {
-                _logger.LogError("Could not create account: {e}", e);
+                _logger.LogError(e, "Could not create account: {e}", e);
                 return new CreateAccountReply { Success = false, Error = CreateAccountError.Unknown };
             }
         }
@@ -114,7 +114,7 @@ namespace Pal.Server.Services
                     new(ClaimTypes.Role, "default"),
                 };
 
-                foreach (var role in existingAccount.Roles ?? new List<string>())
+                foreach (var role in existingAccount.Roles)
                     claims.Add(new Claim(ClaimTypes.Role, role));
 
                 var tokenHandler = new JwtSecurityTokenHandler();

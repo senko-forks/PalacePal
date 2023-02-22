@@ -1,21 +1,30 @@
-﻿namespace Pal.Client.Scheduled
-{
-    internal class QueuedConfigUpdate : IQueueOnFrameworkThread
-    {
-        public void Run(Plugin plugin, ref bool recreateLayout, ref bool saveMarkers)
-        {
-            if (Service.Configuration.Mode == Configuration.EMode.Offline)
-            {
-                LocalState.UpdateAll();
-                plugin.FloorMarkers.Clear();
-                plugin.EphemeralMarkers.Clear();
-                plugin.LastTerritory = 0;
+﻿using Microsoft.Extensions.Logging;
+using Pal.Client.Configuration;
+using Pal.Client.DependencyInjection;
+using Pal.Client.Floors;
+using Pal.Client.Rendering;
 
-                recreateLayout = true;
-                saveMarkers = true;
+namespace Pal.Client.Scheduled
+{
+    internal sealed class QueuedConfigUpdate : IQueueOnFrameworkThread
+    {
+        internal sealed class Handler : IQueueOnFrameworkThread.Handler<QueuedConfigUpdate>
+        {
+            private readonly RenderAdapter _renderAdapter;
+
+            public Handler(
+                ILogger<Handler> logger,
+                RenderAdapter renderAdapter)
+                : base(logger)
+            {
+                _renderAdapter = renderAdapter;
             }
 
-            plugin.ResetRenderer();
+            protected override void Run(QueuedConfigUpdate queued, ref bool recreateLayout)
+            {
+                // TODO filter stuff if offline
+                _renderAdapter.ConfigUpdated();
+            }
         }
     }
 }

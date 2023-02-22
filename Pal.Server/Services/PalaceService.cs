@@ -6,18 +6,19 @@ using Palace;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using Pal.Server.Database;
 using static Palace.PalaceService;
 
 namespace Pal.Server.Services
 {
-    internal class PalaceService : PalaceServiceBase
+    internal sealed class PalaceService : PalaceServiceBase
     {
         private readonly ILogger<PalaceService> _logger;
-        private readonly PalContext _dbContext;
+        private readonly PalServerContext _dbContext;
         private readonly PalaceLocationCache _cache;
         private readonly IEqualityComparer<PalaceObject> _objEqualityComparer = new TypeAndLocationEqualityComparer();
 
-        public PalaceService(ILogger<PalaceService> logger, PalContext dbContext, PalaceLocationCache cache)
+        public PalaceService(ILogger<PalaceService> logger, PalServerContext dbContext, PalaceLocationCache cache)
         {
             _logger = logger;
             _dbContext = dbContext;
@@ -25,14 +26,16 @@ namespace Pal.Server.Services
         }
 
         [Authorize]
-        public override async Task<DownloadFloorsReply> DownloadFloors(DownloadFloorsRequest request, ServerCallContext context)
+        public override async Task<DownloadFloorsReply> DownloadFloors(DownloadFloorsRequest request,
+            ServerCallContext context)
         {
             try
             {
                 ushort territoryType = (ushort)request.TerritoryType;
                 if (!typeof(ETerritoryType).IsEnumDefined(territoryType))
                 {
-                    _logger.LogInformation("Skipping download for unknown territory type {TerritoryType}", territoryType);
+                    _logger.LogInformation("Skipping download for unknown territory type {TerritoryType}",
+                        territoryType);
                     return new DownloadFloorsReply { Success = false };
                 }
 
@@ -44,13 +47,15 @@ namespace Pal.Server.Services
             }
             catch (Exception e)
             {
-                _logger.LogError("Could not download floors for territory {TerritoryType}: {e}", request.TerritoryType, e);
+                _logger.LogError("Could not download floors for territory {TerritoryType}: {e}", request.TerritoryType,
+                    e);
                 return new DownloadFloorsReply { Success = false };
             }
         }
 
         [Authorize]
-        public override async Task<UploadFloorsReply> UploadFloors(UploadFloorsRequest request, ServerCallContext context)
+        public override async Task<UploadFloorsReply> UploadFloors(UploadFloorsRequest request,
+            ServerCallContext context)
         {
             try
             {
@@ -71,11 +76,11 @@ namespace Pal.Server.Services
                     .Where(o => o.Type != ObjectType.Unknown && !(o.X == 0 && o.Y == 0 && o.Z == 0))
                     .Where(o => o.Type == ObjectType.Trap || o.Type == ObjectType.Hoard)
                     .Distinct(_objEqualityComparer)
-                    .Select(o => new PalaceLocation
+                    .Select(o => new ServerLocation
                     {
                         Id = Guid.NewGuid(),
                         TerritoryType = territoryType,
-                        Type = (PalaceLocation.EType)o.Type,
+                        Type = (ServerLocation.EType)o.Type,
                         X = o.X,
                         Y = o.Y,
                         Z = o.Z,
@@ -91,38 +96,60 @@ namespace Pal.Server.Services
 
                     foreach (var location in newLocations)
                     {
-                        var palaceObj = new PalaceObject { Type = (ObjectType)location.Type, X = location.X, Y = location.Y, Z = location.Z, NetworkId = location.Id.ToString() };
+                        var palaceObj = new PalaceObject
+                        {
+                            Type = (ObjectType)location.Type,
+                            X = location.X,
+                            Y = location.Y,
+                            Z = location.Z,
+                            NetworkId = location.Id.ToString()
+                        };
                         objects[location.Id] = palaceObj;
                         reply.Objects.Add(palaceObj);
                     }
 
-                    _logger.LogInformation("Saved {Count} new locations for {TerritoryName} ({TerritoryType})", newLocations.Count, (ETerritoryType)territoryType, territoryType);
+                    int trapCount = newLocations.Count(x => x.Type == ServerLocation.EType.Trap);
+                    int hoardCount = newLocations.Count(x => x.Type == ServerLocation.EType.Hoard);
+
+                    if (trapCount > 0)
+                        _logger.LogInformation("Saved {Count} new trap locations for {TerritoryName} ({TerritoryType})",
+                            trapCount, (ETerritoryType)territoryType, territoryType);
+                    if (hoardCount > 0)
+                        _logger.LogInformation(
+                            "Saved {Count} new hoard locations for {TerritoryName} ({TerritoryType})", trapCount,
+                            (ETerritoryType)territoryType, territoryType);
                 }
                 else
-                    _logger.LogInformation("Saved no objects for {TerritoryName} ({TerritoryType}) - all {Count} already known", (ETerritoryType)territoryType, territoryType, request.Objects.Count);
+                    _logger.LogInformation(
+                        "Saved no objects for {TerritoryName} ({TerritoryType}) - all {Count} already known",
+                        (ETerritoryType)territoryType, territoryType, request.Objects.Count);
 
                 return reply;
             }
             catch (Exception e)
             {
-                _logger.LogError("Could not save {Count} new objects for territory type {TerritoryType}: {e}", request.Objects.Count, request.TerritoryType, e);
+                _logger.LogError("Could not save {Count} new objects for territory type {TerritoryType}: {e}",
+                    request.Objects.Count, request.TerritoryType, e);
                 return new UploadFloorsReply { Success = false };
             }
         }
 
         [Authorize]
-        public override async Task<MarkObjectsSeenReply> MarkObjectsSeen(MarkObjectsSeenRequest request, ServerCallContext context)
+        public override async Task<MarkObjectsSeenReply> MarkObjectsSeen(MarkObjectsSeenRequest request,
+            ServerCallContext context)
         {
             try
             {
                 ushort territoryType = (ushort)request.TerritoryType;
                 if (!typeof(ETerritoryType).IsEnumDefined(territoryType))
                 {
-                    _logger.LogInformation("Skipping mark objects seen for unknown territory type {TerritoryType}", territoryType);
+                    _logger.LogInformation("Skipping mark objects seen for unknown territory type {TerritoryType}",
+                        territoryType);
                     return new MarkObjectsSeenReply { Success = false };
                 }
 
-                var account = await _dbContext.Accounts.FindAsync(new object[] { context.GetAccountId() }, cancellationToken: context.CancellationToken);
+                var account = await _dbContext.Accounts.FindAsync(new object[] { context.GetAccountId() },
+                    cancellationToken: context.CancellationToken);
                 if (account == null)
                 {
                     _logger.LogInformation("Skipping mark objects seen, account {} not found", context.GetAccountId());
@@ -131,29 +158,35 @@ namespace Pal.Server.Services
 
                 var objects = await GetOrLoadObjects(territoryType, context.CancellationToken);
 
+                DateTime firstSeenAt = DateTime.Now;
                 var seenLocations = account.SeenLocations;
                 var newLocations = request.NetworkIds.Select(x => Guid.Parse(x))
                     .Where(x => objects.ContainsKey(x))
                     .Where(x => !seenLocations.Any(seen => seen.PalaceLocationId == x))
-                    .Select(x => new SeenLocation(account, x))
+                    .Select(x => new SeenLocation(account, x, firstSeenAt))
                     .ToList();
                 if (newLocations.Count > 0)
                 {
-                    _logger.LogInformation("Mark {} locations as seen for account {} on territory {TerritoryName} ({TerritoryType})", newLocations.Count, account.Id, (ETerritoryType)territoryType, territoryType);
+                    _logger.LogInformation(
+                        "Mark {} locations as seen for account {} on territory {TerritoryName} ({TerritoryType})",
+                        newLocations.Count, account.Id, (ETerritoryType)territoryType, territoryType);
                     account.SeenLocations.AddRange(newLocations);
                     await _dbContext.SaveChangesAsync(context.CancellationToken);
                 }
+
                 return new MarkObjectsSeenReply { Success = true };
             }
             catch (Exception e)
             {
-                _logger.LogError("Could not mark objects seen for territory {TerritoryType}: {e}", request.TerritoryType, e);
+                _logger.LogError(e, "Could not mark objects seen for territory {TerritoryType}: {e}",
+                    request.TerritoryType, e);
                 return new MarkObjectsSeenReply { Success = false };
             }
         }
 
         [Authorize(Roles = "statistics:view")]
-        public override async Task<StatisticsReply> FetchStatistics(StatisticsRequest request, ServerCallContext context)
+        public override async Task<StatisticsReply> FetchStatistics(StatisticsRequest request,
+            ServerCallContext context)
         {
             try
             {
@@ -168,16 +201,18 @@ namespace Pal.Server.Services
                         HoardCount = (uint)objects.Values.Count(x => x.Type == ObjectType.Hoard),
                     });
                 }
+
                 return reply;
             }
             catch (Exception e)
             {
-                _logger.LogError("Could not fetch statistics: {e}", e);
+                _logger.LogError(e, "Could not fetch statistics: {e}", e);
                 return new StatisticsReply { Success = false };
             }
         }
 
-        private async Task<ConcurrentDictionary<Guid, PalaceObject>> GetOrLoadObjects(ushort territoryType, CancellationToken cancellationToken)
+        private async Task<ConcurrentDictionary<Guid, PalaceObject>> GetOrLoadObjects(ushort territoryType,
+            CancellationToken cancellationToken)
         {
             if (!_cache.TryGetValue(territoryType, out var objects))
                 objects = await LoadObjects(territoryType, cancellationToken);
@@ -185,16 +220,20 @@ namespace Pal.Server.Services
             return objects ?? throw new Exception($"Unable to load objects for territory type {territoryType}");
         }
 
-        private async Task<ConcurrentDictionary<Guid, PalaceObject>> LoadObjects(ushort territoryType, CancellationToken cancellationToken)
+        private async Task<ConcurrentDictionary<Guid, PalaceObject>> LoadObjects(ushort territoryType,
+            CancellationToken cancellationToken)
         {
             var objects = await _dbContext.Locations.Where(o => o.TerritoryType == territoryType)
-                .ToDictionaryAsync(o => o.Id, o => new PalaceObject { Type = (ObjectType)o.Type, X = o.X, Y = o.Y, Z = o.Z, NetworkId = o.Id.ToString() }, cancellationToken);
+                .ToDictionaryAsync(o => o.Id,
+                    o => new PalaceObject
+                    { Type = (ObjectType)o.Type, X = o.X, Y = o.Y, Z = o.Z, NetworkId = o.Id.ToString() },
+                    cancellationToken);
 
             var result = _cache.Add(territoryType, new ConcurrentDictionary<Guid, PalaceObject>(objects));
             return result;
         }
 
-        private class TypeAndLocationEqualityComparer : IEqualityComparer<PalaceObject>
+        private sealed class TypeAndLocationEqualityComparer : IEqualityComparer<PalaceObject>
         {
             public bool Equals(PalaceObject? first, PalaceObject? second)
             {
@@ -204,7 +243,8 @@ namespace Pal.Server.Services
                     return false;
                 else
                     return first.Type == second.Type
-                        && PalaceMath.IsNearlySamePosition(new Vector3(first.X, first.Y, first.Z), new Vector3(second.X, second.Y, second.Z));
+                           && PalaceMath.IsNearlySamePosition(new Vector3(first.X, first.Y, first.Z),
+                               new Vector3(second.X, second.Y, second.Z));
             }
 
             public int GetHashCode(PalaceObject obj)

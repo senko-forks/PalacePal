@@ -1,6 +1,8 @@
-﻿namespace Pal.Server.Services
+﻿using Pal.Server.Database;
+
+namespace Pal.Server.Services
 {
-    public class RemoveIpHashService : IHostedService, IDisposable
+    internal sealed class RemoveIpHashService : IHostedService, IDisposable
     {
         private readonly ILogger<RemoveIpHashService> _logger;
         private readonly IServiceProvider _serviceProvider;
@@ -16,7 +18,7 @@
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation($"Starting {nameof(RemoveIpHashService)}");
+            _logger.LogInformation("Starting {ServiceName}", nameof(RemoveIpHashService));
             _timer = new Timer(DoWork, null, TimeSpan.FromSeconds(1), TimeSpan.FromHours(1));
             return Task.CompletedTask;
         }
@@ -24,7 +26,7 @@
         private void DoWork(object? state)
         {
             using var scope = _serviceProvider.CreateScope();
-            using var dbContext = scope.ServiceProvider.GetRequiredService<PalContext>();
+            using var dbContext = scope.ServiceProvider.GetRequiredService<PalServerContext>();
 
             DateTime expiry = DateTime.Now - _removeAfter;
             var accounts = dbContext.Accounts.Where(a => a.IpHash != null && a.CreatedAt < expiry).ToList();
@@ -37,7 +39,7 @@
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation($"Stopping {nameof(RemoveIpHashService)}");
+            _logger.LogInformation("Stopping {ServiceName}", nameof(RemoveIpHashService));
             _timer?.Change(Timeout.Infinite, 0);
             return Task.CompletedTask;
         }

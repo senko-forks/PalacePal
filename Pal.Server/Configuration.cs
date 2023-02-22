@@ -11,7 +11,7 @@ namespace Pal.Server
         public SymmetricSecurityKey ToSecurityKey() => new(Convert.FromBase64String(Key));
     }
 
-    internal class CustomConfigurationProvider : ConfigurationProvider
+    internal sealed class CustomConfigurationProvider : ConfigurationProvider
     {
         private readonly string _dataDirectory;
 
@@ -28,7 +28,7 @@ namespace Pal.Server
         }
     }
 
-    internal class CustomConfigurationSource : IConfigurationSource
+    internal sealed class CustomConfigurationSource : IConfigurationSource
     {
 
         private readonly string _dataDirectory;
@@ -47,7 +47,7 @@ namespace Pal.Server
         public static IConfigurationBuilder AddCustomConfiguration(this IConfigurationBuilder builder)
         {
             var tempConfig = builder.Build();
-            if (tempConfig["DataDirectory"] is string dataDirectory)
+            if (tempConfig["DataDirectory"] is { } dataDirectory)
                 return builder.Add(new CustomConfigurationSource(dataDirectory));
             else
                 return builder;

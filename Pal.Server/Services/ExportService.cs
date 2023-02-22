@@ -5,16 +5,17 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Pal.Common;
 using System.Data;
+using Pal.Server.Database;
 using static Account.ExportService;
 
 namespace Pal.Server.Services
 {
-    internal class ExportService : ExportServiceBase
+    internal sealed class ExportService : ExportServiceBase
     {
         private readonly ILogger<ExportService> _logger;
-        private readonly PalContext _dbContext;
+        private readonly PalServerContext _dbContext;
 
-        public ExportService(ILogger<ExportService> logger, PalContext dbContext)
+        public ExportService(ILogger<ExportService> logger, PalServerContext dbContext)
         {
             _logger = logger;
             _dbContext = dbContext;
@@ -42,7 +43,7 @@ namespace Pal.Server.Services
                 foreach (var (territoryType, objects) in objectsByFloor)
                 {
                     var floorReply = new ExportFloor { TerritoryType = territoryType };
-                    floorReply.Objects.AddRange(objects.Where(o => o.Type == PalaceLocation.EType.Trap || o.Type == PalaceLocation.EType.Hoard).Select(o => new ExportObject
+                    floorReply.Objects.AddRange(objects.Where(o => o.Type == ServerLocation.EType.Trap || o.Type == ServerLocation.EType.Hoard).Select(o => new ExportObject
                     {
                         Type = (ExportObjectType)o.Type,
                         X = o.X,
@@ -61,7 +62,7 @@ namespace Pal.Server.Services
             }
             catch (Exception e)
             {
-                _logger.LogError("Could not create export: {e}", e);
+                _logger.LogError(e, "Could not create export: {e}", e);
                 return new ExportReply { Success = false, Error = ExportError.Unknown };
             }
         }

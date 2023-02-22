@@ -1,35 +1,42 @@
-﻿using ECommons.Configuration;
-using Pal.Common;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Pal.Client.Configuration;
+using Pal.Client.DependencyInjection;
+using Pal.Client.Floors;
+using Pal.Client.Windows;
+using Pal.Common;
 
 namespace Pal.Client.Scheduled
 {
-    internal class QueuedUndoImport : IQueueOnFrameworkThread
+    internal sealed class QueuedUndoImport : IQueueOnFrameworkThread
     {
-        private readonly Guid _exportId;
-
         public QueuedUndoImport(Guid exportId)
         {
-            _exportId = exportId;
+            ExportId = exportId;
         }
 
-        public void Run(Plugin plugin, ref bool recreateLayout, ref bool saveMarkers)
-        {
-            recreateLayout = true;
-            saveMarkers = true;
+        private Guid ExportId { get; }
 
-            foreach (ETerritoryType territoryType in typeof(ETerritoryType).GetEnumValues())
+        internal sealed class Handler : IQueueOnFrameworkThread.Handler<QueuedUndoImport>
+        {
+            private readonly ImportService _importService;
+            private readonly ConfigWindow _configWindow;
+
+            public Handler(ILogger<Handler> logger, ImportService importService, ConfigWindow configWindow)
+                : base(logger)
             {
-                var localState = plugin.GetFloorMarkers((ushort)territoryType);
-                localState.UndoImport(new List<Guid> { _exportId });
-                localState.Save();
+                _importService = importService;
+                _configWindow = configWindow;
             }
 
-            Service.Configuration.ImportHistory.RemoveAll(hist => hist.Id == _exportId);
+            protected override void Run(QueuedUndoImport queued, ref bool recreateLayout)
+            {
+                recreateLayout = true;
+
+                _importService.RemoveById(queued.ExportId);
+                _configWindow.UpdateLastImport();
+            }
         }
     }
 }

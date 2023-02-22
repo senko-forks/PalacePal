@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Pal.Client.Net
 {
-    internal class JwtClaims
+    internal sealed class JwtClaims
     {
         [JsonPropertyName("nameid")]
         public Guid NameId { get; set; }
@@ -46,7 +46,7 @@ namespace Pal.Client.Net
         }
     }
 
-    internal class JwtRoleConverter : JsonConverter<List<string>>
+    internal sealed class JwtRoleConverter : JsonConverter<List<string>>
     {
         public override List<string> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
@@ -78,9 +78,9 @@ namespace Pal.Client.Net
         public override void Write(Utf8JsonWriter writer, List<string> value, JsonSerializerOptions options) => throw new NotImplementedException();
     }
 
-    public class JwtDateConverter : JsonConverter<DateTimeOffset>
+    public sealed class JwtDateConverter : JsonConverter<DateTimeOffset>
     {
-        static readonly DateTimeOffset Zero = new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        static readonly DateTimeOffset Zero = new(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
         public override DateTimeOffset Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {

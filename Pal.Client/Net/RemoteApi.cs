@@ -2,46 +2,49 @@
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
 using System;
-using Pal.Client.Extensions;
+using Dalamud.Game.Gui;
+using Pal.Client.Configuration;
+using Pal.Client.DependencyInjection;
 
 namespace Pal.Client.Net
 {
-    internal partial class RemoteApi : IDisposable
+    internal sealed partial class RemoteApi : IDisposable
     {
 #if DEBUG
-        public static string RemoteUrl { get; } = "http://localhost:5145";
+        public const string RemoteUrl = "http://localhost:5415";
 #else
-        public static string RemoteUrl { get; } = "https://pal.μ.tv";
+        public const string RemoteUrl = "https://pal.liza.sh";
 #endif
-        private readonly string _userAgent = $"{typeof(RemoteApi).Assembly.GetName().Name?.Replace(" ", "")}/{typeof(RemoteApi).Assembly.GetName().Version?.ToString(2)}";
+        private readonly string _userAgent =
+            $"{typeof(RemoteApi).Assembly.GetName().Name?.Replace(" ", "")}/{typeof(RemoteApi).Assembly.GetName().Version?.ToString(2)}";
 
-        private readonly ILoggerFactory _grpcToPluginLogLoggerFactory = LoggerFactory.Create(builder => builder.AddProvider(new GrpcLoggerProvider()).AddFilter("Grpc", LogLevel.Trace));
+        private readonly ILoggerFactory _loggerFactory;
+        private readonly ILogger<RemoteApi> _logger;
+        private readonly Chat _chat;
+        private readonly ConfigurationManager _configurationManager;
+        private readonly IPalacePalConfiguration _configuration;
 
         private GrpcChannel? _channel;
         private LoginInfo _loginInfo = new(null);
         private bool _warnedAboutUpgrade;
 
-        public Configuration.AccountInfo? Account
+        public RemoteApi(
+            ILoggerFactory loggerFactory,
+            ILogger<RemoteApi> logger,
+            Chat chat,
+            ConfigurationManager configurationManager,
+            IPalacePalConfiguration configuration)
         {
-            get => Service.Configuration.Accounts.TryGetValue(RemoteUrl, out Configuration.AccountInfo? accountInfo) ? accountInfo : null;
-            set
-            {
-                if (value != null)
-                    Service.Configuration.Accounts[RemoteUrl] = value;
-                else
-                    Service.Configuration.Accounts.Remove(RemoteUrl);
-            }
+            _loggerFactory = loggerFactory;
+            _logger = logger;
+            _chat = chat;
+            _configurationManager = configurationManager;
+            _configuration = configuration;
         }
-
-        public Guid? AccountId => Account?.Id;
-
-        public string? PartialAccountId => Account?.Id?.ToPartialId();
-
-        private string FormattedPartialAccountId => PartialAccountId ?? "[no account id]";
 
         public void Dispose()
         {
-            PluginLog.Debug("Disposing gRPC channel");
+            _logger.LogDebug("Disposing gRPC channel");
             _channel?.Dispose();
             _channel = null;
         }

@@ -61,10 +61,6 @@
         <value>Impossible de récupérer les statistiques.</value>
         <comment>Shown when /pal stats produces a server-side error, and the statistics window can't be loaded.</comment>
     </data>
-  <data name="Command_pal_updatesaves" xml:space="preserve">
-        <value>Mise à jour de tous les marqueurs du cache local vers la dernière version.</value>
-        <comment>Shown after /pal update-saves was successful.</comment>
-    </data>
   <!-- Messages while connecting to the server. These are typically only visible when clicking 'Test connection'. -->
   <data name="ConnectionSuccessful" xml:space="preserve">
         <value>Connexion réussie.</value>
@@ -227,9 +223,6 @@ Il n'y a pas de synchronisation avec les autres joueurs ni de sauvegarde entre l
     </data>
   <data name="Config_Renderer_Simple_Hint" xml:space="preserve">
         <value>Expérimental</value>
-    </data>
-  <data name="Config_Splatoon_Test" xml:space="preserve">
-        <value>Test de Splatoon :</value>
     </data>
   <data name="Config_Splatoon_DrawCircles" xml:space="preserve">
         <value>Dessiner les marqueurs des pièges et coffres autour de soi</value>

@@ -3,6 +3,7 @@ using Dalamud.Logging;
 using Grpc.Core;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using Microsoft.Extensions.Logging;
 
 namespace Pal.Client.Net
 {
@@ -40,7 +41,7 @@ namespace Pal.Client.Net
                 throw new InvalidOperationException();
 
             var certificate = new X509Certificate2(bytes, pass, X509KeyStorageFlags.DefaultKeySet);
-            PluginLog.Debug($"Using client certificate {certificate.GetCertHashString()}");
+            _logger.LogDebug("Using client certificate {CertificateHash}", certificate.GetCertHashString());
             return new SslClientAuthenticationOptions
             {
                 ClientCertificates = new X509CertificateCollection()
@@ -49,18 +50,9 @@ namespace Pal.Client.Net
                 },
             };
 #else
-            PluginLog.Debug("Not using client certificate");
+            _logger.LogDebug("Not using client certificate");
             return null;
 #endif
-        }
-
-        public bool HasRoleOnCurrentServer(string role)
-        {
-            if (Service.Configuration.Mode != Configuration.EMode.Online)
-                return false;
-
-            var account = Account;
-            return account == null || account.CachedRoles.Contains(role);
         }
     }
 }

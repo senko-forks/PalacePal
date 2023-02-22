@@ -2,11 +2,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Pal.Server.Database;
 using Pal.Server.Services;
 
 namespace Pal.Server
 {
-    public class Program
+    internal static class Program
     {
         public static async Task Main(string[] args)
         {
@@ -14,9 +15,9 @@ namespace Pal.Server
 
             builder.Configuration.AddCustomConfiguration();
             builder.Services.AddGrpc(o => o.EnableDetailedErrors = true);
-            builder.Services.AddDbContext<PalContext>(o =>
+            builder.Services.AddDbContext<PalServerContext>(o =>
             {
-                if (builder.Configuration["DataDirectory"] is string dbPath)
+                if (builder.Configuration["DataDirectory"] is { } dbPath)
                 {
                     dbPath += "/palace-pal.db";
                 }
@@ -52,7 +53,7 @@ namespace Pal.Server
             });
             builder.Services.AddAuthorization();
 
-            if (builder.Configuration["DataDirectory"] is string dataDirectory)
+            if (builder.Configuration["DataDirectory"] is { } dataDirectory)
             {
                 builder.Services.AddDataProtection()
                     .PersistKeysToFileSystem(new DirectoryInfo(dataDirectory));
@@ -69,7 +70,7 @@ namespace Pal.Server
 
             using (var scope = app.Services.CreateScope())
             {
-                var dbContext = scope.ServiceProvider.GetRequiredService<PalContext>();
+                await using var dbContext = scope.ServiceProvider.GetRequiredService<PalServerContext>();
                 await dbContext.Database.MigrateAsync();
             }
 

@@ -1,114 +1,122 @@
 ﻿using Account;
-using Dalamud.Logging;
 using Pal.Common;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Numerics;
-using Pal.Client.Extensions;
+using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Pal.Client.Database;
+using Pal.Client.DependencyInjection;
 using Pal.Client.Properties;
+using Pal.Client.Windows;
 
 namespace Pal.Client.Scheduled
 {
-    internal class QueuedImport : IQueueOnFrameworkThread
+    internal sealed class QueuedImport : IQueueOnFrameworkThread
     {
-        private readonly ExportRoot _export;
-        private Guid _exportId;
-        private int _importedTraps;
-        private int _importedHoardCoffers;
+        private ExportRoot Export { get; }
+        private Guid ExportId { get; set; }
+        private int ImportedTraps { get; set; }
+        private int ImportedHoardCoffers { get; set; }
 
         public QueuedImport(string sourcePath)
         {
             using var input = File.OpenRead(sourcePath);
-            _export = ExportRoot.Parser.ParseFrom(input);
+            Export = ExportRoot.Parser.ParseFrom(input);
         }
 
-        public void Run(Plugin plugin, ref bool recreateLayout, ref bool saveMarkers)
+        internal sealed class Handler : IQueueOnFrameworkThread.Handler<QueuedImport>
         {
-            try
+            private readonly IServiceScopeFactory _serviceScopeFactory;
+            private readonly Chat _chat;
+            private readonly ImportService _importService;
+            private readonly ConfigWindow _configWindow;
+
+            public Handler(
+                ILogger<Handler> logger,
+                IServiceScopeFactory serviceScopeFactory,
+                Chat chat,
+                ImportService importService,
+                ConfigWindow configWindow)
+                : base(logger)
             {
-                if (!Validate())
-                    return;
+                _serviceScopeFactory = serviceScopeFactory;
+                _chat = chat;
+                _importService = importService;
+                _configWindow = configWindow;
+            }
 
-                var config = Service.Configuration;
-                var oldExportIds = string.IsNullOrEmpty(_export.ServerUrl) ? config.ImportHistory.Where(x => x.RemoteUrl == _export.ServerUrl).Select(x => x.Id).Where(x => x != Guid.Empty).ToList() : new List<Guid>();
-
-                foreach (var remoteFloor in _export.Floors)
-                {
-                    ushort territoryType = (ushort)remoteFloor.TerritoryType;
-                    var localState = plugin.GetFloorMarkers(territoryType);
-
-                    localState.UndoImport(oldExportIds);
-                    ImportFloor(remoteFloor, localState);
-
-                    localState.Save();
-                }
-
-                config.ImportHistory.RemoveAll(hist => oldExportIds.Contains(hist.Id) || hist.Id == _exportId);
-                config.ImportHistory.Add(new Configuration.ImportHistoryEntry
-                {
-                    Id = _exportId,
-                    RemoteUrl = _export.ServerUrl,
-                    ExportedAt = _export.CreatedAt.ToDateTime(),
-                    ImportedAt = DateTime.UtcNow,
-                });
-                config.Save();
-
+            protected override void Run(QueuedImport import, ref bool recreateLayout)
+            {
                 recreateLayout = true;
-                saveMarkers = true;
 
-                Service.Chat.Print(string.Format(Localization.ImportCompleteStatistics, _importedTraps, _importedHoardCoffers));
-            }
-            catch (Exception e)
-            {
-                PluginLog.Error(e, "Import failed");
-                Service.Chat.PalError(string.Format(Localization.Error_ImportFailed, e));
-            }
-        }
-
-        private bool Validate()
-        {
-            if (_export.ExportVersion != ExportConfig.ExportVersion)
-            {
-                Service.Chat.PrintError(Localization.Error_ImportFailed_IncompatibleVersion);
-                return false;
-            }
-
-            if (!Guid.TryParse(_export.ExportId, out _exportId) || _exportId == Guid.Empty)
-            {
-                Service.Chat.PrintError(Localization.Error_ImportFailed_InvalidFile);
-                return false;
-            }
-
-            if (string.IsNullOrEmpty(_export.ServerUrl))
-            {
-                // If we allow for backups as import/export, this should be removed
-                Service.Chat.PrintError(Localization.Error_ImportFailed_InvalidFile);
-                return false;
-            }
-
-            return true;
-        }
-
-        private void ImportFloor(ExportFloor remoteFloor, LocalState localState)
-        {
-            var remoteMarkers = remoteFloor.Objects.Select(m => new Marker((Marker.EType)m.Type, new Vector3(m.X, m.Y, m.Z)) { WasImported = true });
-            foreach (var remoteMarker in remoteMarkers)
-            {
-                Marker? localMarker = localState.Markers.SingleOrDefault(x => x == remoteMarker);
-                if (localMarker == null)
+                try
                 {
-                    localState.Markers.Add(remoteMarker);
-                    localMarker = remoteMarker;
+                    if (!Validate(import))
+                        return;
 
-                    if (localMarker.Type == Marker.EType.Trap)
-                        _importedTraps++;
-                    else if (localMarker.Type == Marker.EType.Hoard)
-                        _importedHoardCoffers++;
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            using (var scope = _serviceScopeFactory.CreateScope())
+                            {
+                                using var dbContext = scope.ServiceProvider.GetRequiredService<PalClientContext>();
+                                (import.ImportedTraps, import.ImportedHoardCoffers) =
+                                    _importService.Import(import.Export);
+                            }
+
+                            _configWindow.UpdateLastImport();
+
+                            _logger.LogInformation(
+                                "Imported {ExportId} for {Traps} traps, {Hoard} hoard coffers", import.ExportId,
+                                import.ImportedTraps, import.ImportedHoardCoffers);
+                            _chat.Message(string.Format(Localization.ImportCompleteStatistics, import.ImportedTraps,
+                                import.ImportedHoardCoffers));
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.LogError(e, "Import failed in inner task");
+                            _chat.Error(string.Format(Localization.Error_ImportFailed, e));
+                        }
+                    });
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, "Import failed");
+                    _chat.Error(string.Format(Localization.Error_ImportFailed, e));
+                }
+            }
+
+            private bool Validate(QueuedImport import)
+            {
+                if (import.Export.ExportVersion != ExportConfig.ExportVersion)
+                {
+                    _logger.LogError(
+                        "Import: Different version in export file, {ExportVersion} != {ConfiguredVersion}",
+                        import.Export.ExportVersion, ExportConfig.ExportVersion);
+                    _chat.Error(Localization.Error_ImportFailed_IncompatibleVersion);
+                    return false;
                 }
 
-                remoteMarker.Imports.Add(_exportId);
+                if (!Guid.TryParse(import.Export.ExportId, out Guid exportId) || exportId == Guid.Empty)
+                {
+                    _logger.LogError("Import: Invalid export id '{Id}'", import.Export.ExportId);
+                    _chat.Error(Localization.Error_ImportFailed_InvalidFile);
+                    return false;
+                }
+
+                import.ExportId = exportId;
+
+                if (string.IsNullOrEmpty(import.Export.ServerUrl))
+                {
+                    // If we allow for backups as import/export, this should be removed
+                    _logger.LogError("Import: No server URL");
+                    _chat.Error(Localization.Error_ImportFailed_InvalidFile);
+                    return false;
+                }
+
+                return true;
             }
         }
     }

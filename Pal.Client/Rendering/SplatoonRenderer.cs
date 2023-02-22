@@ -1,30 +1,49 @@
-﻿using Dalamud.Logging;
-using Dalamud.Plugin;
+﻿using Dalamud.Plugin;
 using ECommons;
 using ECommons.Reflection;
 using ECommons.Schedulers;
 using ECommons.SplatoonAPI;
-using ImGuiNET;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
+using Dalamud.Game.ClientState;
+using Microsoft.Extensions.Logging;
+using Pal.Client.Configuration;
+using Pal.Client.DependencyInjection;
+using Pal.Client.Floors;
 
 namespace Pal.Client.Rendering
 {
-    internal class SplatoonRenderer : IRenderer, IDrawDebugItems, IDisposable
+    internal sealed class SplatoonRenderer : IRenderer, IDisposable
     {
         private const long OnTerritoryChange = -2;
-        private bool IsDisposed { get; set; }
 
-        public SplatoonRenderer(DalamudPluginInterface pluginInterface, IDalamudPlugin plugin)
+        private readonly ILogger<SplatoonRenderer> _logger;
+        private readonly DebugState _debugState;
+        private readonly ClientState _clientState;
+        private readonly Chat _chat;
+
+        public SplatoonRenderer(
+            ILogger<SplatoonRenderer> logger,
+            DalamudPluginInterface pluginInterface,
+            IDalamudPlugin dalamudPlugin,
+            DebugState debugState,
+            ClientState clientState,
+            Chat chat)
         {
-            ECommonsMain.Init(pluginInterface, plugin, ECommons.Module.SplatoonAPI);
+            _logger = logger;
+            _debugState = debugState;
+            _clientState = clientState;
+            _chat = chat;
+
+            _logger.LogInformation("Initializing splatoon");
+            ECommonsMain.Init(pluginInterface, dalamudPlugin, ECommons.Module.SplatoonAPI);
         }
+
+        private bool IsDisposed { get; set; }
 
         public void SetLayer(ELayer layer, IReadOnlyList<IRenderElement> elements)
         {
@@ -33,12 +52,15 @@ namespace Pal.Client.Rendering
             {
                 try
                 {
-                    Splatoon.AddDynamicElements(ToLayerName(layer), elements.Cast<SplatoonElement>().Select(x => x.Delegate).ToArray(), new[] { Environment.TickCount64 + 60 * 60 * 1000, OnTerritoryChange });
+                    Splatoon.AddDynamicElements(ToLayerName(layer),
+                        elements.Cast<SplatoonElement>().Select(x => x.Delegate).ToArray(),
+                        new[] { Environment.TickCount64 + 60 * 60 * 1000, OnTerritoryChange });
                 }
                 catch (Exception e)
                 {
-                    PluginLog.Error(e, $"Could not create splatoon layer {layer} with {elements.Count} elements");
-                    Service.Plugin.DebugMessage = $"{DateTime.Now}\n{e}";
+                    _logger.LogError(e, "Could not create splatoon layer {Layer} with {Count} elements", layer,
+                        elements.Count);
+                    _debugState.SetFromException(e);
                 }
             });
         }
@@ -51,14 +73,14 @@ namespace Pal.Client.Rendering
             }
             catch (Exception e)
             {
-                PluginLog.Error(e, $"Could not reset splatoon layer {layer}");
+                _logger.LogError(e, "Could not reset splatoon layer {Layer}", layer);
             }
         }
 
         private string ToLayerName(ELayer layer)
             => $"PalacePal.{layer}";
 
-        public IRenderElement CreateElement(Marker.EType type, Vector3 pos, uint color, bool fill = false)
+        public IRenderElement CreateElement(MemoryLocation.EType type, Vector3 pos, uint color, bool fill = false)
         {
             MarkerConfig config = MarkerConfig.ForType(type);
             Element element = new Element(ElementType.CircleAtFixedCoordinates)
@@ -78,22 +100,26 @@ namespace Pal.Client.Rendering
             return new SplatoonElement(this, element);
         }
 
-        public void DrawDebugItems(Vector4 trapColor, Vector4 hoardColor)
+        public void DrawDebugItems(uint trapColor, uint hoardColor)
         {
             try
             {
-                Vector3? pos = Service.ClientState.LocalPlayer?.Position;
+                Vector3? pos = _clientState.LocalPlayer?.Position;
                 if (pos != null)
                 {
+                    ResetLayer(ELayer.Test);
+
                     var elements = new List<IRenderElement>
                     {
-                        CreateElement(Marker.EType.Trap, pos.Value, ImGui.ColorConvertFloat4ToU32(trapColor)),
-                        CreateElement(Marker.EType.Hoard, pos.Value, ImGui.ColorConvertFloat4ToU32(hoardColor)),
+                        CreateElement(MemoryLocation.EType.Trap, pos.Value, trapColor),
+                        CreateElement(MemoryLocation.EType.Hoard, pos.Value, hoardColor),
                     };
 
-                    if (!Splatoon.AddDynamicElements("PalacePal.Test", elements.Cast<SplatoonElement>().Select(x => x.Delegate).ToArray(), new[] { Environment.TickCount64 + 10000 }))
+                    if (!Splatoon.AddDynamicElements(ToLayerName(ELayer.Test),
+                            elements.Cast<SplatoonElement>().Select(x => x.Delegate).ToArray(),
+                            new[] { Environment.TickCount64 + RenderData.TestLayerTimeout }))
                     {
-                        Service.Chat.PrintError("Could not draw markers :(");
+                        _chat.Message("Could not draw markers :(");
                     }
                 }
             }
@@ -102,37 +128,51 @@ namespace Pal.Client.Rendering
                 try
                 {
                     var pluginManager = DalamudReflector.GetPluginManager();
-                    IList installedPlugins = pluginManager.GetType().GetProperty("InstalledPlugins")?.GetValue(pluginManager) as IList ?? new List<object>();
+                    IList installedPlugins =
+                        pluginManager.GetType().GetProperty("InstalledPlugins")?.GetValue(pluginManager) as IList ??
+                        new List<object>();
 
                     foreach (var t in installedPlugins)
                     {
-                        AssemblyName? assemblyName = (AssemblyName?)t.GetType().GetProperty("AssemblyName")?.GetValue(t);
+                        AssemblyName? assemblyName =
+                            (AssemblyName?)t.GetType().GetProperty("AssemblyName")?.GetValue(t);
                         string? pluginName = (string?)t.GetType().GetProperty("Name")?.GetValue(t);
                         if (assemblyName?.Name == "Splatoon" && pluginName != "Splatoon")
                         {
-                            Service.Chat.PrintError($"[Palace Pal] Splatoon is installed under the plugin name '{pluginName}', which is incompatible with the Splatoon API.");
-                            Service.Chat.Print("[Palace Pal] You need to install Splatoon from the official repository at https://github.com/NightmareXIV/MyDalamudPlugins.");
+                            _chat.Error(
+                                $"Splatoon is installed under the plugin name '{pluginName}', which is incompatible with the Splatoon API.");
+                            _chat.Message(
+                                "You need to install Splatoon from the official repository at https://github.com/NightmareXIV/MyDalamudPlugins.");
                             return;
                         }
                     }
                 }
-                catch (Exception) { }
+                catch (Exception)
+                {
+                    // not relevant
+                }
 
-                Service.Chat.PrintError("Could not draw markers, is Splatoon installed and enabled?");
+                _chat.Error("Could not draw markers, is Splatoon installed and enabled?");
             }
         }
 
+        public ERenderer GetConfigValue()
+            => ERenderer.Splatoon;
+
         public void Dispose()
         {
+            _logger.LogInformation("Disposing splatoon");
+
             IsDisposed = true;
 
             ResetLayer(ELayer.TrapHoard);
             ResetLayer(ELayer.RegularCoffers);
+            ResetLayer(ELayer.Test);
 
             ECommonsMain.Dispose();
         }
 
-        public class SplatoonElement : IRenderElement
+        private sealed class SplatoonElement : IRenderElement
         {
             private readonly SplatoonRenderer _renderer;
 
@@ -145,6 +185,7 @@ namespace Pal.Client.Rendering
             public Element Delegate { get; }
 
             public bool IsValid => !_renderer.IsDisposed && Delegate.IsValid();
+
             public uint Color
             {
                 get => Delegate.color;
