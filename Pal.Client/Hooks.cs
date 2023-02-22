@@ -1,6 +1,5 @@
 ﻿using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Hooking;
-using Dalamud.Logging;
 using Dalamud.Memory;
 using Dalamud.Utility.Signatures;
 using System;
@@ -32,8 +31,11 @@ namespace Pal.Client
             _territoryState = territoryState;
             _frameworkService = frameworkService;
 
+            _logger.LogDebug("Initializing game hooks");
             SignatureHelper.Initialise(this);
             ActorVfxCreateHook.Enable();
+
+            _logger.LogDebug("Game hooks initialized");
         }
 
         /// <summary>
@@ -82,6 +84,7 @@ namespace Pal.Client
                     {
                         if (vfxPath == "vfx/common/eff/dk05th_stdn0t.avfx" || vfxPath == "vfx/common/eff/dk05ht_ipws0t.avfx")
                         {
+                            _logger.LogDebug("VFX '{Path}' playing at {Location}", vfxPath, obj.Position);
                             _frameworkService.NextUpdateObjects.Enqueue(obj.Address);
                         }
                     }
@@ -96,6 +99,7 @@ namespace Pal.Client
 
         public void Dispose()
         {
+            _logger.LogDebug("Disposing game hooks");
             ActorVfxCreateHook.Dispose();
         }
     }

@@ -27,7 +27,7 @@ namespace Pal.Client.Scheduled
             {
                 if (queued is T t)
                 {
-                    _logger.LogInformation("Handling {QueuedType}", queued.GetType());
+                    _logger.LogDebug("Handling {QueuedType}", queued.GetType());
                     Run(t, ref recreateLayout);
                 }
                 else

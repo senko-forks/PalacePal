@@ -1,14 +1,15 @@
 ﻿using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Pal.Client.Rendering;
-using Pal.Client.Windows;
 using System;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Dalamud.Game;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.Command;
+using Dalamud.Game.Gui;
 using Pal.Client.Properties;
 using ECommons;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,52 +25,101 @@ namespace Pal.Client
     /// need to be sent to different receivers depending on priority or configuration .
     /// </summary>
     /// <see cref="DependencyInjectionContext"/>
-    internal sealed class Plugin : IDisposable
+    internal sealed class Plugin : IDalamudPlugin
     {
+        private readonly CancellationTokenSource _initCts = new();
+
         private readonly DalamudPluginInterface _pluginInterface;
-        private readonly ILogger<Plugin> _logger;
         private readonly CommandManager _commandManager;
-        private readonly Chat _chat;
-        private readonly WindowSystem _windowSystem;
         private readonly ClientState _clientState;
+        private readonly ChatGui _chatGui;
+        private readonly Framework _framework;
 
-        private readonly IServiceScope _rootScope;
-        private readonly DependencyInjectionLoader _loader;
+        private readonly TaskCompletionSource<IServiceScope> _rootScopeCompletionSource = new();
+        private ELoadState _loadState = ELoadState.Initializing;
 
+        private DependencyInjectionContext? _dependencyInjectionContext;
+        private ILogger _logger = DependencyInjectionContext.LoggerProvider.CreateLogger<Plugin>();
+        private WindowSystem? _windowSystem;
+        private IServiceScope? _rootScope;
         private Action? _loginAction;
 
         public Plugin(
             DalamudPluginInterface pluginInterface,
-            IServiceProvider serviceProvider,
-            CancellationToken cancellationToken)
+            CommandManager commandManager,
+            ClientState clientState,
+            ChatGui chatGui,
+            Framework framework)
         {
             _pluginInterface = pluginInterface;
-            _logger = serviceProvider.GetRequiredService<ILogger<Plugin>>();
-            _commandManager = serviceProvider.GetRequiredService<CommandManager>();
-            _chat = serviceProvider.GetRequiredService<Chat>();
-            _windowSystem = serviceProvider.GetRequiredService<WindowSystem>();
-            _clientState = serviceProvider.GetRequiredService<ClientState>();
+            _commandManager = commandManager;
+            _clientState = clientState;
+            _chatGui = chatGui;
+            _framework = framework;
 
-            _rootScope = serviceProvider.CreateScope();
-            _loader = _rootScope.ServiceProvider.GetRequiredService<DependencyInjectionLoader>();
-            _loader.InitCompleted += InitCompleted;
-            var _ = Task.Run(async () => await _loader.InitializeAsync(cancellationToken));
-
-            pluginInterface.UiBuilder.Draw += Draw;
-            pluginInterface.UiBuilder.OpenConfigUi += OpenConfigUi;
-            pluginInterface.LanguageChanged += LanguageChanged;
-            _clientState.Login += Login;
+            // set up the current UI language before creating anything
+            Localization.Culture = new CultureInfo(_pluginInterface.UiLanguage);
 
             _commandManager.AddHandler("/pal", new CommandInfo(OnCommand)
             {
                 HelpMessage = Localization.Command_pal_HelpText
             });
+
+            Task.Run(async () => await CreateDependencyContext());
         }
 
-        private void InitCompleted(Action? loginAction)
-        {
-            LanguageChanged(_pluginInterface.UiLanguage);
+        public string Name => Localization.Palace_Pal;
 
+        private async Task CreateDependencyContext()
+        {
+            try
+            {
+                _dependencyInjectionContext = _pluginInterface.Create<DependencyInjectionContext>(this)
+                                              ?? throw new Exception("Could not create DI root context class");
+                var serviceProvider = _dependencyInjectionContext.BuildServiceContainer();
+                _initCts.Token.ThrowIfCancellationRequested();
+
+                _logger = serviceProvider.GetRequiredService<ILogger<Plugin>>();
+                _windowSystem = serviceProvider.GetRequiredService<WindowSystem>();
+                _rootScope = serviceProvider.CreateScope();
+
+                var loader = _rootScope.ServiceProvider.GetRequiredService<DependencyContextInitializer>();
+                await loader.InitializeAsync(_initCts.Token);
+
+                await _framework.RunOnFrameworkThread(() =>
+                {
+                    _pluginInterface.UiBuilder.Draw += Draw;
+                    _pluginInterface.UiBuilder.OpenConfigUi += OpenConfigUi;
+                    _pluginInterface.LanguageChanged += LanguageChanged;
+                    _clientState.Login += Login;
+                });
+                _rootScopeCompletionSource.SetResult(_rootScope);
+                _loadState = ELoadState.Loaded;
+            }
+            catch (ObjectDisposedException e)
+            {
+                _rootScopeCompletionSource.SetException(e);
+                _loadState = ELoadState.Error;
+            }
+            catch (OperationCanceledException e)
+            {
+                _rootScopeCompletionSource.SetException(e);
+                _loadState = ELoadState.Error;
+            }
+            catch (Exception e)
+            {
+                _rootScopeCompletionSource.SetException(e);
+                _logger.LogError(e, "Async load failed");
+                ShowErrorOnLogin(() =>
+                    new Chat(_chatGui).Error(string.Format(Localization.Error_LoadFailed,
+                        $"{e.GetType()} - {e.Message}")));
+
+                _loadState = ELoadState.Error;
+            }
+        }
+
+        private void ShowErrorOnLogin(Action? loginAction)
+        {
             if (_clientState.IsLoggedIn)
             {
                 loginAction?.Invoke();
@@ -89,84 +139,106 @@ namespace Pal.Client
         {
             arguments = arguments.Trim();
 
-            IPalacePalConfiguration configuration =
-                _rootScope.ServiceProvider.GetRequiredService<IPalacePalConfiguration>();
-            if (configuration.FirstUse && arguments != "" && arguments != "config")
+            Task.Run(async () =>
             {
-                _chat.Error(Localization.Error_FirstTimeSetupRequired);
-                return;
-            }
-
-            try
-            {
-                var sp = _rootScope.ServiceProvider;
-
-                switch (arguments)
+                IServiceScope rootScope;
+                try
                 {
-                    case "":
-                    case "config":
-                        sp.GetRequiredService<PalConfigCommand>().Execute();
-                        break;
-
-                    case "stats":
-                        sp.GetRequiredService<PalStatsCommand>().Execute();
-                        break;
-
-                    case "tc":
-                    case "test-connection":
-                        sp.GetRequiredService<PalTestConnectionCommand>().Execute();
-                        break;
-
-                    case "near":
-                    case "tnear":
-                    case "hnear":
-                        sp.GetRequiredService<PalNearCommand>().Execute(arguments);
-                        break;
-
-                    default:
-                        _chat.Error(string.Format(Localization.Command_pal_UnknownSubcommand, arguments,
-                            command));
-                        break;
+                    rootScope = await _rootScopeCompletionSource.Task;
                 }
-            }
-            catch (Exception e)
-            {
-                _chat.Error(e.ToString());
-            }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, "Could not wait for command root scope");
+                    return;
+                }
+
+                IPalacePalConfiguration configuration =
+                    rootScope.ServiceProvider.GetRequiredService<IPalacePalConfiguration>();
+                Chat chat = rootScope.ServiceProvider.GetRequiredService<Chat>();
+                if (configuration.FirstUse && arguments != "" && arguments != "config")
+                {
+                    chat.Error(Localization.Error_FirstTimeSetupRequired);
+                    return;
+                }
+
+                try
+                {
+                    var sp = rootScope.ServiceProvider;
+
+                    switch (arguments)
+                    {
+                        case "":
+                        case "config":
+                            sp.GetRequiredService<PalConfigCommand>().Execute();
+                            break;
+
+                        case "stats":
+                            sp.GetRequiredService<PalStatsCommand>().Execute();
+                            break;
+
+                        case "tc":
+                        case "test-connection":
+                            sp.GetRequiredService<PalTestConnectionCommand>().Execute();
+                            break;
+
+                        case "near":
+                        case "tnear":
+                        case "hnear":
+                            sp.GetRequiredService<PalNearCommand>().Execute(arguments);
+                            break;
+
+                        default:
+                            chat.Error(string.Format(Localization.Command_pal_UnknownSubcommand, arguments,
+                                command));
+                            break;
+                    }
+                }
+                catch (Exception e)
+                {
+                    chat.Error(e.ToString());
+                }
+            });
         }
 
         private void OpenConfigUi()
-            => _rootScope.ServiceProvider.GetRequiredService<PalConfigCommand>().Execute();
+            => _rootScope!.ServiceProvider.GetRequiredService<PalConfigCommand>().Execute();
 
         private void LanguageChanged(string languageCode)
         {
             _logger.LogInformation("Language set to '{Language}'", languageCode);
 
             Localization.Culture = new CultureInfo(languageCode);
-            _windowSystem.Windows.OfType<ILanguageChanged>()
+            _windowSystem!.Windows.OfType<ILanguageChanged>()
                 .Each(w => w.LanguageChanged());
         }
 
         private void Draw()
         {
-            if (_loader.LoadState == DependencyInjectionLoader.ELoadState.Loaded)
-            {
-                _rootScope.ServiceProvider.GetRequiredService<RenderAdapter>().DrawLayers();
-                _windowSystem.Draw();
-            }
+            _rootScope!.ServiceProvider.GetRequiredService<RenderAdapter>().DrawLayers();
+            _windowSystem!.Draw();
         }
 
         public void Dispose()
         {
             _commandManager.RemoveHandler("/pal");
 
-            _pluginInterface.UiBuilder.Draw -= Draw;
-            _pluginInterface.UiBuilder.OpenConfigUi -= OpenConfigUi;
-            _pluginInterface.LanguageChanged -= LanguageChanged;
-            _clientState.Login -= Login;
+            if (_loadState == ELoadState.Loaded)
+            {
+                _pluginInterface.UiBuilder.Draw -= Draw;
+                _pluginInterface.UiBuilder.OpenConfigUi -= OpenConfigUi;
+                _pluginInterface.LanguageChanged -= LanguageChanged;
+                _clientState.Login -= Login;
+            }
 
-            _loader.InitCompleted -= InitCompleted;
-            _rootScope.Dispose();
+            _initCts.Cancel();
+            _rootScope?.Dispose();
+        }
+
+        private enum ELoadState
+        {
+            Initializing,
+            Loaded,
+            Error
         }
     }
 }

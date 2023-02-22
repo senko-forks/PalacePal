@@ -1,6 +1,5 @@
-﻿using System.Globalization;
+﻿using System;
 using System.IO;
-using System.Threading;
 using Dalamud.Data;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
@@ -32,20 +31,18 @@ namespace Pal.Client
     /// <summary>
     /// DI-aware Plugin.
     /// </summary>
-    // ReSharper disable once UnusedType.Global
-    internal sealed class DependencyInjectionContext : IDalamudPlugin
+    internal sealed class DependencyInjectionContext : IDisposable
     {
         public static DalamudLoggerProvider LoggerProvider { get; } = new();
 
         /// <summary>
         /// Initialized as temporary logger, will be overriden once context is ready with a logger that supports scopes.
         /// </summary>
-        private readonly ILogger _logger = LoggerProvider.CreateLogger<DependencyInjectionContext>();
+        private ILogger _logger = LoggerProvider.CreateLogger<DependencyInjectionContext>();
 
         private readonly string _sqliteConnectionString;
-        private readonly CancellationTokenSource _initCts = new();
+        private readonly ServiceCollection _serviceCollection = new();
         private ServiceProvider? _serviceProvider;
-        private Plugin? _plugin;
 
         public string Name => Localization.Palace_Pal;
 
@@ -58,9 +55,10 @@ namespace Pal.Client
             Framework framework,
             Condition condition,
             CommandManager commandManager,
-            DataManager dataManager)
+            DataManager dataManager,
+            Plugin plugin)
         {
-            _logger.LogInformation("Building service container for {Assembly}",
+            _logger.LogInformation("Building dalamud service container for {Assembly}",
                 typeof(DependencyInjectionContext).Assembly.FullName);
 
             // set up legacy services
@@ -69,8 +67,7 @@ namespace Pal.Client
 #pragma warning restore CS0612
 
             // set up logging
-            IServiceCollection services = new ServiceCollection();
-            services.AddLogging(builder =>
+            _serviceCollection.AddLogging(builder =>
                 builder.AddFilter("Pal", LogLevel.Trace)
                     .AddFilter("Microsoft.EntityFrameworkCore.Database", LogLevel.Warning)
                     .AddFilter("Grpc", LogLevel.Debug)
@@ -78,70 +75,78 @@ namespace Pal.Client
                     .AddProvider(LoggerProvider));
 
             // dalamud
-            services.AddSingleton<IDalamudPlugin>(this);
-            services.AddSingleton(pluginInterface);
-            services.AddSingleton(clientState);
-            services.AddSingleton(gameGui);
-            services.AddSingleton(chatGui);
-            services.AddSingleton<Chat>();
-            services.AddSingleton(objectTable);
-            services.AddSingleton(framework);
-            services.AddSingleton(condition);
-            services.AddSingleton(commandManager);
-            services.AddSingleton(dataManager);
-            services.AddSingleton(new WindowSystem(typeof(DependencyInjectionContext).AssemblyQualifiedName));
+            _serviceCollection.AddSingleton<IDalamudPlugin>(plugin);
+            _serviceCollection.AddSingleton(pluginInterface);
+            _serviceCollection.AddSingleton(clientState);
+            _serviceCollection.AddSingleton(gameGui);
+            _serviceCollection.AddSingleton(chatGui);
+            _serviceCollection.AddSingleton<Chat>();
+            _serviceCollection.AddSingleton(objectTable);
+            _serviceCollection.AddSingleton(framework);
+            _serviceCollection.AddSingleton(condition);
+            _serviceCollection.AddSingleton(commandManager);
+            _serviceCollection.AddSingleton(dataManager);
+            _serviceCollection.AddSingleton(new WindowSystem(typeof(DependencyInjectionContext).AssemblyQualifiedName));
 
-            // EF core
             _sqliteConnectionString =
                 $"Data Source={Path.Join(pluginInterface.GetPluginConfigDirectory(), "palace-pal.data.sqlite3")}";
-            services.AddDbContext<PalClientContext>(o => o.UseSqlite(_sqliteConnectionString));
-            services.AddTransient<JsonMigration>();
-            services.AddScoped<Cleanup>();
+        }
+
+        public IServiceProvider BuildServiceContainer()
+        {
+            _logger.LogInformation("Building async service container for {Assembly}",
+                typeof(DependencyInjectionContext).Assembly.FullName);
+
+            // EF core
+            _serviceCollection.AddDbContext<PalClientContext>(o => o.UseSqlite(_sqliteConnectionString));
+            _serviceCollection.AddTransient<JsonMigration>();
+            _serviceCollection.AddScoped<Cleanup>();
 
             // plugin-specific
-            services.AddScoped<DependencyInjectionLoader>();
-            services.AddScoped<DebugState>();
-            services.AddScoped<Hooks>();
-            services.AddScoped<RemoteApi>();
-            services.AddScoped<ConfigurationManager>();
-            services.AddScoped<IPalacePalConfiguration>(sp => sp.GetRequiredService<ConfigurationManager>().Load());
-            services.AddTransient<RepoVerification>();
+            _serviceCollection.AddScoped<DependencyContextInitializer>();
+            _serviceCollection.AddScoped<DebugState>();
+            _serviceCollection.AddScoped<Hooks>();
+            _serviceCollection.AddScoped<RemoteApi>();
+            _serviceCollection.AddScoped<ConfigurationManager>();
+            _serviceCollection.AddScoped<IPalacePalConfiguration>(sp =>
+                sp.GetRequiredService<ConfigurationManager>().Load());
+            _serviceCollection.AddTransient<RepoVerification>();
 
             // commands
-            services.AddScoped<PalConfigCommand>();
-            services.AddScoped<PalNearCommand>();
-            services.AddScoped<PalStatsCommand>();
-            services.AddScoped<PalTestConnectionCommand>();
+            _serviceCollection.AddScoped<PalConfigCommand>();
+            _serviceCollection.AddScoped<PalNearCommand>();
+            _serviceCollection.AddScoped<PalStatsCommand>();
+            _serviceCollection.AddScoped<PalTestConnectionCommand>();
 
             // territory & marker related services
-            services.AddScoped<TerritoryState>();
-            services.AddScoped<FrameworkService>();
-            services.AddScoped<ChatService>();
-            services.AddScoped<FloorService>();
-            services.AddScoped<ImportService>();
+            _serviceCollection.AddScoped<TerritoryState>();
+            _serviceCollection.AddScoped<FrameworkService>();
+            _serviceCollection.AddScoped<ChatService>();
+            _serviceCollection.AddScoped<FloorService>();
+            _serviceCollection.AddScoped<ImportService>();
 
             // windows & related services
-            services.AddScoped<AgreementWindow>();
-            services.AddScoped<ConfigWindow>();
-            services.AddScoped<StatisticsService>();
-            services.AddScoped<StatisticsWindow>();
+            _serviceCollection.AddScoped<AgreementWindow>();
+            _serviceCollection.AddScoped<ConfigWindow>();
+            _serviceCollection.AddScoped<StatisticsService>();
+            _serviceCollection.AddScoped<StatisticsWindow>();
 
             // rendering
-            services.AddScoped<SimpleRenderer>();
-            services.AddScoped<SplatoonRenderer>();
-            services.AddScoped<RenderAdapter>();
+            _serviceCollection.AddScoped<SimpleRenderer>();
+            _serviceCollection.AddScoped<SplatoonRenderer>();
+            _serviceCollection.AddScoped<RenderAdapter>();
 
             // queue handling
-            services.AddTransient<IQueueOnFrameworkThread.Handler<QueuedImport>, QueuedImport.Handler>();
-            services.AddTransient<IQueueOnFrameworkThread.Handler<QueuedUndoImport>, QueuedUndoImport.Handler>();
-            services.AddTransient<IQueueOnFrameworkThread.Handler<QueuedConfigUpdate>, QueuedConfigUpdate.Handler>();
-            services.AddTransient<IQueueOnFrameworkThread.Handler<QueuedSyncResponse>, QueuedSyncResponse.Handler>();
-
-            // set up the current UI language before creating anything
-            Localization.Culture = new CultureInfo(pluginInterface.UiLanguage);
+            _serviceCollection.AddTransient<IQueueOnFrameworkThread.Handler<QueuedImport>, QueuedImport.Handler>();
+            _serviceCollection
+                .AddTransient<IQueueOnFrameworkThread.Handler<QueuedUndoImport>, QueuedUndoImport.Handler>();
+            _serviceCollection
+                .AddTransient<IQueueOnFrameworkThread.Handler<QueuedConfigUpdate>, QueuedConfigUpdate.Handler>();
+            _serviceCollection
+                .AddTransient<IQueueOnFrameworkThread.Handler<QueuedSyncResponse>, QueuedSyncResponse.Handler>();
 
             // build
-            _serviceProvider = services.BuildServiceProvider(new ServiceProviderOptions
+            _serviceProvider = _serviceCollection.BuildServiceProvider(new ServiceProviderOptions
             {
                 ValidateOnBuild = true,
                 ValidateScopes = true,
@@ -165,34 +170,19 @@ namespace Pal.Client
             // There's 2-3 seconds of slowdown primarily caused by the sqlite init, but that needs to happen for
             // config stuff.
             _logger = _serviceProvider.GetRequiredService<ILogger<DependencyInjectionContext>>();
-            _logger.LogInformation("Service container built, creating plugin");
-            _plugin = new Plugin(pluginInterface, _serviceProvider, _initCts.Token);
+            _logger.LogInformation("Service container built");
+
+            return _serviceProvider;
         }
 
         public void Dispose()
         {
-            _initCts.Cancel();
+            _logger.LogInformation("Disposing DI Context");
+            _serviceProvider?.Dispose();
 
-            // ensure we're not calling dispose recursively on ourselves
-            if (_serviceProvider != null)
-            {
-                _logger.LogInformation("Disposing DI Context");
-
-                ServiceProvider serviceProvider = _serviceProvider;
-                _serviceProvider = null;
-
-                _plugin?.Dispose();
-                _plugin = null;
-                serviceProvider.Dispose();
-
-                // ensure we're not keeping the file open longer than the plugin is loaded
-                using (SqliteConnection sqliteConnection = new(_sqliteConnectionString))
-                    SqliteConnection.ClearPool(sqliteConnection);
-            }
-            else
-            {
-                _logger.LogDebug("DI context is already disposed");
-            }
+            // ensure we're not keeping the file open longer than the plugin is loaded
+            using (SqliteConnection sqliteConnection = new(_sqliteConnectionString))
+                SqliteConnection.ClearPool(sqliteConnection);
         }
     }
 }
