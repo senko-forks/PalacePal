@@ -6,7 +6,7 @@
         public Guid AccountId { get; set; }
         public Database.Account Account { get; set; } = null!;
         public Guid PalaceLocationId { get; set; }
-        public ServerLocation ServerLocation { get; set; } = null!;
+        public ServerLocation PalaceLocation { get; set; } = null!;
         public DateTime FirstSeenAt { get; set; }
 
         private SeenLocation() { }
