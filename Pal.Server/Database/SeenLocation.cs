@@ -1,5 +1,8 @@
-﻿namespace Pal.Server.Database
+﻿using Microsoft.EntityFrameworkCore;
+
+namespace Pal.Server.Database
 {
+    [Index("AccountId", "PalaceLocationId", IsUnique = true)]
     public sealed class SeenLocation
     {
         public Guid Id { get; set; }
