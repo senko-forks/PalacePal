@@ -16,17 +16,28 @@ namespace Pal.Client.Net
 {
     internal partial class RemoteApi
     {
-        private readonly SemaphoreSlim connectLock = new(1, 1);
+        private readonly SemaphoreSlim _connectLock = new(1, 1);
 
         private async Task<(bool Success, string Error)> TryConnect(CancellationToken cancellationToken,
             ILoggerFactory? loggerFactory = null, bool retry = true)
         {
             using IDisposable? logScope = _logger.BeginScope("TryConnect");
 
+            var result = await TryConnectImpl(cancellationToken, loggerFactory);
+            if (retry && result.ShouldRetry)
+                result = await TryConnectImpl(cancellationToken, loggerFactory);
+
+            return (result.Success, result.Error);
+        }
+
+        private async Task<(bool Success, string Error, bool ShouldRetry)> TryConnectImpl(
+            CancellationToken cancellationToken,
+            ILoggerFactory? loggerFactory)
+        {
             if (_configuration.Mode != EMode.Online)
             {
                 _logger.LogDebug("Not Online, not attempting to establish a connection");
-                return (false, Localization.ConnectionError_NotOnline);
+                return (false, Localization.ConnectionError_NotOnline, false);
             }
 
             if (_channel == null ||
@@ -52,7 +63,7 @@ namespace Pal.Client.Net
             cancellationToken.ThrowIfCancellationRequested();
 
             _logger.LogTrace("Acquiring connect lock");
-            await connectLock.WaitAsync(cancellationToken);
+            await _connectLock.WaitAsync(cancellationToken);
             _logger.LogTrace("Obtained connect lock");
 
             try
@@ -85,7 +96,8 @@ namespace Pal.Client.Net
                         }
 
                         return (false,
-                            string.Format(Localization.ConnectionError_CreateAccountFailed, createAccountReply.Error));
+                            string.Format(Localization.ConnectionError_CreateAccountFailed, createAccountReply.Error),
+                            false);
                     }
                 }
 
@@ -95,7 +107,7 @@ namespace Pal.Client.Net
                 if (configuredAccount == null)
                 {
                     _logger.LogWarning("No account to login with");
-                    return (false, Localization.ConnectionError_CreateAccountReturnedNoId);
+                    return (false, Localization.ConnectionError_CreateAccountReturnedNoId, false);
                 }
 
                 if (!_loginInfo.IsValid)
@@ -133,13 +145,9 @@ namespace Pal.Client.Net
                         {
                             _configuration.RemoveAccount(RemoteUrl);
                             _configurationManager.Save(_configuration);
-                            if (retry)
-                            {
-                                _logger.LogInformation("Attempting connection retry without account id");
-                                return await TryConnect(cancellationToken, retry: false);
-                            }
-                            else
-                                return (false, Localization.ConnectionError_InvalidAccountId);
+
+                            _logger.LogInformation("Attempting connection retry without account id");
+                            return (false, Localization.ConnectionError_InvalidAccountId, true);
                         }
 
                         if (loginReply.Error == LoginError.UpgradeRequired && !_warnedAboutUpgrade)
@@ -148,7 +156,8 @@ namespace Pal.Client.Net
                             _warnedAboutUpgrade = true;
                         }
 
-                        return (false, string.Format(Localization.ConnectionError_LoginFailed, loginReply.Error));
+                        return (false, string.Format(Localization.ConnectionError_LoginFailed, loginReply.Error),
+                            false);
                     }
                 }
 
@@ -156,16 +165,16 @@ namespace Pal.Client.Net
                 {
                     _logger.LogError("Login state is loggedIn={LoggedIn}, expired={Expired}", _loginInfo.IsLoggedIn,
                         _loginInfo.IsExpired);
-                    return (false, Localization.ConnectionError_LoginReturnedNoToken);
+                    return (false, Localization.ConnectionError_LoginReturnedNoToken, false);
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
-                return (true, string.Empty);
+                return (true, string.Empty, false);
             }
             finally
             {
                 _logger.LogTrace("Releasing connectLock");
-                connectLock.Release();
+                _connectLock.Release();
             }
         }
 
