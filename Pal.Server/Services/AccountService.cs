@@ -12,7 +12,7 @@ using static Account.AccountService;
 
 namespace Pal.Server.Services
 {
-    internal class AccountService : AccountServiceBase
+    internal sealed class AccountService : AccountServiceBase
     {
         private readonly ILogger<AccountService> _logger;
         private readonly PalServerContext _dbContext;
@@ -114,7 +114,7 @@ namespace Pal.Server.Services
                     new(ClaimTypes.Role, "default"),
                 };
 
-                foreach (var role in existingAccount.Roles ?? new List<string>())
+                foreach (var role in existingAccount.Roles)
                     claims.Add(new Claim(ClaimTypes.Role, role));
 
                 var tokenHandler = new JwtSecurityTokenHandler();

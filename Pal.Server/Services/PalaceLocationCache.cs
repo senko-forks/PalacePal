@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 
 namespace Pal.Server.Services
 {
-    public class PalaceLocationCache
+    internal sealed class PalaceLocationCache
     {
         private readonly ConcurrentDictionary<ushort, ConcurrentDictionary<Guid, PalaceObject>> _objects = new();
 

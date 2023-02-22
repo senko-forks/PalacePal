@@ -2,7 +2,7 @@
 
 namespace Pal.Server.Services
 {
-    public class RemoveIpHashService : IHostedService, IDisposable
+    internal sealed class RemoveIpHashService : IHostedService, IDisposable
     {
         private readonly ILogger<RemoveIpHashService> _logger;
         private readonly IServiceProvider _serviceProvider;

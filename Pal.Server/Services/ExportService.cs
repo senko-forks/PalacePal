@@ -10,7 +10,7 @@ using static Account.ExportService;
 
 namespace Pal.Server.Services
 {
-    internal class ExportService : ExportServiceBase
+    internal sealed class ExportService : ExportServiceBase
     {
         private readonly ILogger<ExportService> _logger;
         private readonly PalServerContext _dbContext;

@@ -7,7 +7,7 @@ using Pal.Server.Services;
 
 namespace Pal.Server
 {
-    public class Program
+    internal static class Program
     {
         public static async Task Main(string[] args)
         {
@@ -17,7 +17,7 @@ namespace Pal.Server
             builder.Services.AddGrpc(o => o.EnableDetailedErrors = true);
             builder.Services.AddDbContext<PalServerContext>(o =>
             {
-                if (builder.Configuration["DataDirectory"] is string dbPath)
+                if (builder.Configuration["DataDirectory"] is { } dbPath)
                 {
                     dbPath += "/palace-pal.db";
                 }
@@ -53,7 +53,7 @@ namespace Pal.Server
             });
             builder.Services.AddAuthorization();
 
-            if (builder.Configuration["DataDirectory"] is string dataDirectory)
+            if (builder.Configuration["DataDirectory"] is { } dataDirectory)
             {
                 builder.Services.AddDataProtection()
                     .PersistKeysToFileSystem(new DirectoryInfo(dataDirectory));

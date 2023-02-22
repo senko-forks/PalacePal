@@ -11,7 +11,7 @@ using static Palace.PalaceService;
 
 namespace Pal.Server.Services
 {
-    internal class PalaceService : PalaceServiceBase
+    internal sealed class PalaceService : PalaceServiceBase
     {
         private readonly ILogger<PalaceService> _logger;
         private readonly PalServerContext _dbContext;
@@ -97,7 +97,13 @@ namespace Pal.Server.Services
                         reply.Objects.Add(palaceObj);
                     }
 
-                    _logger.LogInformation("Saved {Count} new locations for {TerritoryName} ({TerritoryType})", newLocations.Count, (ETerritoryType)territoryType, territoryType);
+                    int trapCount = newLocations.Count(x => x.Type == ServerLocation.EType.Trap);
+                    int hoardCount = newLocations.Count(x => x.Type == ServerLocation.EType.Hoard);
+
+                    if (trapCount > 0)
+                        _logger.LogInformation("Saved {Count} new trap locations for {TerritoryName} ({TerritoryType})", trapCount, (ETerritoryType)territoryType, territoryType);
+                    if (hoardCount > 0)
+                        _logger.LogInformation("Saved {Count} new hoard locations for {TerritoryName} ({TerritoryType})", trapCount, (ETerritoryType)territoryType, territoryType);
                 }
                 else
                     _logger.LogInformation("Saved no objects for {TerritoryName} ({TerritoryType}) - all {Count} already known", (ETerritoryType)territoryType, territoryType, request.Objects.Count);
@@ -195,7 +201,7 @@ namespace Pal.Server.Services
             return result;
         }
 
-        private class TypeAndLocationEqualityComparer : IEqualityComparer<PalaceObject>
+        private sealed class TypeAndLocationEqualityComparer : IEqualityComparer<PalaceObject>
         {
             public bool Equals(PalaceObject? first, PalaceObject? second)
             {
