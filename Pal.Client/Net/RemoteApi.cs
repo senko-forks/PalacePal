@@ -13,7 +13,7 @@ namespace Pal.Client.Net
 #if DEBUG
         public const string RemoteUrl = "http://localhost:5415";
 #else
-        //public const string RemoteUrl = "https://pal.liza.sh";
+        public const string RemoteUrl = "http://localhost:5415";
 #endif
         private readonly string _userAgent =
             $"{typeof(RemoteApi).Assembly.GetName().Name?.Replace(" ", "")}/{typeof(RemoteApi).Assembly.GetName().Version?.ToString(2)}";

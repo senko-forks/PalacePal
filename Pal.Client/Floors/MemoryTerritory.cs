@@ -18,8 +18,7 @@ namespace Pal.Client.Floors
         }
 
         public ETerritoryType TerritoryType { get; }
-        public bool IsReady { get; set; }
-        public bool IsLoading { get; set; } // probably merge this with IsReady as enum
+        public EReadyState ReadyState { get; set; } = EReadyState.NotLoaded;
         public ESyncState SyncState { get; set; } = ESyncState.NotAttempted;
 
         public ConcurrentBag<PersistentLocation> Locations { get; } = new();
@@ -31,21 +30,34 @@ namespace Pal.Client.Floors
             foreach (var location in locations)
                 Locations.Add(location);
 
-            IsReady = true;
-            IsLoading = false;
-        }
-
-        public IEnumerable<PersistentLocation> GetRemovableLocations(EMode mode)
-        {
-            // TODO there was better logic here;
-            return Locations.Where(x => !x.Seen);
+            ReadyState = EReadyState.Ready;
         }
 
         public void Reset()
         {
             Locations.Clear();
-            IsReady = false;
-            IsLoading = false;
+            SyncState = ESyncState.NotAttempted;
+            ReadyState = EReadyState.NotLoaded;
+        }
+
+        public enum EReadyState
+        {
+            NotLoaded,
+
+            /// <summary>
+            /// Currently loading from the database.
+            /// </summary>
+            Loading,
+
+            /// <summary>
+            /// Locations loaded, no import running.
+            /// </summary>
+            Ready,
+
+            /// <summary>
+            /// Import running, should probably not interact with this too much.
+            /// </summary>
+            Importing,
         }
     }
 }

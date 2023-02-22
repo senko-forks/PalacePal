@@ -55,7 +55,9 @@ namespace Pal.Client
                 cancellationToken.ThrowIfCancellationRequested();
 
                 await RunMigrations(cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
 
+                await RunCleanup(_logger);
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // v1 migration: config migration for import history, json migration for markers
@@ -174,17 +176,27 @@ namespace Pal.Client
 
         private async Task RunMigrations(CancellationToken cancellationToken)
         {
-            // initialize database
-            await using (var scope = _serviceProvider.CreateAsyncScope())
-            {
-                _logger.LogInformation("Loading database & running migrations");
-                await using var dbContext = scope.ServiceProvider.GetRequiredService<PalClientContext>();
+            await using var scope = _serviceProvider.CreateAsyncScope();
 
-                // takes 2-3 seconds with initializing connections, loading driver etc.
-                await dbContext.Database.MigrateAsync(cancellationToken);
-                _logger.LogInformation("Completed database migrations");
-            }
+            _logger.LogInformation("Loading database & running migrations");
+            await using var dbContext = scope.ServiceProvider.GetRequiredService<PalClientContext>();
+
+            // takes 2-3 seconds with initializing connections, loading driver etc.
+            await dbContext.Database.MigrateAsync(cancellationToken);
+            _logger.LogInformation("Completed database migrations");
         }
+
+        private async Task RunCleanup(ILogger<DependencyInjectionLoader> logger)
+        {
+            await using var scope = _serviceProvider.CreateAsyncScope();
+            await using var dbContext = scope.ServiceProvider.GetRequiredService<PalClientContext>();
+            var cleanup = scope.ServiceProvider.GetRequiredService<Cleanup>();
+
+            cleanup.Purge(dbContext);
+
+            await dbContext.SaveChangesAsync();
+        }
+
 
         public enum ELoadState
         {

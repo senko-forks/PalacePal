@@ -2,11 +2,11 @@
 using Pal.Common;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Pal.Client.Database;
 using Pal.Client.DependencyInjection;
-using Pal.Client.Floors;
 using Pal.Client.Properties;
 using Pal.Client.Windows;
 
@@ -55,20 +55,31 @@ namespace Pal.Client.Scheduled
                     if (!Validate(import))
                         return;
 
-
-                    using (var scope = _serviceScopeFactory.CreateScope())
+                    Task.Run(() =>
                     {
-                        using var dbContext = scope.ServiceProvider.GetRequiredService<PalClientContext>();
-                        (import.ImportedTraps, import.ImportedHoardCoffers) = _importService.Import(import.Export);
-                    }
+                        try
+                        {
+                            using (var scope = _serviceScopeFactory.CreateScope())
+                            {
+                                using var dbContext = scope.ServiceProvider.GetRequiredService<PalClientContext>();
+                                (import.ImportedTraps, import.ImportedHoardCoffers) =
+                                    _importService.Import(import.Export);
+                            }
 
-                    _configWindow.UpdateLastImport();
+                            _configWindow.UpdateLastImport();
 
-                    _logger.LogInformation(
-                        "Imported {ExportId} for {Traps} traps, {Hoard} hoard coffers", import.ExportId,
-                        import.ImportedTraps, import.ImportedHoardCoffers);
-                    _chat.Message(string.Format(Localization.ImportCompleteStatistics, import.ImportedTraps,
-                        import.ImportedHoardCoffers));
+                            _logger.LogInformation(
+                                "Imported {ExportId} for {Traps} traps, {Hoard} hoard coffers", import.ExportId,
+                                import.ImportedTraps, import.ImportedHoardCoffers);
+                            _chat.Message(string.Format(Localization.ImportCompleteStatistics, import.ImportedTraps,
+                                import.ImportedHoardCoffers));
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.LogError(e, "Import failed in inner task");
+                            _chat.Error(string.Format(Localization.Error_ImportFailed, e));
+                        }
+                    });
                 }
                 catch (Exception e)
                 {

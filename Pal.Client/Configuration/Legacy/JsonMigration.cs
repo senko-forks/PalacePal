@@ -115,7 +115,10 @@ namespace Pal.Client.Configuration.Legacy
                             .Distinct()
                             .ToList(),
 
-                        Imported = o.WasImported,
+                        // if we have a location not encountered locally, which also wasn't imported,
+                        // it very likely is a download (but we have no information to track this).
+                        Source = o.Seen ? ClientLocation.ESource.SeenLocally :
+                            o.Imports.Count > 0 ? ClientLocation.ESource.Import : ClientLocation.ESource.Download,
                         SinceVersion = o.SinceVersion ?? "0.0",
                     };
 

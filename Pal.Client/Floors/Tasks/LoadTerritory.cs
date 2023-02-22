@@ -11,11 +11,15 @@ namespace Pal.Client.Floors.Tasks
 {
     internal sealed class LoadTerritory : DbTask<LoadTerritory>
     {
+        private readonly Cleanup _cleanup;
         private readonly MemoryTerritory _territory;
 
-        public LoadTerritory(IServiceScopeFactory serviceScopeFactory, MemoryTerritory territory)
+        public LoadTerritory(IServiceScopeFactory serviceScopeFactory,
+            Cleanup cleanup,
+            MemoryTerritory territory)
             : base(serviceScopeFactory)
         {
+            _cleanup = cleanup;
             _territory = territory;
         }
 
@@ -23,13 +27,19 @@ namespace Pal.Client.Floors.Tasks
         {
             lock (_territory.LockObj)
             {
-                if (_territory.IsReady)
+                if (_territory.ReadyState != MemoryTerritory.EReadyState.Loading)
                 {
-                    logger.LogInformation("Territory {Territory} is already loaded", _territory.TerritoryType);
+                    logger.LogInformation("Territory {Territory} is in state {State}", _territory.TerritoryType,
+                        _territory.ReadyState);
                     return;
                 }
 
                 logger.LogInformation("Loading territory {Territory}", _territory.TerritoryType);
+
+                // purge outdated locations
+                _cleanup.Purge(dbContext, _territory.TerritoryType);
+
+                // load good locations
                 List<ClientLocation> locations = dbContext.Locations
                     .Where(o => o.TerritoryType == (ushort)_territory.TerritoryType)
                     .Include(o => o.ImportedBy)
@@ -51,6 +61,7 @@ namespace Pal.Client.Floors.Tasks
                 Type = ToMemoryLocationType(location.Type),
                 Position = new Vector3(location.X, location.Y, location.Z),
                 Seen = location.Seen,
+                Source = location.Source,
                 RemoteSeenOn = location.RemoteEncounters.Select(o => o.AccountId).ToList(),
             };
         }

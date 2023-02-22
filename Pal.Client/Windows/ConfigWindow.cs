@@ -284,7 +284,7 @@ namespace Pal.Client.Windows
                         null; // only use this once, FileDialogManager will save path between calls
                 }
 
-                ImGui.BeginDisabled(string.IsNullOrEmpty(_openImportPath) || !File.Exists(_openImportPath));
+                ImGui.BeginDisabled(string.IsNullOrEmpty(_openImportPath) || !File.Exists(_openImportPath) || _floorService.IsImportRunning);
                 if (ImGui.Button(Localization.Config_StartImport))
                     DoImport(_openImportPath);
                 ImGui.EndDisabled();
@@ -298,8 +298,11 @@ namespace Pal.Client.Windows
                         importHistory.RemoteUrl,
                         importHistory.ExportedAt.ToUniversalTime()));
                     ImGui.TextWrapped(Localization.Config_UndoImportExplanation2);
+
+                    ImGui.BeginDisabled(_floorService.IsImportRunning);
                     if (ImGui.Button(Localization.Config_UndoImport))
                         UndoImport(importHistory.Id);
+                    ImGui.EndDisabled();
                 }
 
                 ImGui.EndTabItem();

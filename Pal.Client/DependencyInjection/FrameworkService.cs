@@ -14,6 +14,7 @@ using ImGuiNET;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Pal.Client.Configuration;
+using Pal.Client.Database;
 using Pal.Client.Extensions;
 using Pal.Client.Floors;
 using Pal.Client.Net;
@@ -390,7 +391,8 @@ namespace Pal.Client.DependencyInjection
                         {
                             Type = MemoryLocation.EType.Trap,
                             Position = obj.Position,
-                            Seen = true
+                            Seen = true,
+                            Source = ClientLocation.ESource.SeenLocally,
                         });
                         break;
 
@@ -400,7 +402,8 @@ namespace Pal.Client.DependencyInjection
                         {
                             Type = MemoryLocation.EType.Hoard,
                             Position = obj.Position,
-                            Seen = true
+                            Seen = true,
+                            Source = ClientLocation.ESource.SeenLocally,
                         });
                         break;
 
@@ -409,7 +412,7 @@ namespace Pal.Client.DependencyInjection
                         {
                             Type = MemoryLocation.EType.SilverCoffer,
                             Position = obj.Position,
-                            Seen = true
+                            Seen = true,
                         });
                         break;
                 }
@@ -425,6 +428,8 @@ namespace Pal.Client.DependencyInjection
                         Type = MemoryLocation.EType.Trap,
                         Position = obj.Position,
                         Seen = true,
+                        Source = ClientLocation.ESource.ExplodedLocally,
+
                     });
                 }
             }

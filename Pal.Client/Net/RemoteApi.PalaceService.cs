@@ -5,6 +5,7 @@ using System.Linq;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
+using Pal.Client.Database;
 using Pal.Client.Floors;
 
 namespace Pal.Client.Net
@@ -69,6 +70,7 @@ namespace Pal.Client.Net
                 Type = obj.Type.ToMemoryType(),
                 Position = new Vector3(obj.X, obj.Y, obj.Z),
                 NetworkId = Guid.Parse(obj.NetworkId),
+                Source = ClientLocation.ESource.Download,
             };
         }
 

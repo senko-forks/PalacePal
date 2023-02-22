@@ -31,6 +31,8 @@ namespace Pal.Client.Floors
         /// </summary>
         public bool RemoteSeenRequested { get; set; }
 
+        public ClientLocation.ESource Source { get; init; }
+
         public override bool Equals(object? obj) => obj is PersistentLocation && base.Equals(obj);
 
         public override int GetHashCode() => base.GetHashCode();

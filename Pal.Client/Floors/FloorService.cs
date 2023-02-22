@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Pal.Client.Configuration;
+using Pal.Client.Database;
 using Pal.Client.Extensions;
 using Pal.Client.Floors.Tasks;
 using Pal.Client.Net;
@@ -14,19 +15,23 @@ namespace Pal.Client.Floors
     internal sealed class FloorService
     {
         private readonly IPalacePalConfiguration _configuration;
+        private readonly Cleanup _cleanup;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IReadOnlyDictionary<ETerritoryType, MemoryTerritory> _territories;
 
         private ConcurrentBag<EphemeralLocation> _ephemeralLocations = new();
 
-        public FloorService(IPalacePalConfiguration configuration, IServiceScopeFactory serviceScopeFactory)
+        public FloorService(IPalacePalConfiguration configuration, Cleanup cleanup,
+            IServiceScopeFactory serviceScopeFactory)
         {
             _configuration = configuration;
+            _cleanup = cleanup;
             _serviceScopeFactory = serviceScopeFactory;
             _territories = Enum.GetValues<ETerritoryType>().ToDictionary(o => o, o => new MemoryTerritory(o));
         }
 
         public IReadOnlyCollection<EphemeralLocation> EphemeralLocations => _ephemeralLocations;
+        public bool IsImportRunning { get; private set; }
 
         public void ChangeTerritory(ushort territoryType)
         {
@@ -39,10 +44,10 @@ namespace Pal.Client.Floors
         private void ChangeTerritory(ETerritoryType newTerritory)
         {
             var territory = _territories[newTerritory];
-            if (!territory.IsReady && !territory.IsLoading)
+            if (territory.ReadyState == MemoryTerritory.EReadyState.NotLoaded)
             {
-                territory.IsLoading = true;
-                new LoadTerritory(_serviceScopeFactory, territory).Start();
+                territory.ReadyState = MemoryTerritory.EReadyState.Loading;
+                new LoadTerritory(_serviceScopeFactory, _cleanup, territory).Start();
             }
         }
 
@@ -57,7 +62,7 @@ namespace Pal.Client.Floors
         public MemoryTerritory? GetTerritoryIfReady(ETerritoryType territoryType)
         {
             var territory = _territories[territoryType];
-            if (!territory.IsReady)
+            if (territory.ReadyState != MemoryTerritory.EReadyState.Ready)
                 return null;
 
             return territory;
@@ -137,10 +142,21 @@ namespace Pal.Client.Floors
 
         public void ResetAll()
         {
+            IsImportRunning = false;
             foreach (var memoryTerritory in _territories.Values)
             {
                 lock (memoryTerritory.LockObj)
                     memoryTerritory.Reset();
+            }
+        }
+
+        public void SetToImportState()
+        {
+            IsImportRunning = true;
+            foreach (var memoryTerritory in _territories.Values)
+            {
+                lock (memoryTerritory.LockObj)
+                    memoryTerritory.ReadyState = MemoryTerritory.EReadyState.Importing;
             }
         }
     }

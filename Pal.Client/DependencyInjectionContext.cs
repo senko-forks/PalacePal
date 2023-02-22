@@ -96,6 +96,7 @@ namespace Pal.Client
                 $"Data Source={Path.Join(pluginInterface.GetPluginConfigDirectory(), "palace-pal.data.sqlite3")}";
             services.AddDbContext<PalClientContext>(o => o.UseSqlite(_sqliteConnectionString));
             services.AddTransient<JsonMigration>();
+            services.AddScoped<Cleanup>();
 
             // plugin-specific
             services.AddScoped<DependencyInjectionLoader>();

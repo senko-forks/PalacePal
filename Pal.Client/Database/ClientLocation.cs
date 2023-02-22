@@ -31,9 +31,9 @@ namespace Pal.Client.Database
         public List<ImportHistory> ImportedBy { get; set; } = new();
 
         /// <summary>
-        /// Whether this location was originally imported.
+        /// Determines where this location is originally from.
         /// </summary>
-        public bool Imported { get; set; }
+        public ESource Source { get; set; }
 
 
         /// <summary>
@@ -45,6 +45,15 @@ namespace Pal.Client.Database
         {
             Trap = 1,
             Hoard = 2,
+        }
+
+        public enum ESource
+        {
+            Unknown = 0,
+            SeenLocally = 1,
+            ExplodedLocally = 2,
+            Import = 3,
+            Download = 4,
         }
     }
 }

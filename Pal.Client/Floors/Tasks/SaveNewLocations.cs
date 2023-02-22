@@ -59,6 +59,7 @@ namespace Pal.Client.Floors.Tasks
                 Y = location.Position.Y,
                 Z = location.Position.Z,
                 Seen = location.Seen,
+                Source = location.Source,
                 SinceVersion = typeof(Plugin).Assembly.GetName().Version!.ToString(2),
             };
         }
