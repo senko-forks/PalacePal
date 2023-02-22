@@ -16,6 +16,7 @@ using Pal.Client.Configuration;
 using Pal.Client.Configuration.Legacy;
 using Pal.Client.Database;
 using Pal.Client.DependencyInjection;
+using Pal.Client.Floors;
 using Pal.Client.Windows;
 
 namespace Pal.Client
@@ -61,7 +62,7 @@ namespace Pal.Client
             _serviceProvider.GetRequiredService<AgreementWindow>();
 
             // initialize components that are mostly self-contained/self-registered
-            _serviceProvider.GetRequiredService<Hooks>();
+            _serviceProvider.GetRequiredService<GameHooks>();
             _serviceProvider.GetRequiredService<FrameworkService>();
             _serviceProvider.GetRequiredService<ChatService>();
 

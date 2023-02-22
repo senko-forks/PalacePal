@@ -2,27 +2,23 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Types;
-using Dalamud.Logging;
-using ImGuiNET;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Pal.Client.Configuration;
 using Pal.Client.Database;
-using Pal.Client.Extensions;
-using Pal.Client.Floors;
+using Pal.Client.DependencyInjection;
 using Pal.Client.Net;
 using Pal.Client.Rendering;
 using Pal.Client.Scheduled;
 using Pal.Common;
 
-namespace Pal.Client.DependencyInjection
+namespace Pal.Client.Floors
 {
     internal sealed class FrameworkService : IDisposable
     {

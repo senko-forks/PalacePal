@@ -1,9 +1,8 @@
 ﻿using Dalamud.Game.ClientState;
 using Dalamud.Game.ClientState.Conditions;
-using Pal.Client.Scheduled;
 using Pal.Common;
 
-namespace Pal.Client.DependencyInjection
+namespace Pal.Client.Floors
 {
     public sealed class TerritoryState
     {

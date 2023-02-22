@@ -105,7 +105,7 @@ namespace Pal.Client
             // plugin-specific
             _serviceCollection.AddScoped<DependencyContextInitializer>();
             _serviceCollection.AddScoped<DebugState>();
-            _serviceCollection.AddScoped<Hooks>();
+            _serviceCollection.AddScoped<GameHooks>();
             _serviceCollection.AddScoped<RemoteApi>();
             _serviceCollection.AddScoped<ConfigurationManager>();
             _serviceCollection.AddScoped<IPalacePalConfiguration>(sp =>

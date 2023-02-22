@@ -6,6 +6,7 @@ using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Lumina.Excel.GeneratedSheets;
 using Pal.Client.Configuration;
+using Pal.Client.Floors;
 
 namespace Pal.Client.DependencyInjection
 {
