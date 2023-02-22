@@ -36,7 +36,7 @@ namespace Pal.Client.Net
             };
             uploadRequest.Objects.AddRange(locations.Select(m => new PalaceObject
             {
-                Type = (ObjectType)m.Type,
+                Type = m.Type.ToObjectType(),
                 X = m.Position.X,
                 Y = m.Position.Y,
                 Z = m.Position.Z

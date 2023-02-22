@@ -12,6 +12,7 @@ using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Logging;
 using ImGuiNET;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Pal.Client.Configuration;
 using Pal.Client.Extensions;
 using Pal.Client.Floors;
@@ -25,6 +26,7 @@ namespace Pal.Client.DependencyInjection
     internal sealed class FrameworkService : IDisposable
     {
         private readonly IServiceProvider _serviceProvider;
+        private readonly ILogger<FrameworkService> _logger;
         private readonly Framework _framework;
         private readonly ConfigurationManager _configurationManager;
         private readonly IPalacePalConfiguration _configuration;
@@ -42,6 +44,7 @@ namespace Pal.Client.DependencyInjection
 
         public FrameworkService(
             IServiceProvider serviceProvider,
+            ILogger<FrameworkService> logger,
             Framework framework,
             ConfigurationManager configurationManager,
             IPalacePalConfiguration configuration,
@@ -54,6 +57,7 @@ namespace Pal.Client.DependencyInjection
             RemoteApi remoteApi)
         {
             _serviceProvider = serviceProvider;
+            _logger = logger;
             _framework = framework;
             _configurationManager = configurationManager;
             _configuration = configuration;
@@ -92,8 +96,11 @@ namespace Pal.Client.DependencyInjection
 
                 if (_territoryState.LastTerritory != _clientState.TerritoryType)
                 {
+                    MemoryTerritory? oldTerritory = _floorService.GetTerritoryIfReady(_territoryState.LastTerritory);
+                    if (oldTerritory != null)
+                        oldTerritory.SyncState = ESyncState.NotAttempted;
+
                     _territoryState.LastTerritory = _clientState.TerritoryType;
-                    _territoryState.TerritorySyncState = ESyncState.NotAttempted;
                     NextUpdateObjects.Clear();
 
                     _floorService.ChangeTerritory(_territoryState.LastTerritory);
@@ -106,11 +113,12 @@ namespace Pal.Client.DependencyInjection
                 if (!_territoryState.IsInDeepDungeon() || !_floorService.IsReady(_territoryState.LastTerritory))
                     return;
 
-                if (_configuration.Mode == EMode.Online &&
-                    _territoryState.TerritorySyncState == ESyncState.NotAttempted)
+                ETerritoryType territoryType = (ETerritoryType)_territoryState.LastTerritory;
+                MemoryTerritory memoryTerritory = _floorService.GetTerritoryIfReady(territoryType)!;
+                if (_configuration.Mode == EMode.Online && memoryTerritory.SyncState == ESyncState.NotAttempted)
                 {
-                    _territoryState.TerritorySyncState = ESyncState.Started;
-                    Task.Run(async () => await DownloadMarkersForTerritory(_territoryState.LastTerritory));
+                    memoryTerritory.SyncState = ESyncState.Started;
+                    Task.Run(async () => await DownloadLocationsForTerritory(_territoryState.LastTerritory));
                 }
 
                 while (LateEventQueue.TryDequeue(out IQueueOnFrameworkThread? queued))
@@ -120,7 +128,6 @@ namespace Pal.Client.DependencyInjection
                         IReadOnlyList<EphemeralLocation> visibleEphemeralMarkers) =
                     GetRelevantGameObjects();
 
-                ETerritoryType territoryType = (ETerritoryType)_territoryState.LastTerritory;
                 HandlePersistentLocations(territoryType, visiblePersistentMarkers, recreateLayout);
 
                 if (_floorService.MergeEphemeralLocations(visibleEphemeralMarkers, recreateLayout))
@@ -188,7 +195,7 @@ namespace Pal.Client.DependencyInjection
         private void UploadLocations()
         {
             MemoryTerritory? memoryTerritory = _floorService.GetTerritoryIfReady(_territoryState.LastTerritory);
-            if (memoryTerritory == null)
+            if (memoryTerritory == null || memoryTerritory.SyncState != ESyncState.Complete)
                 return;
 
             List<PersistentLocation> locationsToUpload = memoryTerritory.Locations
@@ -296,10 +303,11 @@ namespace Pal.Client.DependencyInjection
 
         #region Up-/Download
 
-        private async Task DownloadMarkersForTerritory(ushort territoryId)
+        private async Task DownloadLocationsForTerritory(ushort territoryId)
         {
             try
             {
+                _logger.LogInformation("Downloading territory {Territory} from server", (ETerritoryType)territoryId);
                 var (success, downloadedMarkers) = await _remoteApi.DownloadRemoteMarkers(territoryId);
                 LateEventQueue.Enqueue(new QueuedSyncResponse
                 {
@@ -319,6 +327,8 @@ namespace Pal.Client.DependencyInjection
         {
             try
             {
+                _logger.LogInformation("Uploading {Count} locations for territory {Territory} to server",
+                    locationsToUpload.Count, (ETerritoryType)territoryId);
                 var (success, uploadedLocations) = await _remoteApi.UploadLocations(territoryId, locationsToUpload);
                 LateEventQueue.Enqueue(new QueuedSyncResponse
                 {
@@ -339,6 +349,8 @@ namespace Pal.Client.DependencyInjection
         {
             try
             {
+                _logger.LogInformation("Syncing {Count} seen locations for territory {Territory} to server",
+                    locationsToUpdate.Count, (ETerritoryType)territoryId);
                 var success = await _remoteApi.MarkAsSeen(territoryId, locationsToUpdate);
                 LateEventQueue.Enqueue(new QueuedSyncResponse
                 {

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Pal.Client.Configuration;
+using Pal.Client.Scheduled;
 using Pal.Common;
 
 namespace Pal.Client.Floors
@@ -18,7 +19,8 @@ namespace Pal.Client.Floors
 
         public ETerritoryType TerritoryType { get; }
         public bool IsReady { get; set; }
-        public bool IsLoading { get; set; }
+        public bool IsLoading { get; set; } // probably merge this with IsReady as enum
+        public ESyncState SyncState { get; set; } = ESyncState.NotAttempted;
 
         public ConcurrentBag<PersistentLocation> Locations { get; } = new();
         public object LockObj { get; } = new();

@@ -98,7 +98,10 @@ namespace Pal.Server.Services
                     {
                         var palaceObj = new PalaceObject
                         {
-                            Type = (ObjectType)location.Type, X = location.X, Y = location.Y, Z = location.Z,
+                            Type = (ObjectType)location.Type,
+                            X = location.X,
+                            Y = location.Y,
+                            Z = location.Z,
                             NetworkId = location.Id.ToString()
                         };
                         objects[location.Id] = palaceObj;
@@ -155,11 +158,12 @@ namespace Pal.Server.Services
 
                 var objects = await GetOrLoadObjects(territoryType, context.CancellationToken);
 
+                DateTime firstSeenAt = DateTime.Now;
                 var seenLocations = account.SeenLocations;
                 var newLocations = request.NetworkIds.Select(x => Guid.Parse(x))
                     .Where(x => objects.ContainsKey(x))
                     .Where(x => !seenLocations.Any(seen => seen.PalaceLocationId == x))
-                    .Select(x => new SeenLocation(account, x))
+                    .Select(x => new SeenLocation(account, x, firstSeenAt))
                     .ToList();
                 if (newLocations.Count > 0)
                 {
@@ -222,7 +226,7 @@ namespace Pal.Server.Services
             var objects = await _dbContext.Locations.Where(o => o.TerritoryType == territoryType)
                 .ToDictionaryAsync(o => o.Id,
                     o => new PalaceObject
-                        { Type = (ObjectType)o.Type, X = o.X, Y = o.Y, Z = o.Z, NetworkId = o.Id.ToString() },
+                    { Type = (ObjectType)o.Type, X = o.X, Y = o.Y, Z = o.Z, NetworkId = o.Id.ToString() },
                     cancellationToken);
 
             var result = _cache.Add(territoryType, new ConcurrentDictionary<Guid, PalaceObject>(objects));

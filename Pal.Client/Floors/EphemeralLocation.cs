@@ -20,5 +20,10 @@ namespace Pal.Client.Floors
         {
             return !Equals(a, b);
         }
+
+        public override string ToString()
+        {
+            return $"EphemeralLocation(Position={Position}, Type={Type})";
+        }
     }
 }

@@ -4,11 +4,12 @@ using System.Linq;
 using System.Numerics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Pal.Client.Database;
 
 namespace Pal.Client.Floors.Tasks
 {
-    internal sealed class LoadTerritory : DbTask
+    internal sealed class LoadTerritory : DbTask<LoadTerritory>
     {
         private readonly MemoryTerritory _territory;
 
@@ -18,19 +19,27 @@ namespace Pal.Client.Floors.Tasks
             _territory = territory;
         }
 
-        protected override void Run(PalClientContext dbContext)
+        protected override void Run(PalClientContext dbContext, ILogger<LoadTerritory> logger)
         {
             lock (_territory.LockObj)
             {
                 if (_territory.IsReady)
+                {
+                    logger.LogInformation("Territory {Territory} is already loaded", _territory.TerritoryType);
                     return;
+                }
 
+                logger.LogInformation("Loading territory {Territory}", _territory.TerritoryType);
                 List<ClientLocation> locations = dbContext.Locations
                     .Where(o => o.TerritoryType == (ushort)_territory.TerritoryType)
                     .Include(o => o.ImportedBy)
                     .Include(o => o.RemoteEncounters)
+                    .AsSplitQuery()
                     .ToList();
                 _territory.Initialize(locations.Select(ToMemoryLocation));
+
+                logger.LogInformation("Loaded {Count} locations for territory {Territory}", locations.Count,
+                    _territory.TerritoryType);
             }
         }
 

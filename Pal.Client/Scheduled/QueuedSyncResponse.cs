@@ -9,6 +9,7 @@ using Pal.Client.Extensions;
 using Pal.Client.Floors;
 using Pal.Client.Floors.Tasks;
 using Pal.Client.Net;
+using Pal.Common;
 
 namespace Pal.Client.Scheduled
 {
@@ -47,12 +48,21 @@ namespace Pal.Client.Scheduled
             {
                 recreateLayout = true;
 
+                _logger.LogDebug(
+                    "Sync response for territory {Territory} of type {Type}, success = {Success}, response objects = {Count}",
+                    (ETerritoryType)queued.TerritoryType, queued.Type, queued.Success, queued.Locations.Count);
+                var memoryTerritory = _floorService.GetTerritoryIfReady(queued.TerritoryType);
+                if (memoryTerritory == null)
+                {
+                    _logger.LogWarning("Discarding sync response for territory {Territory} as it isn't ready",
+                        (ETerritoryType)queued.TerritoryType);
+                    return;
+                }
+
                 try
                 {
                     var remoteMarkers = queued.Locations;
-                    var memoryTerritory = _floorService.GetTerritoryIfReady(queued.TerritoryType);
-                    if (memoryTerritory != null && _configuration.Mode == EMode.Online && queued.Success &&
-                        remoteMarkers.Count > 0)
+                    if (_configuration.Mode == EMode.Online && queued.Success && remoteMarkers.Count > 0)
                     {
                         switch (queued.Type)
                         {
@@ -117,16 +127,17 @@ namespace Pal.Client.Scheduled
                     if (queued.Type == SyncType.Download)
                     {
                         if (queued.Success)
-                            _territoryState.TerritorySyncState = ESyncState.Complete;
+                            memoryTerritory.SyncState = ESyncState.Complete;
                         else
-                            _territoryState.TerritorySyncState = ESyncState.Failed;
+                            memoryTerritory.SyncState = ESyncState.Failed;
                     }
                 }
                 catch (Exception e)
                 {
+                    _logger.LogError(e, "Sync failed for territory {Territory}", (ETerritoryType)queued.TerritoryType);
                     _debugState.SetFromException(e);
                     if (queued.Type == SyncType.Download)
-                        _territoryState.TerritorySyncState = ESyncState.Failed;
+                        memoryTerritory.SyncState = ESyncState.Failed;
                 }
             }
         }

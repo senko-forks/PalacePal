@@ -22,8 +22,8 @@ namespace Pal.Client.Floors
         {
             Unknown,
 
-            Hoard,
             Trap,
+            Hoard,
 
             SilverCoffer,
         }
@@ -50,6 +50,16 @@ namespace Pal.Client.Floors
                 ObjectType.Trap => MemoryLocation.EType.Trap,
                 ObjectType.Hoard => MemoryLocation.EType.Hoard,
                 _ => throw new ArgumentOutOfRangeException(nameof(objectType), objectType, null)
+            };
+        }
+
+        public static ObjectType ToObjectType(this MemoryLocation.EType type)
+        {
+            return type switch
+            {
+                MemoryLocation.EType.Trap => ObjectType.Trap,
+                MemoryLocation.EType.Hoard => ObjectType.Hoard,
+                _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
             };
         }
     }

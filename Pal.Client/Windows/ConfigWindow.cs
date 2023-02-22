@@ -375,12 +375,12 @@ namespace Pal.Client.Windows
             {
                 if (_territoryState.IsInDeepDungeon())
                 {
+                    MemoryTerritory? memoryTerritory = _floorService.GetTerritoryIfReady(_territoryState.LastTerritory);
                     ImGui.Text($"You are in a deep dungeon, territory type {_territoryState.LastTerritory}.");
-                    ImGui.Text($"Sync State = {_territoryState.TerritorySyncState}");
+                    ImGui.Text($"Sync State = {memoryTerritory?.SyncState.ToString() ?? "Unknown"}");
                     ImGui.Text($"{_debugState.DebugMessage}");
 
                     ImGui.Indent();
-                    MemoryTerritory? memoryTerritory = _floorService.GetTerritoryIfReady(_territoryState.LastTerritory);
                     if (memoryTerritory != null)
                     {
                         if (_trapConfig.Show)

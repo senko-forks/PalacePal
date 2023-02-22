@@ -111,7 +111,7 @@ namespace Pal.Client.Floors
             }
 
             if (markAsSeen.Count > 0)
-                new MarkAsSeen(_serviceScopeFactory, territory, markAsSeen).Start();
+                new MarkLocalSeen(_serviceScopeFactory, territory, markAsSeen).Start();
 
             if (newLocations.Count > 0)
                 new SaveNewLocations(_serviceScopeFactory, territory, newLocations).Start();

@@ -1,10 +1,13 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Pal.Client.Database;
 
 namespace Pal.Client.Floors.Tasks
 {
-    internal abstract class DbTask
+    internal abstract class DbTask<T>
+        where T : DbTask<T>
     {
         private readonly IServiceScopeFactory _serviceScopeFactory;
 
@@ -18,12 +21,13 @@ namespace Pal.Client.Floors.Tasks
             Task.Run(() =>
             {
                 using var scope = _serviceScopeFactory.CreateScope();
+                ILogger<T> logger = scope.ServiceProvider.GetRequiredService<ILogger<T>>();
                 using var dbContext = scope.ServiceProvider.GetRequiredService<PalClientContext>();
 
-                Run(dbContext);
+                Run(dbContext, logger);
             });
         }
 
-        protected abstract void Run(PalClientContext dbContext);
+        protected abstract void Run(PalClientContext dbContext, ILogger<T> logger);
     }
 }

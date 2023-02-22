@@ -44,5 +44,10 @@ namespace Pal.Client.Floors
         {
             return !Equals(a, b);
         }
+
+        public override string ToString()
+        {
+            return $"PersistentLocation(Position={Position}, Type={Type})";
+        }
     }
 }

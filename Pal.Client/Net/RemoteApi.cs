@@ -11,7 +11,7 @@ namespace Pal.Client.Net
     internal sealed partial class RemoteApi : IDisposable
     {
 #if DEBUG
-        public const string RemoteUrl = "http://localhost:5145";
+        public const string RemoteUrl = "http://localhost:5415";
 #else
         //public const string RemoteUrl = "https://pal.liza.sh";
 #endif

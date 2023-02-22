@@ -36,7 +36,7 @@ namespace Pal.Client
         private readonly IServiceScope _rootScope;
         private readonly DependencyInjectionLoader _loader;
 
-        private Action? _loginAction = null;
+        private Action? _loginAction;
 
         public Plugin(
             DalamudPluginInterface pluginInterface,
