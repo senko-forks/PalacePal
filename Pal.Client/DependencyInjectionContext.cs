@@ -99,7 +99,9 @@ namespace Pal.Client
                 typeof(DependencyInjectionContext).Assembly.FullName);
 
             // EF core
-            _serviceCollection.AddDbContext<PalClientContext>(o => o.UseSqlite(_sqliteConnectionString));
+            _serviceCollection.AddDbContext<PalClientContext>(o => o
+                .UseSqlite(_sqliteConnectionString)
+                .UseModel(Database.Compiled.PalClientContextModel.Instance));
             _serviceCollection.AddTransient<JsonMigration>();
             _serviceCollection.AddScoped<Cleanup>();
 
