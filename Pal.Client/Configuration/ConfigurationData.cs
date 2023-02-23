@@ -1,9 +1,7 @@
-﻿using Dalamud.Logging;
-using System;
+﻿using System;
 using System.Linq;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
-using Pal.Client.DependencyInjection.Logging;
 
 namespace Pal.Client.Configuration
 {
