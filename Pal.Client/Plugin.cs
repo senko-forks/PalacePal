@@ -232,6 +232,7 @@ namespace Pal.Client
 
             _initCts.Cancel();
             _rootScope?.Dispose();
+            _dependencyInjectionContext?.Dispose();
         }
 
         private enum ELoadState
