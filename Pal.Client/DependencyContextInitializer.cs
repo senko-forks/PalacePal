@@ -43,20 +43,21 @@ namespace Pal.Client
 
             _logger.LogInformation("Starting async init");
 
-            await RemoveOldBackups();
-            await CreateBackups();
+            await CreateBackup();
             cancellationToken.ThrowIfCancellationRequested();
 
             await RunMigrations(cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
-            await RunCleanup();
-            cancellationToken.ThrowIfCancellationRequested();
-
             // v1 migration: config migration for import history, json migration for markers
             _serviceProvider.GetRequiredService<ConfigurationManager>().Migrate();
             await _serviceProvider.GetRequiredService<JsonMigration>().MigrateAsync(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
 
+            await RunCleanup();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            await RemoveOldBackups();
             cancellationToken.ThrowIfCancellationRequested();
 
             // windows that have logic to open on startup
@@ -129,7 +130,7 @@ namespace Pal.Client
             }
         }
 
-        private async Task CreateBackups()
+        private async Task CreateBackup()
         {
             await using var scope = _serviceProvider.CreateAsyncScope();
 

@@ -23,17 +23,25 @@ namespace Pal.Client.Configuration
 
         public event EventHandler<IPalacePalConfiguration>? Saved;
 
-        public ConfigurationManager(ILogger<ConfigurationManager> logger, DalamudPluginInterface pluginInterface, IServiceProvider serviceProvider)
+        public ConfigurationManager(ILogger<ConfigurationManager> logger, DalamudPluginInterface pluginInterface,
+            IServiceProvider serviceProvider)
         {
             _logger = logger;
             _pluginInterface = pluginInterface;
             _serviceProvider = serviceProvider;
         }
 
-        private string ConfigPath => Path.Join(_pluginInterface.GetPluginConfigDirectory(), "palace-pal.config.json");
+        private string ConfigPath =>
+            Path.Join(_pluginInterface.GetPluginConfigDirectory(), ConfigurationData.ConfigFileName);
 
         public IPalacePalConfiguration Load()
         {
+            if (!File.Exists(ConfigPath))
+            {
+                _logger.LogInformation("No config file exists, creating one");
+                Save(new ConfigurationV7(), false);
+            }
+
             return JsonSerializer.Deserialize<ConfigurationV7>(File.ReadAllText(ConfigPath, Encoding.UTF8)) ??
                    new ConfigurationV7();
         }
@@ -61,7 +69,8 @@ namespace Pal.Client.Configuration
                 ConfigurationV1 configurationV1 =
                     NJson.JsonConvert.DeserializeObject<ConfigurationV1>(
                         File.ReadAllText(_pluginInterface.ConfigFile.FullName)) ?? new ConfigurationV1();
-                configurationV1.Migrate(_pluginInterface, _serviceProvider.GetRequiredService<ILogger<ConfigurationV1>>());
+                configurationV1.Migrate(_pluginInterface,
+                    _serviceProvider.GetRequiredService<ILogger<ConfigurationV1>>());
                 configurationV1.Save(_pluginInterface);
 
                 var v7 = MigrateToV7(configurationV1);
