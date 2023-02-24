@@ -21,7 +21,6 @@ using Pal.Client.DependencyInjection;
 using Pal.Client.DependencyInjection.Logging;
 using Pal.Client.Floors;
 using Pal.Client.Net;
-using Pal.Client.Properties;
 using Pal.Client.Rendering;
 using Pal.Client.Scheduled;
 using Pal.Client.Windows;
@@ -44,8 +43,6 @@ namespace Pal.Client
         private readonly string _sqliteConnectionString;
         private readonly ServiceCollection _serviceCollection = new();
         private ServiceProvider? _serviceProvider;
-
-        public string Name => Localization.Palace_Pal;
 
         public DependencyInjectionContext(
             DalamudPluginInterface pluginInterface,
