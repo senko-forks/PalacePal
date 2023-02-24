@@ -1,9 +1,11 @@
-﻿using ECommons.Schedulers;
+﻿using System;
+using System.Collections.Generic;
+using ECommons.Schedulers;
 using Pal.Client.Windows;
 
 namespace Pal.Client.Commands
 {
-    internal sealed class PalTestConnectionCommand
+    internal sealed class PalTestConnectionCommand : ISubCommand
     {
         private readonly ConfigWindow _configWindow;
 
@@ -12,7 +14,14 @@ namespace Pal.Client.Commands
             _configWindow = configWindow;
         }
 
-        public void Execute()
+        public IReadOnlyDictionary<string, Action<string>> GetHandlers()
+            => new Dictionary<string, Action<string>>
+            {
+                { "test-connection", _ => Execute() },
+                { "tc", _ => Execute() },
+            };
+
+        private void Execute()
         {
             var _ = new TickScheduler(() => _configWindow.TestConnection());
         }

@@ -2,6 +2,7 @@
 using Dalamud.Plugin;
 using Pal.Client.Rendering;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -165,45 +166,36 @@ namespace Pal.Client
                         return;
                     }
 
-                    var sp = rootScope.ServiceProvider;
-
-                    switch (arguments)
-                    {
-                        case "":
-                        case "config":
-                            sp.GetRequiredService<PalConfigCommand>().Execute();
-                            break;
-
-                        case "stats":
-                            sp.GetRequiredService<PalStatsCommand>().Execute();
-                            break;
-
-                        case "tc":
-                        case "test-connection":
-                            sp.GetRequiredService<PalTestConnectionCommand>().Execute();
-                            break;
-
-                        case "near":
-                        case "tnear":
-                        case "hnear":
-                            sp.GetRequiredService<PalNearCommand>().Execute(arguments);
-                            break;
-
-                        default:
-                            chat.Error(string.Format(Localization.Command_pal_UnknownSubcommand, arguments,
+                    Action<string> commandHandler = rootScope.ServiceProvider
+                        .GetRequiredService<IEnumerable<ISubCommand>>()
+                        .SelectMany(cmd => cmd.GetHandlers())
+                        .Where(cmd => cmd.Key == arguments.ToLowerInvariant())
+                        .Select(cmd => cmd.Value)
+                        .SingleOrDefault(missingCommand =>
+                        {
+                            chat.Error(string.Format(Localization.Command_pal_UnknownSubcommand, missingCommand,
                                 command));
-                            break;
-                    }
+                        });
+                    commandHandler.Invoke(arguments);
                 }
                 catch (Exception e)
                 {
+                    _logger.LogError(e, "Could not execute command '{Command}' with arguments '{Arguments}'", command,
+                        arguments);
                     chat.Error(e.ToString());
                 }
             });
         }
 
         private void OpenConfigUi()
-            => _rootScope!.ServiceProvider.GetRequiredService<PalConfigCommand>().Execute();
+        {
+            _rootScope!.ServiceProvider.GetRequiredService<IEnumerable<ISubCommand>>()
+                .SelectMany(cmd => cmd.GetHandlers())
+                .Where(cmd => cmd.Key == "config")
+                .Select(cmd => cmd.Value)
+                .Single()
+                .Invoke("config");
+        }
 
         private void LanguageChanged(string languageCode)
         {

@@ -69,10 +69,7 @@ namespace Pal.Client
             _serviceProvider.GetRequiredService<ChatService>();
 
             // eager load any commands to find errors now, not when running them
-            _serviceProvider.GetRequiredService<PalConfigCommand>();
-            _serviceProvider.GetRequiredService<PalNearCommand>();
-            _serviceProvider.GetRequiredService<PalStatsCommand>();
-            _serviceProvider.GetRequiredService<PalTestConnectionCommand>();
+            _serviceProvider.GetRequiredService<IEnumerable<ISubCommand>>();
 
             cancellationToken.ThrowIfCancellationRequested();
 

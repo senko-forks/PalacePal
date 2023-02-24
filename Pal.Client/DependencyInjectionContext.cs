@@ -113,10 +113,10 @@ namespace Pal.Client
             _serviceCollection.AddTransient<RepoVerification>();
 
             // commands
-            _serviceCollection.AddScoped<PalConfigCommand>();
-            _serviceCollection.AddScoped<PalNearCommand>();
-            _serviceCollection.AddScoped<PalStatsCommand>();
-            _serviceCollection.AddScoped<PalTestConnectionCommand>();
+            _serviceCollection.AddScoped<ISubCommand, PalConfigCommand>();
+            _serviceCollection.AddScoped<ISubCommand, PalNearCommand>();
+            _serviceCollection.AddScoped<ISubCommand, PalStatsCommand>();
+            _serviceCollection.AddScoped<ISubCommand, PalTestConnectionCommand>();
 
             // territory & marker related services
             _serviceCollection.AddScoped<TerritoryState>();

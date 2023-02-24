@@ -1,10 +1,11 @@
-﻿using Dalamud.Interface.Windowing;
+﻿using System;
+using System.Collections.Generic;
 using Pal.Client.Configuration;
 using Pal.Client.Windows;
 
 namespace Pal.Client.Commands
 {
-    internal class PalConfigCommand
+    internal class PalConfigCommand : ISubCommand
     {
         private readonly IPalacePalConfiguration _configuration;
         private readonly AgreementWindow _agreementWindow;
@@ -20,7 +21,15 @@ namespace Pal.Client.Commands
             _configWindow = configWindow;
         }
 
-        public void Execute()
+
+        public IReadOnlyDictionary<string, Action<string>> GetHandlers()
+            => new Dictionary<string, Action<string>>
+            {
+                { "config", _ => Execute() },
+                { "", _ => Execute() }
+            };
+
+        private void Execute()
         {
             if (_configuration.FirstUse)
                 _agreementWindow.IsOpen = true;

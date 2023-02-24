@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Dalamud.Game.ClientState;
 using Pal.Client.DependencyInjection;
@@ -8,7 +9,7 @@ using Pal.Client.Rendering;
 
 namespace Pal.Client.Commands
 {
-    internal sealed class PalNearCommand
+    internal sealed class PalNearCommand : ISubCommand
     {
         private readonly Chat _chat;
         private readonly ClientState _clientState;
@@ -24,23 +25,14 @@ namespace Pal.Client.Commands
             _floorService = floorService;
         }
 
-        public void Execute(string arguments)
-        {
-            switch (arguments)
+
+        public IReadOnlyDictionary<string, Action<string>> GetHandlers()
+            => new Dictionary<string, Action<string>>
             {
-                default:
-                    DebugNearest(_ => true);
-                    break;
-
-                case "tnear":
-                    DebugNearest(m => m.Type == MemoryLocation.EType.Trap);
-                    break;
-
-                case "hnear":
-                    DebugNearest(m => m.Type == MemoryLocation.EType.Hoard);
-                    break;
-            }
-        }
+                { "near", _ => DebugNearest(_ => true) },
+                { "tnear", _ => DebugNearest(m => m.Type == MemoryLocation.EType.Trap) },
+                { "hnear", _ => DebugNearest(m => m.Type == MemoryLocation.EType.Hoard) },
+            };
 
         private void DebugNearest(Predicate<PersistentLocation> predicate)
         {
@@ -54,7 +46,7 @@ namespace Pal.Client.Commands
             var playerPosition = _clientState.LocalPlayer?.Position;
             if (playerPosition == null)
                 return;
-            _chat.Message($"{playerPosition}");
+            _chat.Message($"Your position: {playerPosition}");
 
             var nearbyMarkers = state.Locations
                 .Where(m => predicate(m))
