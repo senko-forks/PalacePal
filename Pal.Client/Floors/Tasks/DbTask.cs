@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Pal.Client.Database;
@@ -19,11 +20,19 @@ namespace Pal.Client.Floors.Tasks
         {
             Task.Run(() =>
             {
-                using var scope = _serviceScopeFactory.CreateScope();
-                ILogger<T> logger = scope.ServiceProvider.GetRequiredService<ILogger<T>>();
-                using var dbContext = scope.ServiceProvider.GetRequiredService<PalClientContext>();
+                try
+                {
+                    using var scope = _serviceScopeFactory.CreateScope();
+                    ILogger<T> logger = scope.ServiceProvider.GetRequiredService<ILogger<T>>();
+                    using var dbContext = scope.ServiceProvider.GetRequiredService<PalClientContext>();
 
-                Run(dbContext, logger);
+                    Run(dbContext, logger);
+                }
+                catch (Exception e)
+                {
+                    DependencyInjectionContext.LoggerProvider.CreateLogger<DbTask<T>>()
+                        .LogError(e, "Failed to run DbTask");
+                }
             });
         }
 

@@ -142,9 +142,12 @@ namespace Pal.Client
             Task.Run(async () =>
             {
                 IServiceScope rootScope;
+                Chat chat;
+
                 try
                 {
                     rootScope = await _rootScopeCompletionSource.Task;
+                    chat = rootScope.ServiceProvider.GetRequiredService<Chat>();
                 }
                 catch (Exception e)
                 {
@@ -152,17 +155,16 @@ namespace Pal.Client
                     return;
                 }
 
-                IPalacePalConfiguration configuration =
-                    rootScope.ServiceProvider.GetRequiredService<IPalacePalConfiguration>();
-                Chat chat = rootScope.ServiceProvider.GetRequiredService<Chat>();
-                if (configuration.FirstUse && arguments != "" && arguments != "config")
-                {
-                    chat.Error(Localization.Error_FirstTimeSetupRequired);
-                    return;
-                }
-
                 try
                 {
+                    IPalacePalConfiguration configuration =
+                        rootScope.ServiceProvider.GetRequiredService<IPalacePalConfiguration>();
+                    if (configuration.FirstUse && arguments != "" && arguments != "config")
+                    {
+                        chat.Error(Localization.Error_FirstTimeSetupRequired);
+                        return;
+                    }
+
                     var sp = rootScope.ServiceProvider;
 
                     switch (arguments)

@@ -472,7 +472,17 @@ namespace Pal.Client.Windows
             CancellationTokenSource cts = new CancellationTokenSource();
             _lastImportCts = cts;
 
-            Task.Run(async () => { _lastImport = await _importService.FindLast(cts.Token); }, cts.Token);
+            Task.Run(async () =>
+            {
+                try
+                {
+                    _lastImport = await _importService.FindLast(cts.Token);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, "Unable to fetch last import");
+                }
+            }, cts.Token);
         }
 
         private void DoExport(string destinationPath)

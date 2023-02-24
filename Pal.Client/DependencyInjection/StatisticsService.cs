@@ -33,14 +33,14 @@ namespace Pal.Client.DependencyInjection
 
         private async Task FetchFloorStatistics()
         {
-            if (!_configuration.HasRoleOnCurrentServer(RemoteApi.RemoteUrl, "statistics:view"))
-            {
-                _chat.Error(Localization.Command_pal_stats_CurrentFloor);
-                return;
-            }
-
             try
             {
+                if (!_configuration.HasRoleOnCurrentServer(RemoteApi.RemoteUrl, "statistics:view"))
+                {
+                    _chat.Error(Localization.Command_pal_stats_CurrentFloor);
+                    return;
+                }
+
                 var (success, floorStatistics) = await _remoteApi.FetchStatistics();
                 if (success)
                 {
