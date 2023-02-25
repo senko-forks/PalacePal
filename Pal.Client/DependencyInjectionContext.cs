@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using Dalamud.Data;
+using Dalamud.Extensions.MicrosoftLogging;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.ClientState.Conditions;
@@ -18,7 +19,6 @@ using Pal.Client.Configuration;
 using Pal.Client.Configuration.Legacy;
 using Pal.Client.Database;
 using Pal.Client.DependencyInjection;
-using Pal.Client.DependencyInjection.Logging;
 using Pal.Client.Floors;
 using Pal.Client.Net;
 using Pal.Client.Rendering;
@@ -33,7 +33,7 @@ namespace Pal.Client
     internal sealed class DependencyInjectionContext : IDisposable
     {
         public const string DatabaseFileName = "palace-pal.data.sqlite3";
-        public static DalamudLoggerProvider LoggerProvider { get; } = new();
+        public static DalamudLoggerProvider LoggerProvider { get; } = new(typeof(Plugin).Assembly);
 
         /// <summary>
         /// Initialized as temporary logger, will be overriden once context is ready with a logger that supports scopes.
@@ -70,7 +70,7 @@ namespace Pal.Client
                     .AddFilter("Microsoft.EntityFrameworkCore.Database", LogLevel.Warning)
                     .AddFilter("Grpc", LogLevel.Debug)
                     .ClearProviders()
-                    .AddProvider(LoggerProvider));
+                    .AddDalamudLogger(plugin));
 
             // dalamud
             _serviceCollection.AddSingleton<IDalamudPlugin>(plugin);

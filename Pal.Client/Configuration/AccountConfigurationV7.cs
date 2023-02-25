@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
-using Dalamud.Logging;
 using Microsoft.Extensions.Logging;
-using Pal.Client.DependencyInjection.Logging;
 
 namespace Pal.Client.Configuration
 {
