@@ -29,7 +29,7 @@ namespace Pal.Client.Commands
                 { "", _ => Execute() }
             };
 
-        private void Execute()
+        public void Execute()
         {
             if (_configuration.FirstUse)
                 _agreementWindow.IsOpen = true;

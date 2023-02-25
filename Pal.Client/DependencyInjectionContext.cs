@@ -113,6 +113,7 @@ namespace Pal.Client
             _serviceCollection.AddTransient<RepoVerification>();
 
             // commands
+            _serviceCollection.AddScoped<PalConfigCommand>();
             _serviceCollection.AddScoped<ISubCommand, PalConfigCommand>();
             _serviceCollection.AddScoped<ISubCommand, PalNearCommand>();
             _serviceCollection.AddScoped<ISubCommand, PalStatsCommand>();

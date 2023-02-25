@@ -193,14 +193,7 @@ namespace Pal.Client
         }
 
         private void OpenConfigUi()
-        {
-            _rootScope!.ServiceProvider.GetRequiredService<IEnumerable<ISubCommand>>()
-                .SelectMany(cmd => cmd.GetHandlers())
-                .Where(cmd => cmd.Key == "config")
-                .Select(cmd => cmd.Value)
-                .Single()
-                .Invoke("config");
-        }
+            => _rootScope!.ServiceProvider.GetRequiredService<PalConfigCommand>().Execute();
 
         private void LanguageChanged(string languageCode)
         {
