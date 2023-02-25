@@ -620,6 +620,15 @@ namespace Pal.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Command could not be executed: {0}.
+        /// </summary>
+        internal static string Error_CommandFailed {
+            get {
+                return ResourceManager.GetString("Error_CommandFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Please finish the initial setup first..
         /// </summary>
         internal static string Error_FirstTimeSetupRequired {

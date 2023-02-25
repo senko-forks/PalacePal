@@ -48,6 +48,7 @@
     </data>
     <data name="Error_LoadFailed" xml:space="preserve">
         <value>Plugin could not be loaded: {0}</value>
+        <comment>Shown when the plugin fails to load, with the placeholder filled with the exception message.</comment>
     </data>
     <data name="Error_WrongRepository" xml:space="preserve">
         <value>Please install this plugin from the official repository at {0} to continue using it.</value>
@@ -68,6 +69,10 @@
     <data name="Command_pal_stats_UnableToFetchStatistics" xml:space="preserve">
         <value>Unable to fetch statistics.</value>
         <comment>Shown when /pal stats produces a server-side error, and the statistics window can't be loaded.</comment>
+    </data>
+    <data name="Error_CommandFailed" xml:space="preserve">
+        <value>Command could not be executed: {0}</value>
+        <comment>Shown when '/pal ...' fails, with the placeholder filled with the exception message.</comment>
     </data>
 
     <!-- Messages while connecting to the server. These are typically only visible when clicking 'Test connection'. -->

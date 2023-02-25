@@ -187,7 +187,8 @@ namespace Pal.Client
                 {
                     _logger.LogError(e, "Could not execute command '{Command}' with arguments '{Arguments}'", command,
                         arguments);
-                    chat.Error(e.ToString());
+                    chat.Error(string.Format(Localization.Error_CommandFailed,
+                        $"{e.GetType()} - {e.Message}"));
                 }
             });
         }

@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Dalamud.Game.Gui;
 using Grpc.Core;
+using Microsoft.Extensions.Logging;
 using Pal.Client.Configuration;
 using Pal.Client.Extensions;
 using Pal.Client.Net;
@@ -13,14 +14,20 @@ namespace Pal.Client.DependencyInjection
     internal sealed class StatisticsService
     {
         private readonly IPalacePalConfiguration _configuration;
+        private readonly ILogger<StatisticsService> _logger;
         private readonly RemoteApi _remoteApi;
         private readonly StatisticsWindow _statisticsWindow;
         private readonly Chat _chat;
 
-        public StatisticsService(IPalacePalConfiguration configuration, RemoteApi remoteApi,
-            StatisticsWindow statisticsWindow, Chat chat)
+        public StatisticsService(
+            IPalacePalConfiguration configuration,
+            ILogger<StatisticsService> logger,
+            RemoteApi remoteApi,
+            StatisticsWindow statisticsWindow,
+            Chat chat)
         {
             _configuration = configuration;
+            _logger = logger;
             _remoteApi = remoteApi;
             _statisticsWindow = statisticsWindow;
             _chat = chat;
@@ -54,11 +61,14 @@ namespace Pal.Client.DependencyInjection
             }
             catch (RpcException e) when (e.StatusCode == StatusCode.PermissionDenied)
             {
+                _logger.LogWarning(e, "Access denied while fetching floor statistics");
                 _chat.Error(Localization.Command_pal_stats_CurrentFloor);
             }
             catch (Exception e)
             {
-                _chat.Error(e.ToString());
+                _logger.LogError(e, "Could not fetch floor statistics");
+                _chat.Error(string.Format(Localization.Error_CommandFailed,
+                    $"{e.GetType()} - {e.Message}"));
             }
         }
     }
