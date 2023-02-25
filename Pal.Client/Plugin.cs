@@ -13,6 +13,7 @@ using Dalamud.Game.Command;
 using Dalamud.Game.Gui;
 using Pal.Client.Properties;
 using ECommons;
+using ECommons.DalamudServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Pal.Client.Commands;
@@ -65,6 +66,10 @@ namespace Pal.Client
             {
                 HelpMessage = Localization.Command_pal_HelpText
             });
+
+            // Using TickScheduler requires ECommons to at least be partially initialized
+            // ECommonsMain.Dispose leaves this untouched.
+            Svc.Init(pluginInterface);
 
             Task.Run(async () => await CreateDependencyContext());
         }

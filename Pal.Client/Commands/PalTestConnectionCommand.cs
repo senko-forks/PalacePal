@@ -23,6 +23,7 @@ namespace Pal.Client.Commands
 
         private void Execute()
         {
+            _configWindow.IsOpen = true;
             var _ = new TickScheduler(() => _configWindow.TestConnection());
         }
     }
