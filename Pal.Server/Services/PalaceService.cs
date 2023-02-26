@@ -116,7 +116,7 @@ namespace Pal.Server.Services
                             trapCount, (ETerritoryType)territoryType, territoryType);
                     if (hoardCount > 0)
                         _logger.LogInformation(
-                            "Saved {Count} new hoard locations for {TerritoryName} ({TerritoryType})", trapCount,
+                            "Saved {Count} new hoard locations for {TerritoryName} ({TerritoryType})", hoardCount,
                             (ETerritoryType)territoryType, territoryType);
                 }
                 else
