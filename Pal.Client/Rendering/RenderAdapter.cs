@@ -27,6 +27,8 @@ namespace Pal.Client.Rendering
             _implementation = Recreate(null);
         }
 
+        public bool RequireRedraw { get; set; }
+
         private IRenderer Recreate(ERenderer? currentRenderer)
         {
             ERenderer targetRenderer = _configuration.Renderer.SelectedRenderer;
@@ -46,6 +48,7 @@ namespace Pal.Client.Rendering
         public void ConfigUpdated()
         {
             _implementation = Recreate(_implementation.GetConfigValue());
+            RequireRedraw = true;
         }
 
         public void Dispose()

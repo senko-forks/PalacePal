@@ -110,6 +110,12 @@ namespace Pal.Client.Floors
                 if (!_territoryState.IsInDeepDungeon() || !_floorService.IsReady(_territoryState.LastTerritory))
                     return;
 
+                if (_renderAdapter.RequireRedraw)
+                {
+                    recreateLayout = true;
+                    _renderAdapter.RequireRedraw = false;
+                }
+
                 ETerritoryType territoryType = (ETerritoryType)_territoryState.LastTerritory;
                 MemoryTerritory memoryTerritory = _floorService.GetTerritoryIfReady(territoryType)!;
                 if (_configuration.Mode == EMode.Online && memoryTerritory.SyncState == ESyncState.NotAttempted)
