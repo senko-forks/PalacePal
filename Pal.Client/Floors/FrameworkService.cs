@@ -250,6 +250,12 @@ namespace Pal.Client.Floors
                     CreateRenderElement(location, elements, DetermineColor(location),
                         _configuration.DeepDungeons.SilverCoffers);
                 }
+                else if (location.Type == MemoryLocation.EType.GoldCoffer &&
+                      _configuration.DeepDungeons.GoldCoffers.Show)
+                {
+                    CreateRenderElement(location, elements, DetermineColor(location),
+                        _configuration.DeepDungeons.GoldCoffers);
+                }
             }
 
             if (elements.Count == 0)
@@ -279,10 +285,12 @@ namespace Pal.Client.Floors
 
         private uint DetermineColor(EphemeralLocation location)
         {
-            if (location.Type == MemoryLocation.EType.SilverCoffer)
-                return _configuration.DeepDungeons.SilverCoffers.Color;
-
-            return RenderData.ColorInvisible;
+            return location.Type switch
+            {
+                MemoryLocation.EType.SilverCoffer => _configuration.DeepDungeons.SilverCoffers.Color,
+                MemoryLocation.EType.GoldCoffer => _configuration.DeepDungeons.GoldCoffers.Color,
+                _ => RenderData.ColorInvisible
+            };
         }
 
         private void CreateRenderElement(MemoryLocation location, List<IRenderElement> elements, uint color,
@@ -409,6 +417,15 @@ namespace Pal.Client.Floors
                             Type = MemoryLocation.EType.SilverCoffer,
                             Position = obj.Position,
                             Seen = true,
+                        });
+                        break;
+
+                    case 2007358:
+                        ephemeralLocations.Add(new EphemeralLocation
+                        {
+                            Type = MemoryLocation.EType.GoldCoffer,
+                            Position = obj.Position,
+                            Seen = true
                         });
                         break;
                 }

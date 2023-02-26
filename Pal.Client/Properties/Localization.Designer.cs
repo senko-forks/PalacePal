@@ -177,6 +177,43 @@ namespace Pal.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Gold Coffer color.
+        /// </summary>
+        internal static string Config_GoldCoffer_Color {
+            get {
+                return ResourceManager.GetString("Config_GoldCoffer_Color", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Draw filled.
+        /// </summary>
+        internal static string Config_GoldCoffer_Filled {
+            get {
+                return ResourceManager.GetString("Config_GoldCoffer_Filled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Show gold coffers on current floor.
+        /// </summary>
+        internal static string Config_GoldCoffer_Show {
+            get {
+                return ResourceManager.GetString("Config_GoldCoffer_Show", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Shows nearby gold coffers (containing pomanders) on the current floor.
+        ///This is not synchronized with other players and not saved between floors/runs..
+        /// </summary>
+        internal static string Config_GoldCoffers_ToolTip {
+            get {
+                return ResourceManager.GetString("Config_GoldCoffers_ToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Hoard Coffer color.
         /// </summary>
         internal static string Config_HoardCoffers_Color {
@@ -357,7 +394,7 @@ namespace Pal.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Shows all the silver coffers visible to you on the current floor.
+        ///   Looks up a localized string similar to Shows nearby silver coffers (gear upgrades and magicites) on the current floor.
         ///This is not synchronized with other players and not saved between floors/runs..
         /// </summary>
         internal static string Config_SilverCoffers_ToolTip {

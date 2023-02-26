@@ -22,7 +22,6 @@ namespace Pal.Client.Scheduled
 
             protected override void Run(QueuedConfigUpdate queued, ref bool recreateLayout)
             {
-                // TODO filter stuff if offline
                 _renderAdapter.ConfigUpdated();
             }
         }

@@ -56,6 +56,14 @@ namespace Pal.Client.Configuration
             OnlyVisibleAfterPomander = false,
             Fill = true
         };
+
+        public MarkerConfiguration GoldCoffers { get; set; } = new()
+        {
+            Show = false,
+            Color = ImGui.ColorConvertFloat4ToU32(new Vector4(1, 1, 0, 0.4f)),
+            OnlyVisibleAfterPomander = false,
+            Fill = true
+        };
     }
 
     public class MarkerConfiguration

@@ -26,6 +26,7 @@ namespace Pal.Client.Floors
             Hoard,
 
             SilverCoffer,
+            GoldCoffer,
         }
 
         public override bool Equals(object? obj)

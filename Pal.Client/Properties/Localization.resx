@@ -146,7 +146,7 @@ When using a Pomander of Safety, all traps are hidden.</value>
         <value>Show silver coffers on current floor</value>
     </data>
     <data name="Config_SilverCoffers_ToolTip" xml:space="preserve">
-        <value>Shows all the silver coffers visible to you on the current floor.
+        <value>Shows nearby silver coffers (gear upgrades and magicites) on the current floor.
 This is not synchronized with other players and not saved between floors/runs.</value>
     </data>
     <data name="Config_SilverCoffer_Color" xml:space="preserve">
@@ -155,6 +155,20 @@ This is not synchronized with other players and not saved between floors/runs.</
     <data name="Config_SilverCoffer_Filled" xml:space="preserve">
         <value>Draw filled</value>
         <comment>Whether silver coffers should only be drawn with the circle outline or as filled circle.</comment>
+    </data>
+    <data name="Config_GoldCoffer_Show" xml:space="preserve">
+        <value>Show gold coffers on current floor</value>
+    </data>
+    <data name="Config_GoldCoffers_ToolTip" xml:space="preserve">
+        <value>Shows nearby gold coffers (containing pomanders) on the current floor.
+This is not synchronized with other players and not saved between floors/runs.</value>
+    </data>
+    <data name="Config_GoldCoffer_Color" xml:space="preserve">
+        <value>Gold Coffer color</value>
+    </data>
+    <data name="Config_GoldCoffer_Filled" xml:space="preserve">
+        <value>Draw filled</value>
+        <comment>Whether gold coffers should only be drawn with the circle outline or as filled circle.</comment>
     </data>
 
 	<!-- Config Window: Community -->

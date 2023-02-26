@@ -47,6 +47,7 @@ namespace Pal.Client.Windows
         private ConfigurableMarker _trapConfig = new();
         private ConfigurableMarker _hoardConfig = new();
         private ConfigurableMarker _silverConfig = new();
+        private ConfigurableMarker _goldConfig = new();
 
         private string? _connectionText;
         private bool _switchToCommunityTab;
@@ -124,6 +125,7 @@ namespace Pal.Client.Windows
             _trapConfig = new ConfigurableMarker(_configuration.DeepDungeons.Traps);
             _hoardConfig = new ConfigurableMarker(_configuration.DeepDungeons.HoardCoffers);
             _silverConfig = new ConfigurableMarker(_configuration.DeepDungeons.SilverCoffers);
+            _goldConfig = new ConfigurableMarker(_configuration.DeepDungeons.GoldCoffers);
             _connectionText = null;
 
             UpdateLastImport();
@@ -162,6 +164,7 @@ namespace Pal.Client.Windows
                 _configuration.DeepDungeons.Traps = _trapConfig.Build();
                 _configuration.DeepDungeons.HoardCoffers = _hoardConfig.Build();
                 _configuration.DeepDungeons.SilverCoffers = _silverConfig.Build();
+                _configuration.DeepDungeons.GoldCoffers = _goldConfig.Build();
 
                 _configurationManager.Save(_configuration);
 
@@ -174,6 +177,7 @@ namespace Pal.Client.Windows
         {
             if (ImGui.BeginTabItem($"{Localization.ConfigTab_DeepDungeons}###TabDeepDungeons"))
             {
+                ImGui.PushID("trap");
                 ImGui.Checkbox(Localization.Config_Traps_Show, ref _trapConfig.Show);
                 ImGui.Indent();
                 ImGui.BeginDisabled(!_trapConfig.Show);
@@ -184,9 +188,11 @@ namespace Pal.Client.Windows
                 ImGuiComponents.HelpMarker(Localization.Config_Traps_HideImpossible_ToolTip);
                 ImGui.EndDisabled();
                 ImGui.Unindent();
+                ImGui.PopID();
 
                 ImGui.Separator();
 
+                ImGui.PushID("hoard");
                 ImGui.Checkbox(Localization.Config_HoardCoffers_Show, ref _hoardConfig.Show);
                 ImGui.Indent();
                 ImGui.BeginDisabled(!_hoardConfig.Show);
@@ -199,9 +205,11 @@ namespace Pal.Client.Windows
                 ImGuiComponents.HelpMarker(Localization.Config_HoardCoffers_HideImpossible_ToolTip);
                 ImGui.EndDisabled();
                 ImGui.Unindent();
+                ImGui.PopID();
 
                 ImGui.Separator();
 
+                ImGui.PushID("silver");
                 ImGui.Checkbox(Localization.Config_SilverCoffer_Show, ref _silverConfig.Show);
                 ImGuiComponents.HelpMarker(Localization.Config_SilverCoffers_ToolTip);
                 ImGui.Indent();
@@ -212,6 +220,22 @@ namespace Pal.Client.Windows
                 ImGui.Checkbox(Localization.Config_SilverCoffer_Filled, ref _silverConfig.Fill);
                 ImGui.EndDisabled();
                 ImGui.Unindent();
+                ImGui.PopID();
+
+                ImGui.Separator();
+
+                ImGui.PushID("gold");
+                ImGui.Checkbox(Localization.Config_GoldCoffer_Show, ref _goldConfig.Show);
+                ImGuiComponents.HelpMarker(Localization.Config_GoldCoffers_ToolTip);
+                ImGui.Indent();
+                ImGui.BeginDisabled(!_goldConfig.Show);
+                ImGui.Spacing();
+                ImGui.ColorEdit4(Localization.Config_GoldCoffer_Color, ref _goldConfig.Color,
+                    ImGuiColorEditFlags.NoInputs);
+                ImGui.Checkbox(Localization.Config_GoldCoffer_Filled, ref _goldConfig.Fill);
+                ImGui.EndDisabled();
+                ImGui.Unindent();
+                ImGui.PopID();
 
                 ImGui.Separator();
 
@@ -406,6 +430,15 @@ namespace Pal.Client.Windows
                                     x.Type == MemoryLocation.EType.SilverCoffer);
                             ImGui.Text(
                                 $"{silverCoffers} silver coffer{(silverCoffers == 1 ? "" : "s")} visible on current floor");
+                        }
+
+                        if (_goldConfig.Show)
+                        {
+                            int goldCoffers =
+                                _floorService.EphemeralLocations.Count(x =>
+                                    x.Type == MemoryLocation.EType.GoldCoffer);
+                            ImGui.Text(
+                                $"{goldCoffers} silver coffer{(goldCoffers == 1 ? "" : "s")} visible on current floor");
                         }
 
                         ImGui.Text($"Pomander of Sight: {_territoryState.PomanderOfSight}");

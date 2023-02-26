@@ -12,6 +12,7 @@ namespace Pal.Client.Rendering
             { MemoryLocation.EType.Trap, new MarkerConfig { Radius = 1.7f } },
             { MemoryLocation.EType.Hoard, new MarkerConfig { Radius = 1.7f, OffsetY = -0.03f } },
             { MemoryLocation.EType.SilverCoffer, new MarkerConfig { Radius = 1f } },
+            { MemoryLocation.EType.GoldCoffer, new MarkerConfig { Radius = 1f } },
         };
 
         public float OffsetY { get; private init; }
