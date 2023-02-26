@@ -26,8 +26,9 @@ namespace Pal.Client.Floors.Tasks
             {
                 logger.LogInformation("Marking {Count} locations as seen locally in territory {Territory}", _locations.Count,
                     _territory.TerritoryType);
+                List<int> localIds = _locations.Select(l => l.LocalId).Where(x => x != null).Cast<int>().ToList();
                 dbContext.Locations
-                    .Where(loc => _locations.Any(l => l.LocalId == loc.LocalId))
+                    .Where(loc => localIds.Contains(loc.LocalId))
                     .ExecuteUpdate(loc => loc.SetProperty(l => l.Seen, true));
                 dbContext.SaveChanges();
             }
