@@ -15,7 +15,8 @@ namespace Pal.Server
 
             builder.Configuration.AddCustomConfiguration();
             builder.Services.AddGrpc(o => o.EnableDetailedErrors = true);
-            builder.Services.AddDbContext<PalServerContext>(o =>
+            builder.Services.AddSingleton<PalConnectionInterceptor>();
+            builder.Services.AddDbContext<PalServerContext>((serviceProvider, o) =>
             {
                 if (builder.Configuration["DataDirectory"] is { } dbPath)
                 {
@@ -29,7 +30,9 @@ namespace Pal.Server
                     dbPath = "palace-pal.db";
 #endif
                 }
+
                 o.UseSqlite($"Data Source={dbPath}");
+                o.AddInterceptors(serviceProvider.GetRequiredService<PalConnectionInterceptor>());
             });
             builder.Services.AddHostedService<RemoveIpHashService>();
             builder.Services.AddSingleton<PalaceLocationCache>();
@@ -39,7 +42,8 @@ namespace Pal.Server
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             }).AddJwtBearer(options =>
             {
-                var jwtConfig = builder.Configuration.GetRequiredSection("JWT").Get<JwtConfiguration>() ?? throw new ArgumentException("no JWT config");
+                var jwtConfig = builder.Configuration.GetRequiredSection("JWT").Get<JwtConfiguration>() ??
+                                throw new ArgumentException("no JWT config");
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
