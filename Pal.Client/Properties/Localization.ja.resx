@@ -142,6 +142,20 @@
         <value>塗りつぶす</value>
         <comment>Whether silver coffers should only be drawn with the circle outline or as filled circle.</comment>
     </data>
+  <data name="Config_GoldCoffer_Show" xml:space="preserve">
+        <value>金の宝箱を表示</value>
+    </data>
+  <data name="Config_GoldCoffers_ToolTip" xml:space="preserve">
+        <value>現在のフロアにある全ての金の宝箱を表示します。
+これは他のプレイヤーと同期されず、データは保存されません。</value>
+    </data>
+  <data name="Config_GoldCoffer_Color" xml:space="preserve">
+        <value>金の宝箱の色</value>
+    </data>
+  <data name="Config_GoldCoffer_Filled" xml:space="preserve">
+        <value>塗りつぶす</value>
+        <comment>Whether gold coffers should only be drawn with the circle outline or as filled circle.</comment>
+    </data>
   <!-- Config Window: Community -->
   <data name="ConfigTab_Community" xml:space="preserve">
         <value>コミュニティ</value>
