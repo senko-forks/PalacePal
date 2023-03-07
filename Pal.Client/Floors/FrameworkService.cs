@@ -397,6 +397,7 @@ namespace Pal.Client.Floors
                     case 2007185:
                     case 2007186:
                     case 2009504:
+                    case 2013284:
                         persistentLocations.Add(new PersistentLocation
                         {
                             Type = MemoryLocation.EType.Trap,
