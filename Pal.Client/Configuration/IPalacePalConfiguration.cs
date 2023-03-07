@@ -19,6 +19,7 @@ namespace Pal.Client.Configuration
         bool FirstUse { get; set; }
         EMode Mode { get; set; }
         string BetaKey { get; }
+        bool HasBetaFeature(string feature) => BetaKey.Contains(feature);
 
         DeepDungeonConfiguration DeepDungeons { get; set; }
         RendererConfiguration Renderer { get; set; }

@@ -125,6 +125,7 @@ namespace Pal.Client
             _serviceCollection.AddScoped<ChatService>();
             _serviceCollection.AddScoped<FloorService>();
             _serviceCollection.AddScoped<ImportService>();
+            _serviceCollection.AddScoped<ObjectTableDebug>();
 
             // windows & related services
             _serviceCollection.AddScoped<AgreementWindow>();

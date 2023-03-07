@@ -73,6 +73,11 @@ namespace Pal.Client
 
             cancellationToken.ThrowIfCancellationRequested();
 
+            if (_serviceProvider.GetRequiredService<IPalacePalConfiguration>().HasBetaFeature(ObjectTableDebug.FeatureName))
+                _serviceProvider.GetRequiredService<ObjectTableDebug>();
+
+            cancellationToken.ThrowIfCancellationRequested();
+
             _logger.LogInformation("Async init complete");
         }
 
