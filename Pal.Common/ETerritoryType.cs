@@ -47,6 +47,17 @@ namespace Pal.Common
         [Display(Order = 9)]
         HeavenOnHigh_81_90 = 775,
         [Display(Order = 10)]
-        HeavenOnHigh_91_100 = 785
+        HeavenOnHigh_91_100 = 785,
+
+        EurekaOrthos_1_10 = 1099,
+        EurekaOrthos_11_20,
+        EurekaOrthos_21_30,
+        EurekaOrthos_31_40,
+        EurekaOrthos_41_50,
+        EurekaOrthos_51_60,
+        EurekaOrthos_61_70,
+        EurekaOrthos_71_80,
+        EurekaOrthos_81_90,
+        EurekaOrthos_91_100
     }
 }
