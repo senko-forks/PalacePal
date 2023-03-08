@@ -19,8 +19,12 @@ namespace Pal.Client.DependencyInjection
             {
                 chat.Error(string.Format(Localization.Error_WrongRepository,
                     "https://github.com/carvelli/Dalamud-Plugins"));
-                throw new InvalidOperationException();
+                throw new RepoVerificationFailedException();
             }
+        }
+
+        internal sealed class RepoVerificationFailedException : Exception
+        {
         }
     }
 }

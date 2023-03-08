@@ -102,12 +102,9 @@ namespace Pal.Client
                 _rootScopeCompletionSource.SetResult(_rootScope);
                 _loadState = ELoadState.Loaded;
             }
-            catch (ObjectDisposedException e)
-            {
-                _rootScopeCompletionSource.SetException(e);
-                _loadState = ELoadState.Error;
-            }
-            catch (OperationCanceledException e)
+            catch (Exception e) when (e is ObjectDisposedException
+                                          or OperationCanceledException
+                                          or RepoVerification.RepoVerificationFailedException)
             {
                 _rootScopeCompletionSource.SetException(e);
                 _loadState = ELoadState.Error;
