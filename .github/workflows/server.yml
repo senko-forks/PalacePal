@@ -8,6 +8,7 @@ on:
       - 'Pal.Common/**'
       - 'Pal.Server/**'
       - 'Dockerfile'
+  workflow_dispatch: {}
 permissions:
   packages: write
 jobs:
