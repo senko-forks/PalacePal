@@ -4,6 +4,7 @@ using Pal.Client.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -104,7 +105,8 @@ namespace Pal.Client
             }
             catch (Exception e) when (e is ObjectDisposedException
                                           or OperationCanceledException
-                                          or RepoVerification.RepoVerificationFailedException)
+                                          or RepoVerification.RepoVerificationFailedException
+                                      || (e is FileLoadException && _pluginInterface.IsDev))
             {
                 _rootScopeCompletionSource.SetException(e);
                 _loadState = ELoadState.Error;
