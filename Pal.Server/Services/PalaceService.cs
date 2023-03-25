@@ -148,8 +148,10 @@ namespace Pal.Server.Services
                     return new MarkObjectsSeenReply { Success = false };
                 }
 
-                var account = await _dbContext.Accounts.FindAsync(new object[] { context.GetAccountId() },
-                    cancellationToken: context.CancellationToken);
+                var account = await _dbContext.Accounts
+                    .Include(x => x.SeenLocations)
+                    .AsSplitQuery()
+                    .FirstAsync(x => x.Id == context.GetAccountId(), cancellationToken: context.CancellationToken);
                 if (account == null)
                 {
                     _logger.LogInformation("Skipping mark objects seen, account {} not found", context.GetAccountId());
