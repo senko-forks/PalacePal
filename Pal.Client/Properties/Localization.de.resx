@@ -33,13 +33,23 @@
   <!-- Generic Errors -->
   <!-- /pal commands -->
   <!-- Messages while connecting to the server. These are typically only visible when clicking 'Test connection'. -->
+  <data name="ConnectionSuccessful" xml:space="preserve">
+        <value>Verbindung erfolgreich.</value>
+    </data>
   <data name="ConnectionError_NotOnline" xml:space="preserve">
         <value>Sie sind nicht online.</value>
         <comment>Shown if you attempt to connect to the server while you have selected 'never upload discoveries, only show traps and coffers i found myself'</comment>
     </data>
+  <data name="ConnectionError_OldVersion" xml:space="preserve">
+        <value>Ihre Version von Palace Pal ist veraltet, bitte aktualisieren Sie das Plugin mit Hilfe des Plugin Installers.</value>
+        <comment>Shown if the version is too old to create an account or log in.</comment>
+    </data>
   <!-- Config Window: Deep Dungeons -->
   <data name="ConfigTab_DeepDungeons" xml:space="preserve">
         <value>Tiefe Gewölbe</value>
+    </data>
+  <data name="Config_Traps_Show" xml:space="preserve">
+        <value>Fallen anzeigen</value>
     </data>
   <!-- Config Window: Community -->
   <!-- Config Window: Import -->
