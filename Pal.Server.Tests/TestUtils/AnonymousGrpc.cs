@@ -1,6 +1,8 @@
-﻿using System;
+﻿extern alias PalServer;
+using System;
 using Account;
 using Grpc.Net.Client;
+using Program = PalServer::Pal.Server.Program;
 
 namespace Pal.Server.Tests.TestUtils
 {
@@ -16,13 +18,13 @@ namespace Pal.Server.Tests.TestUtils
             AccountsClient = new AccountService.AccountServiceClient(Channel);
         }
 
+        public PalWebApplicationFactory<Program> Factory { get; }
+        public GrpcChannel Channel { get; }
+        public AccountService.AccountServiceClient AccountsClient { get; }
+
         public void Dispose()
         {
             Factory.Dispose();
         }
-
-        public PalWebApplicationFactory<Program> Factory { get; }
-        public GrpcChannel Channel { get; }
-        public AccountService.AccountServiceClient AccountsClient { get; }
     }
 }

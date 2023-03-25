@@ -28,7 +28,8 @@ namespace Pal.Server.Services
             _logger = logger;
             _dbContext = dbContext;
 
-            var jwtConfig = configuration.GetRequiredSection("JWT").Get<JwtConfiguration>() ?? throw new ArgumentException("no JWT config");
+            var jwtConfig = configuration.GetRequiredSection("JWT").Get<JwtConfiguration>() ??
+                            throw new ArgumentException("no JWT config");
             _tokenIssuer = jwtConfig.Issuer;
             _tokenAudience = jwtConfig.Audience;
             _useForwardedIp = bool.Parse(configuration.GetOrThrow("UseForwardedIp"));
@@ -36,7 +37,8 @@ namespace Pal.Server.Services
         }
 
         [AllowAnonymous]
-        public override async Task<CreateAccountReply> CreateAccount(CreateAccountRequest request, ServerCallContext context)
+        public override async Task<CreateAccountReply> CreateAccount(CreateAccountRequest request,
+            ServerCallContext context)
         {
             try
             {
@@ -53,16 +55,24 @@ namespace Pal.Server.Services
                         }
                     }
                 }
+
                 if (remoteIp == null)
                     return new CreateAccountReply { Success = false, Error = CreateAccountError.InvalidHash };
 
-                _salt ??= Convert.FromBase64String((await _dbContext.GlobalSettings.FindAsync(new object[] { "salt" }, cancellationToken: context.CancellationToken))!.Value);
-                var ipHash = Convert.ToBase64String(new Rfc2898DeriveBytes(remoteIp.GetAddressBytes(), _salt, iterations: 10000, HashAlgorithmName.SHA1).GetBytes(24));
+                _salt ??= Convert.FromBase64String((await _dbContext.GlobalSettings.FindAsync(new object[] { "salt" },
+                    cancellationToken: context.CancellationToken))!.Value);
+                var ipHash = Convert.ToBase64String(new Rfc2898DeriveBytes(remoteIp.GetAddressBytes(), _salt,
+                    iterations: 10000, HashAlgorithmName.SHA1).GetBytes(24));
 
-                Database.Account? existingAccount = await _dbContext.Accounts.FirstOrDefaultAsync(a => a.IpHash == ipHash, cancellationToken: context.CancellationToken);
+                Database.Account? existingAccount =
+                    await _dbContext.Accounts.FirstOrDefaultAsync(a => a.IpHash == ipHash,
+                        cancellationToken: context.CancellationToken);
                 if (existingAccount != null)
                 {
-                    _logger.LogInformation("CreateAccount: Returning existing account {AccountId} for ip hash {IpHash} ({Ip})", existingAccount.Id, ipHash, remoteIp.ToString().Substring(0, Math.Min(5, remoteIp.ToString().Length)));
+                    _logger.LogInformation(
+                        "CreateAccount: Returning existing account {AccountId} for ip hash {IpHash} ({Ip})",
+                        existingAccount.Id, ipHash,
+                        remoteIp.ToString().Substring(0, Math.Min(5, remoteIp.ToString().Length)));
                     return new CreateAccountReply { Success = true, AccountId = existingAccount.Id.ToString() };
                 }
 
@@ -76,7 +86,8 @@ namespace Pal.Server.Services
                 _dbContext.Accounts.Add(newAccount);
                 await _dbContext.SaveChangesAsync(context.CancellationToken);
 
-                _logger.LogInformation("CreateAccount: Created new account {AccountId} for ip hash {IpHash}", newAccount.Id, ipHash);
+                _logger.LogInformation("CreateAccount: Created new account {AccountId} for ip hash {IpHash}",
+                    newAccount.Id, ipHash);
                 return new CreateAccountReply
                 {
                     Success = true,
@@ -98,10 +109,11 @@ namespace Pal.Server.Services
                 if (!Guid.TryParse(request.AccountId, out Guid accountId))
                 {
                     _logger.LogWarning("Submitted account id '{AccountId}' is not a valid id", request.AccountId);
-                    return new LoginReply { Success = false, Error = LoginError.Unknown };
+                    return new LoginReply { Success = false, Error = LoginError.InvalidAccountId };
                 }
 
-                var existingAccount = await _dbContext.Accounts.FindAsync(new object[] { accountId }, cancellationToken: context.CancellationToken);
+                var existingAccount = await _dbContext.Accounts.FindAsync(new object[] { accountId },
+                    cancellationToken: context.CancellationToken);
                 if (existingAccount == null)
                 {
                     _logger.LogWarning("Could not find account with id '{AccountId}'", accountId);

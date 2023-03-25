@@ -1,4 +1,5 @@
-﻿using System;
+﻿extern alias PalServer;
+using System;
 using System.Data.Common;
 using System.Linq;
 using System.Net;
@@ -10,7 +11,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Pal.Server.Database;
+using PalServer::Pal.Server.Database;
 
 namespace Pal.Server.Tests.TestUtils
 {

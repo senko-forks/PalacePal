@@ -20,12 +20,13 @@ namespace Pal.Server.Tests.Services
         [Fact]
         public async Task CreateAccountAndLogin()
         {
-            var createAccountReply = await _grpc.AccountsClient.CreateAccountAsync(new CreateAccountRequest());
+            CreateAccountReply? createAccountReply =
+                await _grpc.AccountsClient.CreateAccountAsync(new CreateAccountRequest());
             createAccountReply.Error.Should().Be(CreateAccountError.None);
             createAccountReply.Success.Should().BeTrue();
             createAccountReply.AccountId.Should().BeGuid();
 
-            var loginReply = await _grpc.AccountsClient.LoginAsync(new LoginRequest
+            LoginReply? loginReply = await _grpc.AccountsClient.LoginAsync(new LoginRequest
             {
                 AccountId = createAccountReply.AccountId
             });
@@ -36,6 +37,30 @@ namespace Pal.Server.Tests.Services
             Action verify = () => _grpc.AccountsClient.Verify(new VerifyRequest(),
                 new Metadata { { "Authorization", $"Bearer {loginReply.AuthToken}" } });
             verify.Should().NotThrow();
+        }
+
+        [Fact]
+        public async Task LoginWithRandomIdShouldFail()
+        {
+            LoginReply? loginReply = await _grpc.AccountsClient.LoginAsync(new LoginRequest
+            {
+                AccountId = Guid.NewGuid().ToString()
+            });
+            loginReply.Error.Should().Be(LoginError.InvalidAccountId);
+            loginReply.Success.Should().BeFalse();
+            loginReply.AuthToken.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task LoginWithNonGuidIdShouldFail()
+        {
+            LoginReply? loginReply = await _grpc.AccountsClient.LoginAsync(new LoginRequest
+            {
+                AccountId = "aaaaaaaaaaaaaaaaaaaaa"
+            });
+            loginReply.Error.Should().Be(LoginError.InvalidAccountId);
+            loginReply.Success.Should().BeFalse();
+            loginReply.AuthToken.Should().BeEmpty();
         }
     }
 }

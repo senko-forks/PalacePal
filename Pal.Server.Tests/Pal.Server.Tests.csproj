@@ -28,7 +28,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Pal.Server\Pal.Server.csproj" />
+        <ProjectReference Include="..\Pal.Server\Pal.Server.csproj">
+            <Aliases>PalServer</Aliases>
+        </ProjectReference>
     </ItemGroup>
 
     <ItemGroup>
