@@ -26,6 +26,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "github-workflows", "github-
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pal.StandaloneClient", "Pal.StandaloneClient\Pal.StandaloneClient.csproj", "{EDC1C408-D832-4C09-97A2-61B223A84166}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pal.Server.Tests", "Pal.Server.Tests\Pal.Server.Tests.csproj", "{AEC052FA-F178-492C-9A09-ED28DBE1EF5E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -74,6 +76,14 @@ Global
 		{EDC1C408-D832-4C09-97A2-61B223A84166}.Release|Any CPU.Build.0 = Release|Any CPU
 		{EDC1C408-D832-4C09-97A2-61B223A84166}.Release|x64.ActiveCfg = Release|Any CPU
 		{EDC1C408-D832-4C09-97A2-61B223A84166}.Release|x64.Build.0 = Release|Any CPU
+		{AEC052FA-F178-492C-9A09-ED28DBE1EF5E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AEC052FA-F178-492C-9A09-ED28DBE1EF5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AEC052FA-F178-492C-9A09-ED28DBE1EF5E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AEC052FA-F178-492C-9A09-ED28DBE1EF5E}.Debug|x64.Build.0 = Debug|Any CPU
+		{AEC052FA-F178-492C-9A09-ED28DBE1EF5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AEC052FA-F178-492C-9A09-ED28DBE1EF5E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AEC052FA-F178-492C-9A09-ED28DBE1EF5E}.Release|x64.ActiveCfg = Release|Any CPU
+		{AEC052FA-F178-492C-9A09-ED28DBE1EF5E}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

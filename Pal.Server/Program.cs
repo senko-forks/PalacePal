@@ -7,7 +7,7 @@ using Pal.Server.Services;
 
 namespace Pal.Server
 {
-    internal static class Program
+    public partial class Program
     {
         public static async Task Main(string[] args)
         {
