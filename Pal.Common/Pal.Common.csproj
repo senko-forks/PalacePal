@@ -7,5 +7,6 @@
     <Nullable>enable</Nullable>
     <DebugType>portable</DebugType>
     <PathMap Condition="$(SolutionDir) != ''">$(SolutionDir)=X:\</PathMap>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 </Project>

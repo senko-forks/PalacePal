@@ -13,6 +13,7 @@ using Program = PalServer::Pal.Server.Program;
 
 namespace Pal.Server.Tests.TestUtils
 {
+    // ReSharper disable once ClassNeverInstantiated.Global
     public sealed class AuthorizedGrpc : IDisposable
     {
         public AuthorizedGrpc()
