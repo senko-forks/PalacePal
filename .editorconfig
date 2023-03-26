@@ -1,0 +1,31 @@
+root = true
+
+[*]
+indent_style = space
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[{*.cs}]
+charset = utf-8-bom
+indent_size = 4
+dotnet_sort_system_directives_first = true
+csharp_style_implicit_object_creation_when_type_is_apparent = true
+csharp_trailing_comma_in_multiline_lists = true
+csharp_place_simple_embedded_block_on_same_line = false
+csharp_place_attribute_on_same_line = false
+
+resharper_indent_text = ZeroIndent
+
+# methods
+csharp_style_expression_bodied_methods = true
+
+# namespaces
+csharp_style_namespace_declarations = block_scoped
+
+# braces
+csharp_prefer_braces = when_multiline
+
+[{*.resx,*.Designer.cs,packages.lock.json}]
+generated_code = true
+ij_formatter_enabled = false

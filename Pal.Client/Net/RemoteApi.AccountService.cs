@@ -1,16 +1,16 @@
-﻿using Account;
-using Grpc.Core;
-using Grpc.Net.Client;
-using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Account;
+using Grpc.Core;
+using Grpc.Net.Client;
+using Microsoft.Extensions.Logging;
+using Pal.Client.Configuration;
 using Pal.Client.Extensions;
 using Pal.Client.Properties;
-using Pal.Client.Configuration;
 
 namespace Pal.Client.Net
 {

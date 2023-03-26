@@ -1,5 +1,4 @@
-﻿using Palace;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -7,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Pal.Client.Database;
 using Pal.Client.Floors;
+using Palace;
 
 namespace Pal.Client.Net
 {

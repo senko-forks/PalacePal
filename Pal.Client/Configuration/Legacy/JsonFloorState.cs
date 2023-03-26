@@ -19,7 +19,9 @@ namespace Pal.Client.Configuration.Legacy
         private const int CurrentVersion = 4;
 
         private static string _pluginConfigDirectory = null!;
-        private static readonly EMode _mode = EMode.Online; // might not be true, but this is 'less strict filtering' for migrations
+
+        // might not be true, but this is 'less strict filtering' for migrations
+        private static readonly EMode _mode = EMode.Online;
 
         internal static void SetContextProperties(string pluginConfigDirectory)
         {

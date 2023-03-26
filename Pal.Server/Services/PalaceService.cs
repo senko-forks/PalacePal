@@ -1,12 +1,12 @@
-﻿using Grpc.Core;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
+using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Pal.Common;
-using Palace;
-using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
-using System.Numerics;
 using Pal.Server.Database;
+using Palace;
 using static Palace.PalaceService;
 
 namespace Pal.Server.Services

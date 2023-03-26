@@ -1,7 +1,4 @@
-﻿using Dalamud.Interface.Windowing;
-using Dalamud.Plugin;
-using Pal.Client.Rendering;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -12,7 +9,8 @@ using Dalamud.Game;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.Command;
 using Dalamud.Game.Gui;
-using Pal.Client.Properties;
+using Dalamud.Interface.Windowing;
+using Dalamud.Plugin;
 using ECommons;
 using ECommons.DalamudServices;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,6 +18,8 @@ using Microsoft.Extensions.Logging;
 using Pal.Client.Commands;
 using Pal.Client.Configuration;
 using Pal.Client.DependencyInjection;
+using Pal.Client.Properties;
+using Pal.Client.Rendering;
 
 namespace Pal.Client
 {

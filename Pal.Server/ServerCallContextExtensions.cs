@@ -1,5 +1,5 @@
-﻿using Grpc.Core;
-using System.Security.Claims;
+﻿using System.Security.Claims;
+using Grpc.Core;
 
 namespace Pal.Server
 {

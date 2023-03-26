@@ -1,8 +1,8 @@
-﻿using Dalamud.Logging;
+﻿using System;
+using Dalamud.Game.Gui;
+using Dalamud.Logging;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
-using System;
-using Dalamud.Game.Gui;
 using Pal.Client.Configuration;
 using Pal.Client.DependencyInjection;
 

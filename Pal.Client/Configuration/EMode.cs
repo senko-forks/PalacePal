@@ -8,7 +8,7 @@
         Online = 1,
 
         /// <summary>
-        /// Only shows traps found by yourself uisng a pomander of sight.
+        /// Only shows traps found by yourself using a pomander of sight.
         /// </summary>
         Offline = 2,
     }

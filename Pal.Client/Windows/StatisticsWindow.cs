@@ -1,12 +1,12 @@
-﻿using Dalamud.Interface.Windowing;
-using ImGuiNET;
-using Pal.Common;
-using Palace;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using Dalamud.Interface.Windowing;
+using ImGuiNET;
 using Pal.Client.Properties;
+using Pal.Common;
+using Palace;
 
 namespace Pal.Client.Windows
 {

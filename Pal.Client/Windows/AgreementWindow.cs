@@ -1,9 +1,9 @@
 ﻿using System;
+using System.Numerics;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Windowing;
 using ECommons;
 using ImGuiNET;
-using System.Numerics;
 using Pal.Client.Configuration;
 using Pal.Client.Extensions;
 using Pal.Client.Properties;
