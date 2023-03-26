@@ -24,6 +24,7 @@ namespace Pal.Server.Tests.TestUtils
 
         public void Dispose()
         {
+            Channel.Dispose();
             Factory.Dispose();
         }
     }
