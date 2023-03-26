@@ -38,4 +38,8 @@
         <Protobuf Include="..\Pal.Common\Protos\export.proto" Link="Protos\export.proto" GrpcServices="Client" Access="Public" />
         <Protobuf Include="..\Pal.Common\Protos\palace.proto" Link="Protos\palace.proto" GrpcServices="Client" Access="Public" />
     </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
 </Project>

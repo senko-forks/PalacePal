@@ -22,7 +22,7 @@ namespace Pal.Server.Tests.Services
             _grpc = grpc;
         }
 
-        [Fact]
+        [Fact(Timeout = 5000)]
         public async Task ExportData()
         {
             _grpc.WithDb(dbContext =>
@@ -52,7 +52,7 @@ namespace Pal.Server.Tests.Services
             floor.Objects.Where(x => x.Type == ExportObjectType.Hoard).Should().HaveCount(2);
         }
 
-        [Fact]
+        [Fact(Timeout = 5000)]
         public async Task ExportWithoutRoleShouldFail()
         {
             _grpc.WithDb(dbContext => dbContext.ResetToDefaultAccount());
@@ -67,7 +67,7 @@ namespace Pal.Server.Tests.Services
                 .Where(e => e.StatusCode == StatusCode.PermissionDenied);
         }
 
-        [Fact]
+        [Fact(Timeout = 5000)]
         public void AnonymousExportShouldFail()
         {
             _grpc.WithDb(dbContext => dbContext.ResetToDefaultAccount());

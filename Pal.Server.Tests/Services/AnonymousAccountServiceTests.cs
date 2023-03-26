@@ -17,7 +17,7 @@ namespace Pal.Server.Tests.Services
             _grpc = grpc;
         }
 
-        [Fact]
+        [Fact(Timeout = 5000)]
         public async Task CreateAccountAndLogin()
         {
             CreateAccountReply? createAccountReply =
@@ -39,7 +39,7 @@ namespace Pal.Server.Tests.Services
             verify.Should().NotThrow();
         }
 
-        [Fact]
+        [Fact(Timeout = 5000)]
         public async Task LoginWithRandomIdShouldFail()
         {
             LoginReply? loginReply = await _grpc.AccountsClient.LoginAsync(new LoginRequest
@@ -51,7 +51,7 @@ namespace Pal.Server.Tests.Services
             loginReply.AuthToken.Should().BeEmpty();
         }
 
-        [Fact]
+        [Fact(Timeout = 5000)]
         public async Task LoginWithNonGuidIdShouldFail()
         {
             LoginReply? loginReply = await _grpc.AccountsClient.LoginAsync(new LoginRequest
