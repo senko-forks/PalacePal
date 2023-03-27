@@ -149,7 +149,7 @@ namespace Pal.Server.Services
                 }
 
                 var account = await _dbContext.Accounts
-                    .Include(x => x.SeenLocations)
+                    .Include(x => x.SeenLocations.Where(x => x.PalaceLocation.TerritoryType == request.TerritoryType))
                     .AsSplitQuery()
                     .FirstOrDefaultAsync(x => x.Id == context.GetAccountId(), cancellationToken: context.CancellationToken);
                 if (account == null)
