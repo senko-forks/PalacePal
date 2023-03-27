@@ -15,7 +15,7 @@ namespace Pal.Client.Configuration
 
         public const string ConfigFileName = "palace-pal.config.json";
 
-        private static bool? _supportsDpapi = null;
+        private static bool? _supportsDpapi;
         public static bool SupportsDpapi
         {
             get

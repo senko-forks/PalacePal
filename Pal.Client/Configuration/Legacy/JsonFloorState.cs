@@ -20,9 +20,6 @@ namespace Pal.Client.Configuration.Legacy
 
         private static string _pluginConfigDirectory = null!;
 
-        // might not be true, but this is 'less strict filtering' for migrations
-        private static readonly EMode _mode = EMode.Online;
-
         internal static void SetContextProperties(string pluginConfigDirectory)
         {
             _pluginConfigDirectory = pluginConfigDirectory;
@@ -38,12 +35,7 @@ namespace Pal.Client.Configuration.Legacy
 
         private void ApplyFilters()
         {
-            if (_mode == EMode.Offline)
-                Markers = new ConcurrentBag<JsonMarker>(Markers.Where(x => x.Seen || (x.WasImported && x.Imports.Count > 0)));
-            else
-                // ensure old import markers are removed if they are no longer part of a "current" import
-                // this MAY remove markers the server sent you (and that you haven't seen), but this should be fixed the next time you enter the zone
-                Markers = new ConcurrentBag<JsonMarker>(Markers.Where(x => x.Seen || !x.WasImported || x.Imports.Count > 0));
+            Markers = new ConcurrentBag<JsonMarker>(Markers.Where(x => x.Seen || !x.WasImported || x.Imports.Count > 0));
         }
 
         public static JsonFloorState? Load(ushort territoryType)

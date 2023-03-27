@@ -8,10 +8,7 @@ namespace Pal.Server
         public static bool TryGetAccountId(this ServerCallContext context, out Guid accountId)
         {
             accountId = Guid.Empty;
-            ClaimsPrincipal? user = context.GetHttpContext()?.User;
-            if (user == null)
-                return false;
-
+            ClaimsPrincipal user = context.GetHttpContext().User;
             Claim? claim = user.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
             if (claim == null)
                 return false;
