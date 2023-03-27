@@ -151,7 +151,7 @@ namespace Pal.Server.Services
                 var account = await _dbContext.Accounts
                     .Include(x => x.SeenLocations)
                     .AsSplitQuery()
-                    .FirstAsync(x => x.Id == context.GetAccountId(), cancellationToken: context.CancellationToken);
+                    .FirstOrDefaultAsync(x => x.Id == context.GetAccountId(), cancellationToken: context.CancellationToken);
                 if (account == null)
                 {
                     _logger.LogInformation("Skipping mark objects seen, account {} not found", context.GetAccountId());
@@ -162,7 +162,8 @@ namespace Pal.Server.Services
 
                 DateTime firstSeenAt = DateTime.Now;
                 var seenLocations = account.SeenLocations;
-                var newLocations = request.NetworkIds.Select(x => Guid.Parse(x))
+                var newLocations = request.NetworkIds.Select(Guid.Parse)
+                    .Distinct()
                     .Where(x => objects.ContainsKey(x))
                     .Where(x => !seenLocations.Any(seen => seen.PalaceLocationId == x))
                     .Select(x => new SeenLocation(account, x, firstSeenAt))

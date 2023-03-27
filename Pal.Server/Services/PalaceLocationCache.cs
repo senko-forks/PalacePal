@@ -15,5 +15,7 @@ namespace Pal.Server.Services
 
         internal bool TryGetValue(ushort territoryType, out ConcurrentDictionary<Guid, PalaceObject>? objects) =>
             _objects.TryGetValue(territoryType, out objects);
+
+        internal void Clear() => _objects.Clear();
     }
 }

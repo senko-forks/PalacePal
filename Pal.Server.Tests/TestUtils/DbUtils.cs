@@ -1,6 +1,7 @@
 ﻿extern alias PalServer;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Pal.Common;
 using PalServer::Pal.Server.Database;
 using DbAccount = Account;
@@ -39,6 +40,15 @@ namespace Pal.Server.Tests.TestUtils
                     AccountId = Guid.Empty,
                     CreatedAt = DateTime.UtcNow,
                 });
+            }
+
+            dbContext.SaveChanges();
+
+            // mark at least some location seen
+            var account = dbContext.Accounts.First();
+            foreach (var location in dbContext.Locations.Take(3))
+            {
+                account.SeenLocations.Add(new SeenLocation(account, location.Id, DateTime.UtcNow));
             }
 
             dbContext.SaveChanges();

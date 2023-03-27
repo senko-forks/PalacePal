@@ -2,13 +2,15 @@
 using System;
 using System.Threading.Tasks;
 using Account;
-using Export;
 using FluentAssertions;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
-using Palace;
 using PalServer::Pal.Server.Database;
+using PalServer::Pal.Server.Services;
+using AccountService = Account.AccountService;
+using ExportService = Export.ExportService;
+using PalaceService = Palace.PalaceService;
 using Program = PalServer::Pal.Server.Program;
 
 namespace Pal.Server.Tests.TestUtils
@@ -61,6 +63,8 @@ namespace Pal.Server.Tests.TestUtils
             var dbContext = scope.ServiceProvider.GetRequiredService<PalServerContext>();
             func.Invoke(dbContext);
             dbContext.SaveChanges();
+
+            scope.ServiceProvider.GetRequiredService<PalaceLocationCache>().Clear();
         }
 
         public T WithDb<T>(Func<PalServerContext, T> func)
@@ -70,6 +74,8 @@ namespace Pal.Server.Tests.TestUtils
             var dbContext = scope.ServiceProvider.GetRequiredService<PalServerContext>();
             T result = func.Invoke(dbContext);
             dbContext.SaveChanges();
+
+            scope.ServiceProvider.GetRequiredService<PalaceLocationCache>().Clear();
 
             return result;
         }

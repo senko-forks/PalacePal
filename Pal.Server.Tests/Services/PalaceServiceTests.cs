@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Grpc.Core;
+using Microsoft.EntityFrameworkCore;
 using Pal.Common;
 using Pal.Server.Tests.TestUtils;
 using Palace;
@@ -132,6 +133,42 @@ namespace Pal.Server.Tests.Services
         }
 
         [Fact]
+        public async Task ShouldIgnoreDuplicateUploads()
+        {
+            IReadOnlyList<ServerLocation> existingLocations = _grpc.WithDb(dbContext =>
+            {
+                dbContext.ResetToDefaultAccount();
+                return CreateEurekaOrthosLocations(dbContext);
+            });
+            var auth = await _grpc.LoginAsync();
+
+            var existingLocation = existingLocations.First();
+            var uploadRequest = new UploadFloorsRequest
+            {
+                TerritoryType = existingLocation.TerritoryType,
+                Objects =
+                {
+                    new PalaceObject
+                    {
+                        Type = existingLocation.Type == ServerLocation.EType.Trap ? ObjectType.Trap : ObjectType.Hoard,
+                        X = existingLocation.X,
+                        Y = existingLocation.Y,
+                        Z = existingLocation.Z + 0.001f,
+                    }
+                }
+            };
+            var uploadReply = await _grpc.PalaceClient.UploadFloorsAsync(uploadRequest, auth);
+            uploadReply.Success.Should().BeTrue();
+            uploadReply.Objects.Should().BeEmpty();
+
+            IReadOnlyList<ServerLocation> locationsAfterUpdate =
+                _grpc.WithDb(dbContext =>
+                    dbContext.Locations.Where(loc => loc.TerritoryType == (ushort)ETerritoryType.EurekaOrthos_91_100)
+                        .ToList());
+            locationsAfterUpdate.Should().HaveSameCount(existingLocations);
+        }
+
+        [Fact]
         public void AnonymousUploadFloorShouldFail()
         {
             _grpc.WithDb(dbContext => dbContext.ResetToDefaultAccount());
@@ -155,12 +192,146 @@ namespace Pal.Server.Tests.Services
             });
             var auth = await _grpc.LoginAsync();
 
+            var newlySeenIds = locations.Take(2).Select(x => x.Id).ToList();
             var markSeenReply = await _grpc.PalaceClient.MarkObjectsSeenAsync(new MarkObjectsSeenRequest
             {
                 TerritoryType = (ushort)ETerritoryType.EurekaOrthos_91_100,
-                NetworkIds = { locations.Take(3).Select(x => x.Id.ToString()) }
+                NetworkIds = { newlySeenIds.Select(x => x.ToString()) },
             }, auth);
             markSeenReply.Success.Should().BeTrue();
+
+            var seenLocations = _grpc.WithDb(dbContext => dbContext.Accounts
+                .Include(x => x.SeenLocations)
+                .AsSplitQuery()
+                .First(x => x.Id == DbUtils.DefaultAccountId)
+                .SeenLocations
+                .Select(x => x.PalaceLocationId)
+                .ToList());
+            seenLocations.Should().Contain(newlySeenIds);
+        }
+
+        [Fact]
+        public async Task MarkNonExistingObjectSeen()
+        {
+            IList<SeenLocation> existingSeenLocations = _grpc.WithDb(dbContext =>
+            {
+                dbContext.ResetToDefaultAccount();
+                return dbContext.Accounts
+                    .Include(x => x.SeenLocations)
+                    .AsSplitQuery()
+                    .First(x => x.Id == DbUtils.DefaultAccountId)
+                    .SeenLocations.ToList();
+            });
+            existingSeenLocations.Should().NotBeEmpty();
+            var auth = await _grpc.LoginAsync();
+
+            var markSeenReply = await _grpc.PalaceClient.MarkObjectsSeenAsync(new MarkObjectsSeenRequest
+            {
+                TerritoryType = (ushort)ETerritoryType.EurekaOrthos_91_100,
+                NetworkIds = { Guid.NewGuid().ToString() }
+            }, auth);
+            markSeenReply.Success.Should().BeTrue();
+
+            IList<SeenLocation> newSeenLocations = _grpc.WithDb(dbContext => dbContext.Accounts
+                .Include(x => x.SeenLocations)
+                .AsSplitQuery()
+                .First(x => x.Id == DbUtils.DefaultAccountId)
+                .SeenLocations.ToList());
+            newSeenLocations.Should().HaveSameCount(existingSeenLocations);
+        }
+
+        [Fact]
+        public async Task MarkObjectSeenTwiceIgnoresSecondCall()
+        {
+            IReadOnlyList<ServerLocation> locations = _grpc.WithDb(dbContext =>
+            {
+                dbContext.ResetToDefaultAccount();
+                return CreateEurekaOrthosLocations(dbContext);
+            });
+            var auth = await _grpc.LoginAsync();
+
+            var newlySeenId = locations.Select(x => x.Id).First();
+            var markSeenReply = await _grpc.PalaceClient.MarkObjectsSeenAsync(new MarkObjectsSeenRequest
+            {
+                TerritoryType = (ushort)ETerritoryType.EurekaOrthos_91_100,
+                NetworkIds = { newlySeenId.ToString() },
+            }, auth);
+            markSeenReply.Success.Should().BeTrue();
+
+            var seenLocations = _grpc.WithDb(dbContext => dbContext.Accounts
+                .Include(x => x.SeenLocations)
+                .AsSplitQuery()
+                .First(x => x.Id == DbUtils.DefaultAccountId)
+                .SeenLocations
+                .Select(x => x.PalaceLocationId)
+                .ToList());
+            seenLocations.Should().Contain(newlySeenId);
+
+            // second call should succeed, but has no effect due to unique db constraints
+            markSeenReply = await _grpc.PalaceClient.MarkObjectsSeenAsync(new MarkObjectsSeenRequest
+            {
+                TerritoryType = (ushort)ETerritoryType.EurekaOrthos_91_100,
+                NetworkIds = { newlySeenId.ToString() },
+            }, auth);
+            markSeenReply.Success.Should().BeTrue();
+        }
+
+        [Fact]
+        public void AnonymousMarkObjectSeenShouldFail()
+        {
+            _grpc.WithDb(dbContext => dbContext.ResetToDefaultAccount());
+
+            Action markSeen = () => _grpc.PalaceClient.MarkObjectsSeen(new MarkObjectsSeenRequest
+            {
+                TerritoryType = (ushort)ETerritoryType.Palace_11_20,
+                NetworkIds = { Guid.NewGuid().ToString() },
+            });
+            markSeen.Should()
+                .Throw<RpcException>()
+                .Where(e => e.StatusCode == StatusCode.Unauthenticated);
+        }
+
+        [Fact]
+        public async Task FetchStatistics()
+        {
+            _grpc.WithDb(dbContext =>
+            {
+                dbContext.ResetToDefaultAccount(new List<string> { "statistics:view" });
+                CreateEurekaOrthosLocations(dbContext);
+            });
+            var auth = await _grpc.LoginAsync();
+
+            var statisticsReply = await _grpc.PalaceClient.FetchStatisticsAsync(new StatisticsRequest(), auth);
+            statisticsReply.Success.Should().BeTrue();
+            statisticsReply.FloorStatistics.Should().HaveSameCount(Enum.GetValues<ETerritoryType>());
+
+            var floor = statisticsReply.FloorStatistics.Should()
+                .ContainSingle(floor => floor.TerritoryType == (ushort)ETerritoryType.EurekaOrthos_91_100);
+            floor.Which.TrapCount.Should().Be(3);
+            floor.Which.HoardCount.Should().Be(2);
+        }
+
+        [Fact]
+        public async Task FetchStatisticsWithoutRoleShouldFail()
+        {
+            _grpc.WithDb(dbContext => dbContext.ResetToDefaultAccount());
+            var auth = await _grpc.LoginAsync();
+
+            Action markSeen = () => _grpc.PalaceClient.FetchStatistics(new StatisticsRequest(), auth);
+            markSeen.Should()
+                .Throw<RpcException>()
+                .Where(e => e.StatusCode == StatusCode.PermissionDenied);
+        }
+
+        [Fact]
+        public void AnonymousFetchStatisticsShouldFail()
+        {
+            _grpc.WithDb(dbContext => dbContext.ResetToDefaultAccount());
+
+            Action markSeen = () => _grpc.PalaceClient.FetchStatistics(new StatisticsRequest());
+            markSeen.Should()
+                .Throw<RpcException>()
+                .Where(e => e.StatusCode == StatusCode.Unauthenticated);
         }
 
         private IReadOnlyList<ServerLocation> CreateEurekaOrthosLocations(PalServerContext dbContext)
