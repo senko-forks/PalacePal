@@ -1,7 +1,12 @@
-﻿using System;
+﻿extern alias PalServer;
+using System;
+using System.Numerics;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using FluentAssertions.Primitives;
+using Pal.Server.Tests.TestUtils.Assertions;
+using Palace;
+using PalServer::Pal.Server.Database;
 
 namespace Pal.Server.Tests.TestUtils
 {
@@ -16,5 +21,9 @@ namespace Pal.Server.Tests.TestUtils
 
             return new AndConstraint<StringAssertions>(assertions);
         }
+
+        public static Vector3Assertions Should(this Vector3 v) => new(v);
+        public static PalaceObjectAssertions Should(this PalaceObject palaceObject) => new(palaceObject);
+        public static ServerLocationAssertions Should(this ServerLocation serverLocation) => new(serverLocation);
     }
 }

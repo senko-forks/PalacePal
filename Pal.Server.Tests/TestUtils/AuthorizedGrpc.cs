@@ -39,7 +39,7 @@ namespace Pal.Server.Tests.TestUtils
             Factory.Dispose();
         }
 
-        public async Task<Metadata> Login()
+        public async Task<Metadata> LoginAsync()
         {
             var loginReply = await AccountsClient.LoginAsync(new LoginRequest
             {
@@ -61,6 +61,17 @@ namespace Pal.Server.Tests.TestUtils
             var dbContext = scope.ServiceProvider.GetRequiredService<PalServerContext>();
             func.Invoke(dbContext);
             dbContext.SaveChanges();
+        }
+
+        public T WithDb<T>(Func<PalServerContext, T> func)
+        {
+            using var scope = Factory.Services.CreateScope();
+
+            var dbContext = scope.ServiceProvider.GetRequiredService<PalServerContext>();
+            T result = func.Invoke(dbContext);
+            dbContext.SaveChanges();
+
+            return result;
         }
     }
 }

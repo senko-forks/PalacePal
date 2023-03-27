@@ -31,7 +31,7 @@ namespace Pal.Server.Tests.Services
                 MakeLocationsSeen(dbContext);
             });
 
-            var auth = await _grpc.Login();
+            var auth = await _grpc.LoginAsync();
 
             string serverUrl = $"https://{Guid.NewGuid()}.local";
             DateTime beforeExport = DateTime.UtcNow;
@@ -56,7 +56,7 @@ namespace Pal.Server.Tests.Services
         public async Task ExportWithoutRoleShouldFail()
         {
             _grpc.WithDb(dbContext => dbContext.ResetToDefaultAccount());
-            var auth = await _grpc.Login();
+            var auth = await _grpc.LoginAsync();
 
             Action action = () => _grpc.ExportClient.Export(new ExportRequest
             {

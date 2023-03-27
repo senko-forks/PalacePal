@@ -37,7 +37,7 @@ namespace Pal.Server.Tests.TestUtils
                     Y = 50,
                     Z = 100,
                     AccountId = Guid.Empty,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
                 });
             }
 
