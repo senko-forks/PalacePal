@@ -81,9 +81,7 @@ namespace Pal.Client.DependencyInjection
                 HoardOnCurrentFloor = GetLocalizedString(7272),
                 HoardNotOnCurrentFloor = GetLocalizedString(7273),
                 HoardCofferOpened = GetLocalizedString(7274),
-                FloorChanged =
-                    new Regex("^" + GetLocalizedString(7270).Replace("\u0002 \u0003\ufffd\u0002\u0003", @"(\d+)") +
-                              "$"),
+                FloorChanged = new Regex("^" + GetLocalizedString(7270) + @"(\d+)$"),
             };
         }
 
