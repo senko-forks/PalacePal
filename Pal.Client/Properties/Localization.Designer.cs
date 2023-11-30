@@ -9,8 +9,8 @@
 
 namespace Pal.Client.Properties {
     using System;
-    
-    
+
+
     /// <summary>
     ///   A strongly-typed resource class, for looking up localized strings, etc.
     /// </summary>
@@ -22,15 +22,15 @@ namespace Pal.Client.Properties {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Localization {
-        
+
         private static global::System.Resources.ResourceManager resourceMan;
-        
+
         private static global::System.Globalization.CultureInfo resourceCulture;
-        
+
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
         internal Localization() {
         }
-        
+
         /// <summary>
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
@@ -44,7 +44,7 @@ namespace Pal.Client.Properties {
                 return resourceMan;
             }
         }
-        
+
         /// <summary>
         ///   Overrides the current thread's CurrentUICulture property for all
         ///   resource lookups using this strongly typed resource class.
@@ -58,7 +58,7 @@ namespace Pal.Client.Properties {
                 resourceCulture = value;
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Please chose one of the options above..
         /// </summary>
@@ -67,7 +67,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Agreement_PickOneOption", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to I understand I&apos;m using this plugin on my own risk..
         /// </summary>
@@ -76,7 +76,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Agreement_UsingThisOnMyOwnRisk", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to View plugin &amp; server source code.
         /// </summary>
@@ -85,7 +85,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Agreement_ViewPluginAndServerSourceCode", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to While this is not an automation feature, you&apos;re still very likely to break the ToS..
         /// </summary>
@@ -94,7 +94,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Agreement_Warning1", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Other players in your party can always see where you&apos;re standing/walking..
         /// </summary>
@@ -103,7 +103,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Agreement_Warning2", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to As such, please avoid mentioning it in-game and do not share videos/screenshots..
         /// </summary>
@@ -112,7 +112,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Agreement_Warning3", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Open the configuration window.
         /// </summary>
@@ -121,7 +121,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Command_pal_HelpText", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to You can view statistics for the floor you&apos;re currently on by opening the &apos;Debug&apos; tab in the configuration window..
         /// </summary>
@@ -130,7 +130,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Command_pal_stats_CurrentFloor", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Unable to fetch statistics..
         /// </summary>
@@ -139,7 +139,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Command_pal_stats_UnableToFetchStatistics", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Unknown sub-command &apos;{0}&apos; for &apos;{1}&apos;..
         /// </summary>
@@ -148,7 +148,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Command_pal_UnknownSubcommand", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to You are NOT in a deep dungeon..
         /// </summary>
@@ -157,7 +157,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_Debug_NotInADeepDungeon", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Save as:.
         /// </summary>
@@ -166,7 +166,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_Export_SaveAs", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Export all markers from {0}:.
         /// </summary>
@@ -175,7 +175,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_ExportSource", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Gold Coffer color.
         /// </summary>
@@ -184,7 +184,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_GoldCoffer_Color", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Draw filled.
         /// </summary>
@@ -193,7 +193,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_GoldCoffer_Filled", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Show gold coffers on current floor.
         /// </summary>
@@ -202,7 +202,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_GoldCoffer_Show", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Shows nearby gold coffers (containing pomanders) on the current floor.
         ///This is not synchronized with other players and not saved between floors/runs..
@@ -212,7 +212,35 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_GoldCoffers_ToolTip", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to Gold Coffer color.
+        /// </summary>
+        internal static string Config_CofferLabels {
+            get {
+                return ResourceManager.GetString("Config_CofferLabels", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Show gold coffers on current floor.
+        /// </summary>
+        internal static string Config_CofferLabels_Color {
+            get {
+                return ResourceManager.GetString("Config_CofferLabels_Color", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Shows nearby gold coffers (containing pomanders) on the current floor.
+        ///This is not synchronized with other players and not saved between floors/runs..
+        /// </summary>
+        internal static string Config_CofferLabels_ToolTip {
+            get {
+                return ResourceManager.GetString("Config_CofferLabels_ToolTip", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to Hoard Coffer color.
         /// </summary>
@@ -221,7 +249,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_HoardCoffers_Color", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Hide hoard coffers not on current floor.
         /// </summary>
@@ -230,7 +258,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_HoardCoffers_HideImpossible", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to When using a Pomander of intuition, only the actual hoard coffer location is visible, all other (potential) hoard coffers are hidden..
         /// </summary>
@@ -239,7 +267,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_HoardCoffers_HideImpossible_ToolTip", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Show hoard coffers.
         /// </summary>
@@ -248,7 +276,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_HoardCoffers_Show", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Visit GitHub.
         /// </summary>
@@ -257,7 +285,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_Import_VisitGitHub", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Exports are available from {0} (as *.pal files)..
         /// </summary>
@@ -266,7 +294,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_ImportDownloadLocation", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Using an export is useful if you&apos;re unable to connect to the server, or don&apos;t wish to share your findings..
         /// </summary>
@@ -275,7 +303,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_ImportExplanation1", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Exports are (currently) generated manually, and they only include traps and hoard coffers encountered by 5 or more people. This may lead to higher floors having very sporadic coverage, but commonly run floors (e.g. PotD 51-60, HoH 21-30) are closer to complete..
         /// </summary>
@@ -284,7 +312,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_ImportExplanation2", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to If you aren&apos;t offline, importing a file won&apos;t have any noticeable effect..
         /// </summary>
@@ -293,7 +321,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_ImportExplanation3", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Never upload discoveries, show only traps and coffers I found myself.
         /// </summary>
@@ -302,7 +330,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_NeverUploadDiscoveries_ShowMyTraps", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Simple.
         /// </summary>
@@ -311,7 +339,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_Renderer_Simple", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to experimental.
         /// </summary>
@@ -320,7 +348,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_Renderer_Simple_Hint", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Splatoon.
         /// </summary>
@@ -329,7 +357,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_Renderer_Splatoon", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to default, required Splatoon to be installed.
         /// </summary>
@@ -338,7 +366,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_Renderer_Splatoon_Hint", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to File to Import:.
         /// </summary>
@@ -347,7 +375,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_SelectImportFile", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Path to *.pal file.
         /// </summary>
@@ -356,7 +384,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_SelectImportFile_Hint", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Select which render backend to use for markers:.
         /// </summary>
@@ -365,7 +393,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_SelectRenderBackend", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Silver Coffer color.
         /// </summary>
@@ -374,7 +402,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_SilverCoffer_Color", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Draw filled.
         /// </summary>
@@ -383,7 +411,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_SilverCoffer_Filled", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Show silver coffers on current floor.
         /// </summary>
@@ -392,7 +420,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_SilverCoffer_Show", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Shows nearby silver coffers (gear upgrades and magicites) on the current floor.
         ///This is not synchronized with other players and not saved between floors/runs..
@@ -402,7 +430,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_SilverCoffers_ToolTip", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Draw trap &amp; coffer circles around self.
         /// </summary>
@@ -411,7 +439,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_Splatoon_DrawCircles", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Start Export.
         /// </summary>
@@ -420,7 +448,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_StartExport", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Start Import.
         /// </summary>
@@ -429,7 +457,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_StartImport", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Test Connection.
         /// </summary>
@@ -438,7 +466,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_TestConnection", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Testing....
         /// </summary>
@@ -447,7 +475,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_TestConnection_Connecting", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Trap color.
         /// </summary>
@@ -456,7 +484,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_Traps_Color", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Hide traps not on current floor.
         /// </summary>
@@ -465,7 +493,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_Traps_HideImpossible", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to When using a Pomander of Sight, only the actual trap locations are visible, all other traps are hidden.
         ///When using a Pomander of Safety, all traps are hidden..
@@ -475,7 +503,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_Traps_HideImpossible_ToolTip", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Show traps.
         /// </summary>
@@ -484,7 +512,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_Traps_Show", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Undo Import.
         /// </summary>
@@ -493,7 +521,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_UndoImport", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Your last import was on {0}, which added the trap/hoard coffer database from {1} created on {2:d}..
         /// </summary>
@@ -502,7 +530,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_UndoImportExplanation1", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to If you think that was a mistake, you can remove all locations only found in the import (any location you&apos;ve seen yourself is not changed)..
         /// </summary>
@@ -511,7 +539,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_UndoImportExplanation2", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Upload my discoveries, show traps &amp; coffers other players have discovered.
         /// </summary>
@@ -520,7 +548,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Config_UploadMyDiscoveries_ShowOtherTraps", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Community.
         /// </summary>
@@ -529,7 +557,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("ConfigTab_Community", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Debug.
         /// </summary>
@@ -538,7 +566,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("ConfigTab_Debug", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Deep Dungeons.
         /// </summary>
@@ -547,7 +575,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("ConfigTab_DeepDungeons", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Export.
         /// </summary>
@@ -556,7 +584,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("ConfigTab_Export", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Import.
         /// </summary>
@@ -565,7 +593,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("ConfigTab_Import", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Renderer.
         /// </summary>
@@ -574,7 +602,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("ConfigTab_Renderer", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Could not connect to server: {0}.
         /// </summary>
@@ -583,7 +611,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("ConnectionError_CouldNotConnectToServer", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Could not create account ({0})..
         /// </summary>
@@ -592,7 +620,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("ConnectionError_CreateAccountFailed", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to No account-id after account was attempted to be created..
         /// </summary>
@@ -601,7 +629,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("ConnectionError_CreateAccountReturnedNoId", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Invalid account id..
         /// </summary>
@@ -610,7 +638,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("ConnectionError_InvalidAccountId", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Could not log in ({0})..
         /// </summary>
@@ -619,7 +647,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("ConnectionError_LoginFailed", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to No login information available..
         /// </summary>
@@ -628,7 +656,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("ConnectionError_LoginReturnedNoToken", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to You are not online..
         /// </summary>
@@ -637,7 +665,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("ConnectionError_NotOnline", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Your version of Palace Pal is outdated, please update the plugin using the Plugin Installer..
         /// </summary>
@@ -646,7 +674,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("ConnectionError_OldVersion", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Connection successful..
         /// </summary>
@@ -655,7 +683,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("ConnectionSuccessful", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Command could not be executed: {0}.
         /// </summary>
@@ -664,7 +692,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Error_CommandFailed", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Please finish the initial setup first..
         /// </summary>
@@ -673,7 +701,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Error_FirstTimeSetupRequired", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Import failed: {0}.
         /// </summary>
@@ -682,7 +710,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Error_ImportFailed", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Import failed: Incompatible version..
         /// </summary>
@@ -691,7 +719,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Error_ImportFailed_IncompatibleVersion", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Import failed: Invalid file..
         /// </summary>
@@ -700,7 +728,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Error_ImportFailed_InvalidFile", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Plugin could not be loaded: {0}.
         /// </summary>
@@ -709,7 +737,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Error_LoadFailed", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Please install this plugin from the official repository at {0} to continue using it..
         /// </summary>
@@ -718,7 +746,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Error_WrongRepository", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Eureka Orthos.
         /// </summary>
@@ -727,7 +755,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("EurekaOrthos", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Pal Palace will show where potential trap &amp; hoard coffer locations are..
         /// </summary>
@@ -736,7 +764,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Explanation_1", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to To do this, using a pomander to reveal trap or treasure chest locations will save the position of what you see..
         /// </summary>
@@ -745,7 +773,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Explanation_2", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Ideally, we want to discover every potential trap and chest location in the game, but doing this alone is very tedious. Floor 51-60 has over 300 trap locations and over 290 coffer locations - and we don&apos;t know if that map is complete. Higher floors naturally see fewer runs, making solo attempts to map the place much harder..
         /// </summary>
@@ -754,7 +782,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Explanation_3", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to You can decide whether you want to share traps and chests you find with the community, which likewise also will let you see chests and coffers found by other players. This can be changed at any time. No data regarding your FFXIV character or account is ever sent to our server..
         /// </summary>
@@ -763,7 +791,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Explanation_4", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Heaven on High.
         /// </summary>
@@ -772,7 +800,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("HeavenOnHigh", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Imported {0} new trap locations and {1} new hoard coffer locations..
         /// </summary>
@@ -781,7 +809,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("ImportCompleteStatistics", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Palace Pal.
         /// </summary>
@@ -790,7 +818,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Palace_Pal", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Palace of the Dead.
         /// </summary>
@@ -799,7 +827,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("PalaceOfTheDead", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Save.
         /// </summary>
@@ -808,7 +836,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Save", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Save &amp; Close.
         /// </summary>
@@ -817,7 +845,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("SaveAndClose", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Statistics.
         /// </summary>
@@ -826,7 +854,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Statistics", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Hoard.
         /// </summary>
@@ -835,7 +863,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Statistics_HoardCoffers", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Instance Name.
         /// </summary>
@@ -844,7 +872,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Statistics_InstanceName", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Id.
         /// </summary>
@@ -853,7 +881,7 @@ namespace Pal.Client.Properties {
                 return ResourceManager.GetString("Statistics_TerritoryId", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Traps.
         /// </summary>

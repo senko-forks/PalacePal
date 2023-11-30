@@ -11,6 +11,7 @@ using Dalamud.Game.Command;
 using Dalamud.Game.Gui;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 using ECommons;
 using ECommons.DalamudServices;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,10 +34,10 @@ namespace Pal.Client
         private readonly CancellationTokenSource _initCts = new();
 
         private readonly DalamudPluginInterface _pluginInterface;
-        private readonly CommandManager _commandManager;
-        private readonly ClientState _clientState;
-        private readonly ChatGui _chatGui;
-        private readonly Framework _framework;
+        private readonly ICommandManager _commandManager;
+        private readonly IClientState _clientState;
+        private readonly IChatGui _chatGui;
+        private readonly IFramework _framework;
 
         private readonly TaskCompletionSource<IServiceScope> _rootScopeCompletionSource = new();
         private ELoadState _loadState = ELoadState.Initializing;
@@ -49,10 +50,10 @@ namespace Pal.Client
 
         public Plugin(
             DalamudPluginInterface pluginInterface,
-            CommandManager commandManager,
-            ClientState clientState,
-            ChatGui chatGui,
-            Framework framework)
+            ICommandManager commandManager,
+            IClientState clientState,
+            IChatGui chatGui,
+            IFramework framework)
         {
             _pluginInterface = pluginInterface;
             _commandManager = commandManager;
@@ -134,7 +135,7 @@ namespace Pal.Client
                 _loginAction = loginAction;
         }
 
-        private void Login(object? sender, EventArgs eventArgs)
+        private void Login()
         {
             _loginAction?.Invoke();
             _loginAction = null;

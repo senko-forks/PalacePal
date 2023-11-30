@@ -4,6 +4,7 @@
     {
         TrapHoard,
         RegularCoffers,
+        CofferLabels,
         Test,
     }
 }

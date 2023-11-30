@@ -13,14 +13,6 @@ namespace Pal.Client.DependencyInjection
         public RepoVerification(ILogger<RepoVerification> logger, DalamudPluginInterface pluginInterface, Chat chat)
         {
             logger.LogInformation("Install source: {Repo}", pluginInterface.SourceRepository);
-            if (!pluginInterface.IsDev
-                && !pluginInterface.SourceRepository.StartsWith("https://raw.githubusercontent.com/carvelli/")
-                && !pluginInterface.SourceRepository.StartsWith("https://github.com/carvelli/"))
-            {
-                chat.Error(string.Format(Localization.Error_WrongRepository,
-                    "https://github.com/carvelli/Dalamud-Plugins"));
-                throw new RepoVerificationFailedException();
-            }
         }
 
         internal sealed class RepoVerificationFailedException : Exception

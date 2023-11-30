@@ -14,6 +14,7 @@ namespace Pal.Client.Rendering
         void ResetLayer(ELayer layer);
 
         IRenderElement CreateElement(MemoryLocation.EType type, Vector3 pos, uint color, bool fill = false);
+        IRenderElement CreateTextElement(uint objId, string text, uint color);
 
         void DrawDebugItems(uint trapColor, uint hoardColor);
     }

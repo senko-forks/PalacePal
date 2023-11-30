@@ -1,22 +1,23 @@
 ﻿using Dalamud.Game.Gui;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Plugin.Services;
 using Pal.Client.Properties;
 
 namespace Pal.Client.DependencyInjection
 {
     internal sealed class Chat
     {
-        private readonly ChatGui _chatGui;
+        private readonly IChatGui _chatGui;
 
-        public Chat(ChatGui chatGui)
+        public Chat(IChatGui chatGui)
         {
             _chatGui = chatGui;
         }
 
         public void Error(string e)
         {
-            _chatGui.PrintChat(new XivChatEntry
+            _chatGui.Print(new XivChatEntry
             {
                 Message = new SeStringBuilder()
                     .AddUiForeground($"[{Localization.Palace_Pal}] ", 16)

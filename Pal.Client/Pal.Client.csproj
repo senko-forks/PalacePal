@@ -37,7 +37,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="DalamudPackager" Version="2.1.11"/>
+        <PackageReference Include="DalamudPackager" Version="2.1.12"/>
         <PackageReference Include="Dalamud.Extensions.MicrosoftLogging" Version="1.0.0"/>
         <PackageReference Include="Google.Protobuf" Version="3.22.1"/>
         <PackageReference Include="Grpc.Net.Client" Version="2.52.0"/>

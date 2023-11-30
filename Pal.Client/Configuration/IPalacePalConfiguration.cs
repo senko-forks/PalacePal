@@ -65,6 +65,12 @@ namespace Pal.Client.Configuration
             OnlyVisibleAfterPomander = false,
             Fill = true
         };
+
+        public LabelConfiguration CofferLabels { get; set; } = new()
+        {
+            Show = false,
+            Color = ImGui.ColorConvertFloat4ToU32(new Vector4(1, 1, 0.8f, 0.8f))
+        };
     }
 
     public class MarkerConfiguration
@@ -77,6 +83,15 @@ namespace Pal.Client.Configuration
 
         public bool OnlyVisibleAfterPomander { get; set; }
         public bool Fill { get; set; }
+    }
+
+    public class LabelConfiguration
+    {
+        [JsonRequired]
+        public bool Show { get; set; }
+
+        [JsonRequired]
+        public uint Color { get; set; }
     }
 
     public class RendererConfiguration

@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Reflection;
 using Dalamud.Game.ClientState;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 using ECommons;
 using ECommons.Reflection;
 using ECommons.Schedulers;
@@ -23,7 +24,7 @@ namespace Pal.Client.Rendering
 
         private readonly ILogger<SplatoonRenderer> _logger;
         private readonly DebugState _debugState;
-        private readonly ClientState _clientState;
+        private readonly IClientState _clientState;
         private readonly Chat _chat;
 
         public SplatoonRenderer(
@@ -31,7 +32,7 @@ namespace Pal.Client.Rendering
             DalamudPluginInterface pluginInterface,
             IDalamudPlugin dalamudPlugin,
             DebugState debugState,
-            ClientState clientState,
+            IClientState clientState,
             Chat chat)
         {
             _logger = logger;
@@ -95,7 +96,22 @@ namespace Pal.Client.Rendering
                 radius = config.Radius,
                 FillStep = 1,
                 color = color,
-                thicc = 2,
+                thicc = 2
+            };
+            return new SplatoonElement(this, element);
+        }
+
+        public IRenderElement CreateTextElement(uint objId, string text, uint color)
+        {
+            Element element = new Element(ElementType.CircleRelativeToActorPosition)
+            {
+                refActorType = RefActorType.GameObjectWithSpecifiedAttribute,
+                refActorComparisonType = RefActorComparisonType.ObjectID,
+                refActorObjectID = objId,
+                color = 0x00000000, // invisible
+                overlayText = text,
+                overlayTextColor = color,
+                overlayVOffset = 1.8f
             };
             return new SplatoonElement(this, element);
         }
@@ -167,6 +183,7 @@ namespace Pal.Client.Rendering
 
             ResetLayer(ELayer.TrapHoard);
             ResetLayer(ELayer.RegularCoffers);
+            ResetLayer(ELayer.CofferLabels);
             ResetLayer(ELayer.Test);
 
             ECommonsMain.Dispose();

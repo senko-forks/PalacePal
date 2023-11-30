@@ -63,6 +63,9 @@ namespace Pal.Client.Rendering
         public IRenderElement CreateElement(MemoryLocation.EType type, Vector3 pos, uint color, bool fill = false)
             => _implementation.CreateElement(type, pos, color, fill);
 
+        public IRenderElement CreateTextElement(uint objId, string text, uint color)
+            => _implementation.CreateTextElement(objId, text, color);
+
         public ERenderer GetConfigValue()
             => throw new NotImplementedException();
 

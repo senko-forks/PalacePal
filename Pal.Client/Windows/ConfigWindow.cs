@@ -48,6 +48,7 @@ namespace Pal.Client.Windows
         private ConfigurableMarker _hoardConfig = new();
         private ConfigurableMarker _silverConfig = new();
         private ConfigurableMarker _goldConfig = new();
+        private ConfigurableLabel _cofferLabelConfig = new();
 
         private string? _connectionText;
         private bool _switchToCommunityTab;
@@ -126,6 +127,7 @@ namespace Pal.Client.Windows
             _hoardConfig = new ConfigurableMarker(_configuration.DeepDungeons.HoardCoffers);
             _silverConfig = new ConfigurableMarker(_configuration.DeepDungeons.SilverCoffers);
             _goldConfig = new ConfigurableMarker(_configuration.DeepDungeons.GoldCoffers);
+            _cofferLabelConfig = new ConfigurableLabel(_configuration.DeepDungeons.CofferLabels);
             _connectionText = null;
 
             UpdateLastImport();
@@ -165,6 +167,7 @@ namespace Pal.Client.Windows
                 _configuration.DeepDungeons.HoardCoffers = _hoardConfig.Build();
                 _configuration.DeepDungeons.SilverCoffers = _silverConfig.Build();
                 _configuration.DeepDungeons.GoldCoffers = _goldConfig.Build();
+                _configuration.DeepDungeons.CofferLabels = _cofferLabelConfig.Build();
 
                 _configurationManager.Save(_configuration);
 
@@ -233,6 +236,20 @@ namespace Pal.Client.Windows
                 ImGui.ColorEdit4(Localization.Config_GoldCoffer_Color, ref _goldConfig.Color,
                     ImGuiColorEditFlags.NoInputs);
                 ImGui.Checkbox(Localization.Config_GoldCoffer_Filled, ref _goldConfig.Fill);
+                ImGui.EndDisabled();
+                ImGui.Unindent();
+                ImGui.PopID();
+
+                ImGui.Separator();
+
+                ImGui.PushID("cofferlabel");
+                ImGui.Checkbox(Localization.Config_CofferLabels, ref _cofferLabelConfig.Show);
+                ImGuiComponents.HelpMarker(Localization.Config_GoldCoffers_ToolTip);
+                ImGui.Indent();
+                ImGui.BeginDisabled(!_cofferLabelConfig.Show);
+                ImGui.Spacing();
+                ImGui.ColorEdit4(Localization.Config_CofferLabels_Color, ref _cofferLabelConfig.Color,
+                    ImGuiColorEditFlags.NoInputs);
                 ImGui.EndDisabled();
                 ImGui.Unindent();
                 ImGui.PopID();
@@ -572,6 +589,31 @@ namespace Pal.Client.Windows
                     Color = ImGui.ColorConvertFloat4ToU32(Color),
                     OnlyVisibleAfterPomander = OnlyVisibleAfterPomander,
                     Fill = Fill
+                };
+            }
+        }
+
+        private sealed class ConfigurableLabel
+        {
+            public bool Show;
+            public Vector4 Color;
+
+            public ConfigurableLabel()
+            {
+            }
+
+            public ConfigurableLabel(LabelConfiguration config)
+            {
+                Show = config.Show;
+                Color = ImGui.ColorConvertU32ToFloat4(config.Color);
+            }
+
+            public LabelConfiguration Build()
+            {
+                return new LabelConfiguration
+                {
+                    Show = Show,
+                    Color = ImGui.ColorConvertFloat4ToU32(Color),
                 };
             }
         }

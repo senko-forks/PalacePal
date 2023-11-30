@@ -7,6 +7,7 @@ using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Gui;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 using ImGuiNET;
 
 namespace Pal.Client.Floors
@@ -21,11 +22,11 @@ namespace Pal.Client.Floors
         public const string FeatureName = nameof(ObjectTableDebug);
 
         private readonly DalamudPluginInterface _pluginInterface;
-        private readonly ObjectTable _objectTable;
-        private readonly GameGui _gameGui;
-        private readonly ClientState _clientState;
+        private readonly IObjectTable _objectTable;
+        private readonly IGameGui _gameGui;
+        private readonly IClientState _clientState;
 
-        public ObjectTableDebug(DalamudPluginInterface pluginInterface, ObjectTable objectTable, GameGui gameGui, ClientState clientState)
+        public ObjectTableDebug(DalamudPluginInterface pluginInterface, IObjectTable objectTable, IGameGui gameGui, IClientState clientState)
         {
             _pluginInterface = pluginInterface;
             _objectTable = objectTable;

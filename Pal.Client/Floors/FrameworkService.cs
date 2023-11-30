@@ -8,6 +8,7 @@ using Dalamud.Game;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Plugin.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Pal.Client.Configuration;
@@ -24,33 +25,35 @@ namespace Pal.Client.Floors
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<FrameworkService> _logger;
-        private readonly Framework _framework;
+        private readonly IFramework _framework;
         private readonly ConfigurationManager _configurationManager;
         private readonly IPalacePalConfiguration _configuration;
-        private readonly ClientState _clientState;
+        private readonly IClientState _clientState;
         private readonly TerritoryState _territoryState;
         private readonly FloorService _floorService;
         private readonly DebugState _debugState;
         private readonly RenderAdapter _renderAdapter;
-        private readonly ObjectTable _objectTable;
+        private readonly IObjectTable _objectTable;
         private readonly RemoteApi _remoteApi;
 
         internal Queue<IQueueOnFrameworkThread> EarlyEventQueue { get; } = new();
         internal Queue<IQueueOnFrameworkThread> LateEventQueue { get; } = new();
         internal ConcurrentQueue<nint> NextUpdateObjects { get; } = new();
+        internal ulong LastCofferId { get; set; }
+        internal HashSet<uint> MarkedCoffers { get; } = new();
 
         public FrameworkService(
             IServiceProvider serviceProvider,
             ILogger<FrameworkService> logger,
-            Framework framework,
+            IFramework framework,
             ConfigurationManager configurationManager,
             IPalacePalConfiguration configuration,
-            ClientState clientState,
+            IClientState clientState,
             TerritoryState territoryState,
             FloorService floorService,
             DebugState debugState,
             RenderAdapter renderAdapter,
-            ObjectTable objectTable,
+            IObjectTable objectTable,
             RemoteApi remoteApi)
         {
             _serviceProvider = serviceProvider;
@@ -79,7 +82,7 @@ namespace Pal.Client.Floors
         private void OnSaved(object? sender, IPalacePalConfiguration? config)
             => EarlyEventQueue.Enqueue(new QueuedConfigUpdate());
 
-        private void OnUpdate(Framework framework)
+        private void OnUpdate(IFramework framework)
         {
             if (_configuration.FirstUse)
                 return;
@@ -105,10 +108,20 @@ namespace Pal.Client.Floors
                     _territoryState.PomanderOfIntuition = PomanderState.Inactive;
                     recreateLayout = true;
                     _debugState.Reset();
+
+                    LastCofferId = 0;
                 }
 
                 if (!_territoryState.IsInDeepDungeon() || !_floorService.IsReady(_territoryState.LastTerritory))
                     return;
+
+                if (_clientState.LocalPlayer != null && _clientState.LocalPlayer.TargetObject != null)
+                {
+                    uint dataId = _clientState.LocalPlayer.TargetObject.DataId;
+
+                    if (dataId == 2007357 || dataId == 2007358) // silver/gold coffer
+                        LastCofferId = _clientState.LocalPlayer.TargetObjectId;
+                }
 
                 if (_renderAdapter.RequireRedraw)
                 {
@@ -177,11 +190,16 @@ namespace Pal.Client.Floors
                 {
                     foreach (var location in memoryTerritory.Locations)
                     {
+                        // fuck hoard markers all my homies hate hoard markers
+                        if (location.Type == MemoryLocation.EType.Hoard)
+                            continue;
+
                         uint desiredColor = DetermineColor(location, visibleLocations);
                         if (location.RenderElement == null || !location.RenderElement.IsValid)
                             return true;
 
-                        if (location.RenderElement.Color != desiredColor)
+                        // Hack to make sure it only toggles to/from the transparent color
+                        if ((desiredColor == 0 || location.RenderElement.Color == 0) && location.RenderElement.Color != desiredColor)
                             location.RenderElement.Color = desiredColor;
                     }
                 }

@@ -3,7 +3,7 @@
 <root>
     <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
         <xsd:element name="root" msdata:IsDataSet="true">
-            
+
         </xsd:element>
     </xsd:schema>
     <resheader name="resmimetype">
@@ -18,7 +18,7 @@
     <resheader name="writer">
         <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
     </resheader>
-    
+
     <!-- Common -->
     <data name="Palace_Pal" xml:space="preserve">
         <value>Palace Pal</value>
@@ -40,7 +40,7 @@
     <data name="SaveAndClose" xml:space="preserve">
         <value>Save &amp; Close</value>
     </data>
-    
+
     <!-- Generic Errors -->
     <data name="Error_FirstTimeSetupRequired" xml:space="preserve">
         <value>Please finish the initial setup first.</value>
@@ -110,7 +110,7 @@
     <data name="ConnectionError_CouldNotConnectToServer" xml:space="preserve">
         <value>Could not connect to server: {0}</value>
     </data>
-    
+
     <!-- Config Window: Deep Dungeons -->
     <data name="ConfigTab_DeepDungeons" xml:space="preserve">
         <value>Deep Dungeons</value>
@@ -169,6 +169,16 @@ This is not synchronized with other players and not saved between floors/runs.</
     <data name="Config_GoldCoffer_Filled" xml:space="preserve">
         <value>Draw filled</value>
         <comment>Whether gold coffers should only be drawn with the circle outline or as filled circle.</comment>
+    </data>
+    <data name="Config_CofferLabels" xml:space="preserve">
+        <value>Label coffer contents when inventory is full [Solo runs only]</value>
+    </data>
+    <data name="Config_CofferLabels_ToolTip" xml:space="preserve">
+        <value>Records the content of gold coffers when the contents cannot be obtained.
+This is not synchronized with other players and not saved between floors/runs.</value>
+    </data>
+    <data name="Config_CofferLabels_Color" xml:space="preserve">
+        <value>Text label color</value>
     </data>
 
 	<!-- Config Window: Community -->
@@ -286,7 +296,7 @@ This is not synchronized with other players and not saved between floors/runs.</
     <data name="Statistics_HoardCoffers" xml:space="preserve">
         <value>Hoard</value>
     </data>
-    
+
     <!-- Agreement Window -->
     <data name="Explanation_1" xml:space="preserve">
         <value>Pal Palace will show where potential trap &amp; hoard coffer locations are.</value>

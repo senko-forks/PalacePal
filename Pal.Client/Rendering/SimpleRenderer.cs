@@ -6,6 +6,8 @@ using System.Numerics;
 using Dalamud.Game.ClientState;
 using Dalamud.Game.Gui;
 using Dalamud.Interface;
+using Dalamud.Interface.Utility;
+using Dalamud.Plugin.Services;
 using ImGuiNET;
 using Pal.Client.Configuration;
 using Pal.Client.DependencyInjection;
@@ -14,8 +16,8 @@ using Pal.Client.Floors;
 namespace Pal.Client.Rendering
 {
     /// <summary>
-    /// Simple renderer that only draws basic stuff. 
-    /// 
+    /// Simple renderer that only draws basic stuff.
+    ///
     /// This is based on what SliceIsRight uses, and what PalacePal used before it was
     /// remade into PalacePal (which is the third or fourth iteration on the same idea
     /// I made, just with a clear vision).
@@ -24,13 +26,13 @@ namespace Pal.Client.Rendering
     {
         private const int SegmentCount = 20;
 
-        private readonly ClientState _clientState;
-        private readonly GameGui _gameGui;
+        private readonly IClientState _clientState;
+        private readonly IGameGui _gameGui;
         private readonly IPalacePalConfiguration _configuration;
         private readonly TerritoryState _territoryState;
         private readonly ConcurrentDictionary<ELayer, SimpleLayer> _layers = new();
 
-        public SimpleRenderer(ClientState clientState, GameGui gameGui, IPalacePalConfiguration configuration,
+        public SimpleRenderer(IClientState clientState, IGameGui gameGui, IPalacePalConfiguration configuration,
             TerritoryState territoryState)
         {
             _clientState = clientState;
@@ -65,6 +67,11 @@ namespace Pal.Client.Rendering
                 Radius = config.Radius,
                 Fill = fill,
             };
+        }
+
+        public IRenderElement CreateTextElement(uint objId, string text, uint color)
+        {
+            throw new Exception("Not implemented");
         }
 
         public void DrawDebugItems(uint trapColor, uint hoardColor)
@@ -181,7 +188,7 @@ namespace Pal.Client.Rendering
             public required IReadOnlyList<SimpleElement> Elements { get; init; }
             public long ExpiresAt { get; init; } = long.MaxValue;
 
-            public bool IsValid(ClientState clientState) =>
+            public bool IsValid(IClientState clientState) =>
                 TerritoryType == clientState.TerritoryType && ExpiresAt >= Environment.TickCount64;
 
             public void Dispose()
